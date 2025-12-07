@@ -11,7 +11,7 @@ from PIL import Image
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Portal de Firmas", page_icon="✍️", layout="centered")
 
-# Buscamos en la raíz (".") porque ahí subiste los archivos
+# Buscamos en la raíz (".")
 CARPETA_PENDIENTES = "." 
 CARPETA_FIRMADOS = "FIRMADOS"
 os.makedirs(CARPETA_FIRMADOS, exist_ok=True)
@@ -28,25 +28,22 @@ def estampar_firma(pdf_path, imagen_firma, output_path):
 
     ANCHO, ALTO = 110, 60
 
-    # === 📍 MAPA DE COORDENADAS (CALIBRADO CON TU REGLA) ===
+    # === 📍 MAPA DE COORDENADAS FINAL ===
     COORDENADAS = {
         # HOJA 5
         5: [
-            # ARRIBA: X=380 (Centrado), Y=400 (Mantener altura, estaba bien)
-            (380, 400),  
-            # ABAJO: X=380, Y=260 (Según tu foto de la regla, la línea está en 260)
+            # ARRIBA: Bajamos de 400 a 390 (El ajuste de "2 puntitos" del Jefe)
+            (380, 390),  
+            # ABAJO: PERFECTA (No tocar)
             (380, 260)   
         ],
         
-        # HOJA 6
-        # CORRECCIÓN MASIVA: Bajamos de 240 a 115 (Según tu foto de la regla)
-        # Esto elimina la "firma voladora"
+        # HOJA 6: PERFECTA (No tocar)
         6: [
             (380, 115)   
         ],
         
-        # HOJA 8
-        # X=380 (Alineado con las otras), Y=175 (Intacto)
+        # HOJA 8: PERFECTA (No tocar)
         8: [
             (380, 175)
         ]
@@ -58,7 +55,6 @@ def estampar_firma(pdf_path, imagen_firma, output_path):
 
         if num_pag in COORDENADAS:
             packet = io.BytesIO()
-            # bottomup=True es clave para que las medidas de la regla coincidan
             c = canvas.Canvas(packet, pagesize=letter, bottomup=True)
             
             for (posX, posY) in COORDENADAS[num_pag]:
