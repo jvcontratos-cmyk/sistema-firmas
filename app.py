@@ -21,38 +21,47 @@ st.set_page_config(
     page_title="Portal de Contratos", 
     page_icon="✍️", 
     layout="wide",
-    initial_sidebar_state="expanded" # <--- ESTO OBLIGA A QUE SIEMPRE ARRANQUE ABIERTA
+    initial_sidebar_state="expanded"
 )
 
-# --- CSS NUCLEAR REFORZADO (BARRA LATERAL INMOVIBLE) ---
+# --- CSS NUCLEAR REFORZADO (VERSIÓN MÓVIL BLINDADA) ---
 st.markdown("""
     <style>
-    /* 1. Ocultar Header superior y Decoraciones */
+    /* 1. Ocultar Header superior, Decoraciones y Menú hamburguesa */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
     [data-testid="stDecoration"] {display: none !important;}
     
-    /* 2. Ocultar Footer y Menú hamburguesa */
+    /* 2. Ocultar Footer (Made with Streamlit) */
     footer {visibility: hidden !important;}
     #MainMenu {visibility: hidden !important;}
     
-    /* 3. Ocultar la barra inferior y CUALQUIER botón de Deploy/Manage */
+    /* 3. OCULTAR BARRA MÓVIL INFERIOR (Calavera/Corona) */
     .stAppDeployButton {display: none !important;}
-    .stDeployButton {display: none !important;}
-    [data-testid="stToolbar"] {display: none !important;}
-    [data-testid="stStatusWidget"] {display: none !important;}
-    button[kind="header"] {display: none !important;}
+    [data-testid="stToolbar"] {
+        visibility: hidden !important;
+        display: none !important;
+        height: 0px !important;
+    }
     
-    /* 4. Ocultar botones internos del canvas */
+    /* 4. Ocultar el Widget de Estado (Manage app en PC) */
+    [data-testid="stStatusWidget"] {display: none !important;}
+    
+    /* 5. Ocultar botones internos del canvas */
     div[data-testid="stCanvas"] button {display: none !important;}
     div[data-testid="stElementToolbar"] {display: none !important;}
     
-    /* 5. BLOQUEAR CIERRE DE BARRA LATERAL (FAQ FIJO) */
-    /* Esto oculta el botón "X" o ">" para que nadie pueda cerrar el FAQ */
+    /* 6. Bloquear cierre de barra lateral (FAQ Fijo) */
     section[data-testid="stSidebar"] button {display: none !important;}
     
-    /* 6. Ajustar espacios */
-    .block-container {padding-top: 2rem !important;}
+    /* 7. Ajustar espacios para que no quede hueco */
+    .block-container {padding-top: 1rem !important;}
+    
+    /* AJUSTE EXTRA: Quitar padding inferior en móviles */
+    .stApp {
+        margin-bottom: 0px !important;
+        padding-bottom: 0px !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -77,7 +86,7 @@ if "drive_script_url" in st.secrets["general"]:
 else:
     st.stop()
 
-# --- CONFIGURACIÓN DE IDs (100% Seguros aquí) ---
+# --- CONFIGURACIÓN DE IDs ---
 SHEET_ID = "1OmzmHkZsKjJlPw2V2prVlv_LbcS8RzmdLPP1eL6EGNE"
 DRIVE_FOLDER_PENDING_ID = "1tu19AXukyc_DvS0xkOxoL5wa9gLEJNS7" 
 DRIVE_FOLDER_SIGNED_ID = "1g-ht7BZCUiyN4um1M9bytrrVAZu7gViN"
