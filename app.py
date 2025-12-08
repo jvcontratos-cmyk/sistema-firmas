@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components 
 import os
 import shutil
 from streamlit_drawable_canvas import st_canvas
@@ -24,37 +25,73 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS PLAN Z: LIMPIEZA TOTAL PARA MODO EMBED ---
+# --- JAVASCRIPT: EL FRANCOTIRADOR DE RESPALDO ---
+# Busca específicamente el footer y el botón de fullscreen cada 0.5s y los borra
+components.html("""
+<script>
+    setInterval(function() {
+        // 1. Matar el Footer
+        var footer = document.querySelector('footer');
+        if (footer) {
+            footer.style.display = 'none';
+            footer.style.visibility = 'hidden';
+            footer.innerHTML = ''; // Vaciar contenido por si acaso
+        }
+        
+        // 2. Matar el Botón Fullscreen
+        var fullScreenBtn = document.querySelector('button[title="View fullscreen"]');
+        if (fullScreenBtn) {
+            fullScreenBtn.style.display = 'none';
+        }
+    }, 100); // Revisar 10 veces por segundo
+</script>
+""", height=0, width=0)
+
+# --- CSS NUCLEAR: TÉCNICA FANTASMA (Invisible + Fuera de pantalla) ---
 st.markdown("""
     <style>
-    /* 1. OCULTAR LA BARRA BLANCA DE "BUILT WITH STREAMLIT" (La del modo Embed) */
+    /* ============================================================ */
+    /* ATAQUE AL FOOTER "BUILT WITH STREAMLIT" */
+    /* ============================================================ */
     footer {
         visibility: hidden !important;
-        display: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
         height: 0px !important;
+        max-height: 0px !important;
+        margin: 0px !important;
+        padding: 0px !important;
+        overflow: hidden !important;
+        z-index: -9999 !important;      /* Al fondo del abismo */
+        position: fixed !important;     /* Despegar del flujo */
+        bottom: -100px !important;      /* Tirar fuera de la pantalla */
     }
-    
-    /* 2. OCULTAR EL BOTÓN DE FULLSCREEN (Para que no se salgan del modo Embed) */
+
+    /* ============================================================ */
+    /* ATAQUE AL BOTÓN FULLSCREEN */
+    /* ============================================================ */
     button[title="View fullscreen"] {
         display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
     }
-    
-    /* 3. REFUGIO ADICIONAL: OCULTAR CALAVERA/CORONA (Por si entran sin el link embed) */
+
+    /* ============================================================ */
+    /* LIMPIEZA GENERAL DE SOBRAS */
+    /* ============================================================ */
     .stAppDeployButton, 
     [data-testid="stToolbar"], 
     [data-testid="stHeader"], 
     div[class*="viewerBadge"] {
-        visibility: hidden !important;
         display: none !important;
     }
-
-    /* 4. AJUSTES DE ESPACIO */
-    .block-container {
-        padding-top: 1rem !important; 
-    }
     
-    /* 5. OCULTAR MENÚS */
     #MainMenu {display: none !important;}
+    
+    /* AJUSTE PARA QUE NO QUEDE HUECO BLANCO ABAJO */
+    .block-container {
+        padding-bottom: 0px !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -193,7 +230,7 @@ if st.session_state['dni_validado'] is None:
         dni_input = st.text_input("DIGITE SU DNI", max_chars=15)
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
-    # === FAQ (CENTRAL Y DESPLEGABLE) ===
+    # === FAQ (CENTRAL) ===
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
     
