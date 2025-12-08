@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components # <--- IMPORTANTE: Necesario para el Francotirador
 import os
 import shutil
 from streamlit_drawable_canvas import st_canvas
@@ -24,39 +25,50 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS NUCLEAR: EXTERMINIO DE FLOTANTES MÓVILES ---
+# --- FRANCOTIRADOR JAVASCRIPT (Elimina elementos rebeldes) ---
+# Este script se ejecuta en el navegador y busca borrar la barra toolbar, footer y decoraciones.
+components.html("""
+<script>
+    function eliminarElementosMolestos() {
+        // Lista de selectores de los enemigos (Calavera, Corona, Barras)
+        const selectores = [
+            '[data-testid="stToolbar"]',
+            '[data-testid="stDecoration"]',
+            '[data-testid="stHeader"]',
+            '[data-testid="stStatusWidget"]',
+            '.stAppDeployButton',
+            'div[class*="viewerBadge"]',
+            'header',
+            'footer'
+        ];
+
+        selectores.forEach(selector => {
+            const elementos = window.parent.document.querySelectorAll(selector);
+            elementos.forEach(el => {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+            });
+        });
+    }
+
+    // Ejecutar el francotirador cada 500 milisegundos (0.5 segundos) para asegurar que no revivan
+    setInterval(eliminarElementosMolestos, 500);
+</script>
+""", height=0, width=0)
+
+# --- CSS DE APOYO (Por si el JS tarda en cargar) ---
 st.markdown("""
     <style>
-    /* 1. ELIMINAR CUALQUIER HEADER (INCLUYENDO EL FLOTANTE MÓVIL) */
     header {visibility: hidden !important;}
-    .stApp > header {display: none !important;}
-    [data-testid="stHeader"] {display: none !important;}
-    [data-testid="stDecoration"] {display: none !important;}
-    
-    /* 2. ELIMINAR LA BARRA DE HERRAMIENTAS (DONDE VIVEN CALAVERA Y CORONA) */
+    footer {visibility: hidden !important;}
     [data-testid="stToolbar"] {display: none !important;}
-    div[class*="stToolbar"] {display: none !important;}
-    
-    /* 3. ELIMINAR ESPECÍFICAMENTE LA "CALAVERA" (Viewer Badge) */
+    .stAppDeployButton {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important;}
     div[class*="viewerBadge"] {display: none !important;}
     
-    /* 4. ELIMINAR ESPECÍFICAMENTE LA "CORONA" (Manage App) */
-    .stAppDeployButton {display: none !important;}
-    div[class*="stAppDeployButton"] {display: none !important;}
-    [data-testid="stStatusWidget"] {display: none !important;}
-    
-    /* 5. ELIMINAR MENÚS Y FOOTERS */
-    footer {visibility: hidden !important;}
-    #MainMenu {visibility: hidden !important;}
-    
-    /* 6. ELIMINAR BOTONES INTERNOS */
-    div[data-testid="stCanvas"] button {display: none !important;}
-    div[data-testid="stElementToolbar"] {display: none !important;}
-    section[data-testid="stSidebar"] button {display: none !important;}
-    
-    /* 7. AJUSTAR ESPACIOS (Para que no quede hueco arriba) */
+    /* Ajustes visuales */
     .block-container {padding-top: 1rem !important;}
-    .stApp {margin-top: 0px !important;}
+    section[data-testid="stSidebar"] button {display: none !important;}
     </style>
     """, unsafe_allow_html=True)
 
@@ -195,7 +207,7 @@ if st.session_state['dni_validado'] is None:
         dni_input = st.text_input("DIGITE SU DNI", max_chars=15)
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
-    # === FAQ (CENTRAL Y DESPLEGABLE) ===
+    # === FAQ (UBICACIÓN CENTRAL) ===
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
     
@@ -213,7 +225,6 @@ if st.session_state['dni_validado'] is None:
         *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*
         """)
     st.info("📞 **¿Dudas adicionales?** Contacte al área de RRHH.")
-    # =================================
 
     if submitted and dni_input:
         with st.spinner("Conectando con base de datos..."):
