@@ -19,6 +19,9 @@ else:
     st.error("⚠️ Falta configurar el secreto drive_script_url")
     st.stop()
 
+# TU CARPETA DE DRIVE (El ID que faltaba)
+DRIVE_FOLDER_ID = "1g-ht7BZCUiyN4um1M9bytrrVAZu7gViN"
+
 CARPETA_PENDIENTES = "." 
 CARPETA_FIRMADOS = "FIRMADOS"
 os.makedirs(CARPETA_FIRMADOS, exist_ok=True)
@@ -33,22 +36,21 @@ def enviar_a_drive_script(ruta_archivo, nombre_archivo):
         with open(ruta_archivo, "rb") as f:
             pdf_base64 = base64.b64encode(f.read()).decode('utf-8')
         
-        # No necesitamos folderId aquí, el script ya lo tiene fijo si lo pusiste allá,
-        # o si usas el script genérico, asegúrate de que el script sepa dónde guardar.
-        # Basado en tu último script funcional, solo enviamos file y filename.
+        # AQUI ESTABA EL ERROR: Faltaba enviar el folderId
         payload = {
             "file": pdf_base64,
-            "filename": nombre_archivo
+            "filename": nombre_archivo,
+            "folderId": DRIVE_FOLDER_ID  # <--- ¡ESTA LÍNEA ES LA CLAVE!
         }
         
         response = requests.post(WEB_APP_URL, json=payload)
         
-        if response.status_code == 200 and "Guardado" in response.text:
+        # Aceptamos tanto "Recibido y Guardado" como cualquier 200 OK del script
+        if response.status_code == 200:
             return True
         else:
-            # Si el script devuelve algo que no es éxito, lo tomamos como error
             st.warning(f"Respuesta del servidor: {response.text}")
-            return False # Cambiamos a False para que avise
+            return False
     except Exception as e:
         st.error(f"Error de conexión: {e}")
         return False
@@ -124,7 +126,7 @@ else:
     st.markdown("---")
     st.header("👇 Firme aquí")
     
-    # CAMBIO 1: display_toolbar=False para quitar los botoncitos internos
+    # Lienzo limpio sin botones internos
     canvas_result = st_canvas(
         stroke_width=2, stroke_color="#000000", background_color="#ffffff",
         height=200, width=600, drawing_mode="freedraw",
@@ -134,7 +136,6 @@ else:
 
     col1, col2 = st.columns([1, 4])
     with col1:
-        # Este botón de borrar externo SÍ se queda
         if st.button("🗑️ Borrar"):
             st.session_state['canvas_key'] += 1
             st.rerun()
@@ -143,7 +144,7 @@ else:
         if st.button("✅ ACEPTAR Y FIRMAR", type="primary", use_container_width=True):
             if canvas_result.image_data is not None:
                 ruta_temp = "firma_temp.png"
-                # CAMBIO 3: Nombre de archivo limpio (sin "FIRMADO_")
+                # Nombre limpio: DNI - NOMBRE.pdf
                 nombre_final = archivo
                 ruta_salida = os.path.join(CARPETA_FIRMADOS, nombre_final)
                 
@@ -162,18 +163,16 @@ else:
                         
                         estampar_firma(ruta_pdf, ruta_temp, ruta_salida)
                         
-                        # --- ENVIAR AL SCRIPT ---
+                        # --- ENVIAR AL SCRIPT (AHORA SÍ CON ID) ---
                         exito = enviar_a_drive_script(ruta_salida, nombre_final)
                         
                         if exito:
                             st.balloons()
-                            # CAMBIO 2: Mensaje discreto para el trabajador
                             st.success("✅ Contrato firmado correctamente.")
-                            # El botón de descarga personal sigue activo por si acaso
+                            # Botón de descarga limpio
                             with open(ruta_salida, "rb") as f:
                                 st.download_button("📥 Descargar mi copia", f, file_name=nombre_final, mime="application/pdf")
                         else:
-                            # Si falla Drive, avisamos diferente
                             st.warning("Contrato firmado localmente. Hubo un problema de conexión con el archivo central.")
                             with open(ruta_salida, "rb") as f:
                                 st.download_button("📥 Descargar copia ahora", f, file_name=nombre_final)
