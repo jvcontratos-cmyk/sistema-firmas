@@ -12,6 +12,20 @@ import requests
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Portal de Contratos", page_icon="✍️", layout="centered")
 
+# --- CSS PARA FORZAR OCULTAR BARRA DE HERRAMIENTAS ---
+st.markdown("""
+    <style>
+    /* Esto busca los botones dentro del canvas y los borra del mapa */
+    div[data-testid="stCanvas"] > div:first-child > div:nth-child(2) {
+        display: none !important;
+    }
+    /* Por si acaso, otra regla genérica para ocultar botones del canvas */
+    button[title="Reset"], button[title="Undo"], button[title="Redo"], button[title="Download"] {
+        display: none !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 # LEER SECRETOS
 if "drive_script_url" in st.secrets["general"]:
     WEB_APP_URL = st.secrets["general"]["drive_script_url"]
@@ -26,7 +40,6 @@ DRIVE_FOLDER_ID = "1g-ht7BZCUiyN4um1M9bytrrVAZu7gViN"
 CARPETA_PENDIENTES = "PENDIENTES"  
 CARPETA_FIRMADOS = "FIRMADOS"
 
-# Aseguramos que existan
 os.makedirs(CARPETA_FIRMADOS, exist_ok=True)
 os.makedirs(CARPETA_PENDIENTES, exist_ok=True)
 
@@ -51,10 +64,8 @@ def enviar_a_drive_script(ruta_archivo, nombre_archivo):
         if response.status_code == 200:
             return True
         else:
-            st.warning(f"Respuesta del servidor: {response.text}")
             return False
     except Exception as e:
-        st.error(f"Error de conexión: {e}")
         return False
 
 # --- FUNCIÓN DE ESTAMPADO ---
@@ -64,7 +75,6 @@ def estampar_firma(pdf_path, imagen_firma, output_path):
     total_paginas = len(pdf_original.pages)
     ANCHO, ALTO = 110, 60
 
-    # === 📍 COORDENADAS ===
     COORDENADAS = {
         5: [(380, 388), (380, 260)],
         6: [(380, 115)],
@@ -99,8 +109,6 @@ if st.session_state['dni_validado'] is None:
 
     if submitted and dni_input:
         archivo_encontrado = None
-        
-        # BUSCAR EN LA CARPETA PENDIENTES
         if os.path.exists(CARPETA_PENDIENTES):
             for archivo in os.listdir(CARPETA_PENDIENTES):
                 if archivo.startswith(dni_input) and archivo.lower().endswith(".pdf"):
@@ -112,7 +120,6 @@ if st.session_state['dni_validado'] is None:
             st.session_state['archivo_actual'] = archivo_encontrado
             st.rerun()
         else:
-            # CAMBIO 1: MENSAJE DISCRETO
             st.error("❌ Contrato no ubicado.")
 else:
     archivo = st.session_state['archivo_actual']
@@ -120,23 +127,29 @@ else:
     
     st.success(f"📄 Contrato: {archivo}")
     
-    # VISUALIZACIÓN MEJORADA (Usa <embed> en vez de iframe para evitar errores grises)
+    # VISUALIZACIÓN DE PDF BLINDADA (Usa <object> que es más fuerte)
     try:
         with open(ruta_pdf, "rb") as f:
             base64_pdf = base64.b64encode(f.read()).decode('utf-8')
-        # CAMBIO 2: Usamos <embed> que suele fallar menos
-        pdf_display = f'<embed src="data:application/pdf;base64,{base64_pdf}" width="100%" height="600px" type="application/pdf">'
+        
+        # Estrategia: Object tag + Enlace de rescate si falla
+        pdf_display = f'''
+            <object data="data:application/pdf;base64,{base64_pdf}" type="application/pdf" width="100%" height="600px">
+                <p>Su navegador no puede mostrar la vista previa.</p>
+            </object>
+        '''
         st.markdown(pdf_display, unsafe_allow_html=True)
     except: 
-        st.warning("No se pudo previsualizar el PDF (pero puede firmarlo).")
+        st.warning("Vista previa no disponible en este dispositivo.")
 
     st.markdown("---")
     st.header("👇 Firme aquí")
     
+    # Lienzo con display_toolbar=False (Y el CSS de arriba asegura que se borre)
     canvas_result = st_canvas(
         stroke_width=2, stroke_color="#000000", background_color="#ffffff",
         height=200, width=600, drawing_mode="freedraw",
-        display_toolbar=False,
+        display_toolbar=False, 
         key=f"canvas_{st.session_state['canvas_key']}",
     )
 
@@ -176,9 +189,10 @@ else:
                             with open(ruta_salida, "rb") as f:
                                 st.download_button("📥 Descargar mi copia", f, file_name=nombre_final, mime="application/pdf")
                         else:
-                            st.warning("Contrato firmado localmente. Hubo un problema de conexión con el archivo central.")
+                            # Mensaje discreto si falla la nube
+                            st.success("✅ Contrato firmado correctamente (Copia Local).")
                             with open(ruta_salida, "rb") as f:
-                                st.download_button("📥 Descargar copia ahora", f, file_name=nombre_final)
+                                st.download_button("📥 Descargar mi copia", f, file_name=nombre_final)
 
                     except Exception as e:
                         st.error(f"Error en el proceso: {e}")
