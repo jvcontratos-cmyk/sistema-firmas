@@ -12,46 +12,45 @@ import requests
 import fitz  # PyMuPDF
 import gspread 
 from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build # Para leer Drive desde Python
+from googleapiclient.http import MediaIoBaseDownload
 from datetime import datetime, timedelta
 
 # --- CONFIGURACIÓN DE PÁGINA (MODO KIOSCO) ---
 st.set_page_config(page_title="Portal de Contratos", page_icon="✍️", layout="wide")
 
-# --- CSS NUCLEAR REFORZADO (NIVEL EXTREMO) ---
+# --- CSS NUCLEAR REFORZADO ---
 st.markdown("""
     <style>
-    /* 1. Ocultar Header superior y Decoraciones */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
     [data-testid="stDecoration"] {display: none !important;}
-    
-    /* 2. Ocultar Footer y Menú hamburguesa */
     footer {visibility: hidden !important;}
     #MainMenu {visibility: hidden !important;}
-    
-    /* 3. Ocultar la barra inferior y CUALQUIER botón de Deploy/Manage */
     .stAppDeployButton {display: none !important;}
-    .stDeployButton {display: none !important;} /* Variante extra */
+    .stDeployButton {display: none !important;}
     [data-testid="stToolbar"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important;}
     button[kind="header"] {display: none !important;}
-    
-    /* 4. Ocultar botones internos del canvas */
     div[data-testid="stCanvas"] button {display: none !important;}
     div[data-testid="stElementToolbar"] {display: none !important;}
-    
-    /* 5. Ajustar espacios para que no quede hueco arriba */
     .block-container {padding-top: 2rem !important;}
     </style>
     """, unsafe_allow_html=True)
 
-# 1. LEER SECRETOS Y CONFIGURAR GOOGLE SHEETS
+# 1. AUTENTICACIÓN GOOGLE (SHEETS + DRIVE LECTURA)
 if "gcp_service_account" in st.secrets:
     creds_dict = dict(st.secrets["gcp_service_account"])
-    scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
     try:
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        # Cliente para Excel
         client_sheets = gspread.authorize(creds)
+        # Cliente para Drive (Lectura/Borrado)
+        service_drive = build('drive', 'v3', credentials=creds)
     except Exception as e:
         st.error(f"Error conectando con Google: {e}")
         st.stop()
@@ -59,27 +58,25 @@ else:
     st.error("⚠️ Falta configuración interna.")
     st.stop()
 
-# URL DEL SCRIPT (PUENTE)
+# URL DEL SCRIPT (PUENTE PARA SUBIR ARCHIVOS SIN CUOTA)
 if "drive_script_url" in st.secrets["general"]:
     WEB_APP_URL = st.secrets["general"]["drive_script_url"]
 else:
     st.stop()
 
-# CONFIGURACIÓN
+# --- CONFIGURACIÓN DE IDs ---
 SHEET_ID = "1OmzmHkZsKjJlPw2V2prVlv_LbcS8RzmdLPP1eL6EGNE"
-DRIVE_FOLDER_ID = "1g-ht7BZCUiyN4um1M9bytrrVAZu7gViN"
+DRIVE_FOLDER_PENDING_ID = "1tu19AXukyc_DvS0xkOxoL5wa9gLEJNS7" # <--- CARPETA ENTRADA (ORIGINALES)
+DRIVE_FOLDER_SIGNED_ID = "1g-ht7BZCUiyN4um1M9bytrrVAZu7gViN"   # <--- CARPETA SALIDA (FIRMADOS)
 
-CARPETA_PENDIENTES = "PENDIENTES"  
-CARPETA_FIRMADOS = "FIRMADOS"
-CARPETA_PROCESADOS = "PROCESADOS"
-
-os.makedirs(CARPETA_FIRMADOS, exist_ok=True)
-os.makedirs(CARPETA_PENDIENTES, exist_ok=True)
-os.makedirs(CARPETA_PROCESADOS, exist_ok=True)
+# Carpetas temporales locales (solo memoria)
+CARPETA_TEMP = "TEMP_WORK"
+os.makedirs(CARPETA_TEMP, exist_ok=True)
 
 # VARIABLES DE SESIÓN
 if 'dni_validado' not in st.session_state: st.session_state['dni_validado'] = None
-if 'archivo_actual' not in st.session_state: st.session_state['archivo_actual'] = None
+if 'archivo_id' not in st.session_state: st.session_state['archivo_id'] = None
+if 'archivo_nombre' not in st.session_state: st.session_state['archivo_nombre'] = None
 if 'canvas_key' not in st.session_state: st.session_state['canvas_key'] = 0
 if 'firmado_ok' not in st.session_state: st.session_state['firmado_ok'] = False
 
@@ -88,32 +85,24 @@ with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/471/471662.png", width=50)
     st.subheader("Preguntas Frecuentes")
     
-    # PREGUNTA 1: SUELDO
     with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
         st.markdown("""
         En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto.
-        
-        El monto informado durante su reclutamiento es el **Sueldo Bruto**, el cual incluye el básico más otros conceptos (como horas extras, bonificaciones, etc.).
-        
-        *Podrá ver el detalle completo de sus ingresos reflejado en su **boleta de pago** a fin de mes.*
+        El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos).
+        *Lo verá reflejado en su **boleta de pago** a fin de mes.*
         """)
 
-    # PREGUNTA 2: HORAS
     with st.expander("🕒 ¿Por qué el contrato dice 8hrs si trabajo 12hrs?"):
         st.markdown("""
         La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias.
-        
-        Si su turno es de 12 horas:
-        * Las primeras 8 horas cubren esa jornada legal.
-        * Las **4 horas restantes** se consideran y pagan como **HORAS EXTRAS**.
-        
+        Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**.
         *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*
         """)
-    
     st.markdown("---")
     st.info("📞 **¿Dudas adicionales?**\nContacte al área de RRHH.")
 
 # --- FUNCIONES ---
+
 def consultar_estado_dni(dni):
     try:
         sh = client_sheets.open_by_key(SHEET_ID).sheet1
@@ -128,20 +117,50 @@ def registrar_firma_sheet(dni):
         sh = client_sheets.open_by_key(SHEET_ID).sheet1
         cell = sh.find(dni)
         if cell:
-            # Hora Perú (UTC -5)
             hora_peru = datetime.utcnow() - timedelta(hours=5)
             fecha_fmt = hora_peru.strftime("%Y-%m-%d %H:%M:%S")
-            
-            sh.update_cell(cell.row, 2, "FIRMADO") # Columna B
-            sh.update_cell(cell.row, 3, fecha_fmt) # Columna C (Fecha y Hora)
+            sh.update_cell(cell.row, 2, "FIRMADO")
+            sh.update_cell(cell.row, 3, fecha_fmt)
             return True
     except: return False
 
+def buscar_archivo_drive(dni):
+    """Busca un PDF en Drive que contenga el DNI en el nombre."""
+    try:
+        query = f"'{DRIVE_FOLDER_PENDING_ID}' in parents and name contains '{dni}' and mimeType = 'application/pdf' and trashed = false"
+        results = service_drive.files().list(q=query, fields="files(id, name)").execute()
+        items = results.get('files', [])
+        if items:
+            return items[0] # Retorna el primer archivo encontrado {id, name}
+        return None
+    except Exception as e:
+        return None
+
+def descargar_archivo_drive(file_id, nombre_destino):
+    """Descarga el archivo de Drive a la carpeta temporal local."""
+    try:
+        request = service_drive.files().get_media(fileId=file_id)
+        fh = io.FileIO(nombre_destino, 'wb')
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while done is False:
+            status, done = downloader.next_chunk()
+        return True
+    except: return False
+
+def borrar_archivo_drive(file_id):
+    """Borra el archivo original de Drive (Pendientes) para limpiar."""
+    try:
+        service_drive.files().delete(fileId=file_id).execute()
+        return True
+    except: return False
+
 def enviar_a_drive_script(ruta_archivo, nombre_archivo):
+    """Sube el archivo firmado usando el Puente (Apps Script)."""
     try:
         with open(ruta_archivo, "rb") as f:
             pdf_base64 = base64.b64encode(f.read()).decode('utf-8')
-        payload = {"file": pdf_base64, "filename": nombre_archivo, "folderId": DRIVE_FOLDER_ID}
+        payload = {"file": pdf_base64, "filename": nombre_archivo, "folderId": DRIVE_FOLDER_SIGNED_ID}
         requests.post(WEB_APP_URL, json=payload)
         return True
     except: return False
@@ -185,66 +204,67 @@ if st.session_state['dni_validado'] is None:
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
     if submitted and dni_input:
-        with st.spinner("Verificando..."):
+        with st.spinner("Conectando con base de datos..."):
             estado_sheet = consultar_estado_dni(dni_input)
         
-        # MENSAJE DE ALERTA (AZUL/AMABLE)
         if estado_sheet == "FIRMADO":
             st.info(f"ℹ️ El DNI {dni_input} ya registra un contrato firmado.")
             st.markdown("""
-            **Si necesita una copia de su contrato** (porque no pudo descargarla anteriormente) o cree que esto es un error, 
+            **Si necesita una copia de su contrato** o cree que esto es un error, 
             por favor **contacte al área de Recursos Humanos**.
             """)
-        
         else:
-            archivo_encontrado = None
-            if os.path.exists(CARPETA_PENDIENTES):
-                for archivo in os.listdir(CARPETA_PENDIENTES):
-                    if archivo.startswith(dni_input) and archivo.lower().endswith(".pdf"):
-                        archivo_encontrado = archivo
-                        break
+            with st.spinner("Buscando contrato en la nube..."):
+                archivo_drive = buscar_archivo_drive(dni_input)
             
-            if not archivo_encontrado and os.path.exists(CARPETA_PROCESADOS):
-                for archivo in os.listdir(CARPETA_PROCESADOS):
-                    if archivo.startswith(dni_input):
-                        st.info("ℹ️ Su contrato ya fue procesado localmente. Contacte a RRHH.")
-                        st.stop()
-
-            if archivo_encontrado:
-                st.session_state['dni_validado'] = dni_input
-                st.session_state['archivo_actual'] = archivo_encontrado
-                st.session_state['firmado_ok'] = False
-                st.rerun()
+            if archivo_drive:
+                # Descargar a temporal para mostrar y firmar
+                ruta_local = os.path.join(CARPETA_TEMP, archivo_drive['name'])
+                descargo_ok = descargar_archivo_drive(archivo_drive['id'], ruta_local)
+                
+                if descargo_ok:
+                    st.session_state['dni_validado'] = dni_input
+                    st.session_state['archivo_id'] = archivo_drive['id'] # Guardamos ID para borrar luego
+                    st.session_state['archivo_nombre'] = archivo_drive['name']
+                    st.session_state['firmado_ok'] = False
+                    st.rerun()
+                else:
+                    st.error("Error al descargar el documento. Intente nuevamente.")
             else:
                 st.error("❌ Contrato no ubicado (Verifique que su DNI esté correcto).")
 
 else:
-    archivo = st.session_state['archivo_actual']
+    nombre_archivo = st.session_state['archivo_nombre']
+    ruta_pdf_local = os.path.join(CARPETA_TEMP, nombre_archivo)
     
     if st.session_state['firmado_ok']:
         st.success("✅ ¡Firma registrada exitosamente!")
-        st.markdown(f"**Archivo:** {archivo}")
-        # MENSAJE DE ÉXITO CORREGIDO
+        st.markdown(f"**Archivo:** {nombre_archivo}")
         st.info("Su contrato ha sido guardado en la base de datos.")
         
-        ruta_salida = os.path.join(CARPETA_FIRMADOS, archivo)
-        if os.path.exists(ruta_salida):
-            with open(ruta_salida, "rb") as f:
-                st.download_button("📥 DESCARGAR MI CONTRATO FIRMADO", f, file_name=archivo, mime="application/pdf", type="primary")
+        # OJO: La descarga local del firmado depende de si lo guardamos en TEMP
+        ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
+        
+        if os.path.exists(ruta_salida_firmado):
+            with open(ruta_salida_firmado, "rb") as f:
+                st.download_button("📥 DESCARGAR MI CONTRATO FIRMADO", f, file_name=nombre_archivo, mime="application/pdf", type="primary")
         
         st.markdown("---")
         if st.button("🏠 FINALIZAR Y SALIR"):
+            # Limpieza de sesión
             st.session_state['dni_validado'] = None
             st.session_state['firmado_ok'] = False
             st.rerun()
 
     else:
-        ruta_pdf = os.path.join(CARPETA_PENDIENTES, archivo)
-        st.success(f"✅ Documento listo: **{archivo}**")
+        st.success(f"✅ Documento listo: **{nombre_archivo}**")
         st.info("Lea el contrato y firme al final.")
         
         with st.container(height=500, border=True):
-            mostrar_pdf_como_imagenes(ruta_pdf)
+            if os.path.exists(ruta_pdf_local):
+                mostrar_pdf_como_imagenes(ruta_pdf_local)
+            else:
+                st.error("El archivo temporal se perdió. Por favor ingrese nuevamente.")
 
         st.markdown("---")
         st.header("👇 Firme aquí")
@@ -260,13 +280,12 @@ else:
         with col2:
             if st.button("✅ ACEPTAR Y FIRMAR", type="primary", use_container_width=True):
                 if canvas_result.image_data is not None:
-                    ruta_temp = "firma_temp.png"
-                    nombre_final = archivo
-                    ruta_salida = os.path.join(CARPETA_FIRMADOS, nombre_final)
+                    ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
+                    ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
                     
-                    with st.spinner("Procesando firma y registrando fecha..."):
+                    with st.spinner("Procesando firma, guardando y limpiando..."):
                         try:
-                            # 1. Imagen
+                            # 1. Guardar Firma
                             img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
                             data = img.getdata()
                             newData = []
@@ -276,22 +295,19 @@ else:
                                 else:
                                     newData.append(item)
                             img.putdata(newData)
-                            img.save(ruta_temp, "PNG")
+                            img.save(ruta_firma, "PNG")
                             
                             # 2. Estampar
-                            ruta_origen = os.path.join(CARPETA_PENDIENTES, archivo)
-                            estampar_firma(ruta_origen, ruta_temp, ruta_salida)
+                            estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
                             
-                            # 3. Drive
-                            enviar_a_drive_script(ruta_salida, nombre_final)
+                            # 3. Subir Firmado a Drive (Salida)
+                            enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
                             
-                            # 4. Mover
-                            ruta_destino = os.path.join(CARPETA_PROCESADOS, archivo)
-                            if os.path.exists(ruta_destino): os.remove(ruta_destino)
-                            shutil.move(ruta_origen, ruta_destino)
-                            
-                            # 5. Excel (Con Fecha y Hora)
+                            # 4. Actualizar Excel
                             registrar_firma_sheet(st.session_state['dni_validado'])
+                            
+                            # 5. BORRAR ORIGINAL DE DRIVE (Entrada) - Limpieza
+                            borrar_archivo_drive(st.session_state['archivo_id'])
                             
                             st.session_state['firmado_ok'] = True
                             st.balloons()
@@ -299,7 +315,7 @@ else:
                         except Exception as e:
                             st.error(f"Error técnico: {e}")
                         finally:
-                            if os.path.exists(ruta_temp): os.remove(ruta_temp)
+                            if os.path.exists(ruta_firma): os.remove(ruta_firma)
                 else:
                     st.warning("⚠️ Por favor, dibuje su firma.")
 
