@@ -12,15 +12,21 @@ import requests
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Portal de Contratos", page_icon="✍️", layout="centered")
 
-# --- CSS PARA FORZAR OCULTAR BARRA DE HERRAMIENTAS ---
+# --- CSS AGRESIVO PARA OCULTAR BOTONES ---
 st.markdown("""
     <style>
-    /* Esto busca los botones dentro del canvas y los borra del mapa */
-    div[data-testid="stCanvas"] > div:first-child > div:nth-child(2) {
+    /* Ocultar botones específicos de la barra de herramientas del canvas */
+    button[title="Reset"], 
+    button[title="Undo"], 
+    button[title="Redo"], 
+    button[title="Download"],
+    button[title="Delete"] {
         display: none !important;
+        visibility: hidden !important;
+        height: 0px !important;
     }
-    /* Por si acaso, otra regla genérica para ocultar botones del canvas */
-    button[title="Reset"], button[title="Undo"], button[title="Redo"], button[title="Download"] {
+    /* Por si acaso, ocultar el contenedor de la barra si existe */
+    div[data-testid="stCanvas"] > div:first-child > div:nth-child(2) {
         display: none !important;
     }
     </style>
@@ -125,31 +131,21 @@ else:
     archivo = st.session_state['archivo_actual']
     ruta_pdf = os.path.join(CARPETA_PENDIENTES, archivo)
     
-    st.success(f"📄 Contrato: {archivo}")
+    # --- ZONA DE INFORMACIÓN DEL CONTRATO (SIN PDF ROTO) ---
+    st.info(f"📄 **Contrato cargado:** {archivo}")
     
-    # VISUALIZACIÓN DE PDF BLINDADA (Usa <object> que es más fuerte)
-    try:
-        with open(ruta_pdf, "rb") as f:
-            base64_pdf = base64.b64encode(f.read()).decode('utf-8')
-        
-        # Estrategia: Object tag + Enlace de rescate si falla
-        pdf_display = f'''
-            <object data="data:application/pdf;base64,{base64_pdf}" type="application/pdf" width="100%" height="600px">
-                <p>Su navegador no puede mostrar la vista previa.</p>
-            </object>
-        '''
-        st.markdown(pdf_display, unsafe_allow_html=True)
-    except: 
-        st.warning("Vista previa no disponible en este dispositivo.")
+    # Botón opcional para ver el PDF real si quieren leerlo antes
+    with open(ruta_pdf, "rb") as f:
+        st.download_button("👁️ Leer Contrato Completo (PDF)", f, file_name=archivo, mime="application/pdf")
 
     st.markdown("---")
     st.header("👇 Firme aquí")
     
-    # Lienzo con display_toolbar=False (Y el CSS de arriba asegura que se borre)
+    # Lienzo
     canvas_result = st_canvas(
         stroke_width=2, stroke_color="#000000", background_color="#ffffff",
         height=200, width=600, drawing_mode="freedraw",
-        display_toolbar=False, 
+        display_toolbar=False,  # Intento oficial
         key=f"canvas_{st.session_state['canvas_key']}",
     )
 
@@ -189,7 +185,6 @@ else:
                             with open(ruta_salida, "rb") as f:
                                 st.download_button("📥 Descargar mi copia", f, file_name=nombre_final, mime="application/pdf")
                         else:
-                            # Mensaje discreto si falla la nube
                             st.success("✅ Contrato firmado correctamente (Copia Local).")
                             with open(ruta_salida, "rb") as f:
                                 st.download_button("📥 Descargar mi copia", f, file_name=nombre_final)
