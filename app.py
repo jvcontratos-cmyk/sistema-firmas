@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 # --- CONFIGURACIÓN DE PÁGINA (MODO KIOSCO) ---
 st.set_page_config(page_title="Portal de Contratos", page_icon="✍️", layout="wide")
 
-# --- CSS NUCLEAR MEJORADO ---
+# --- CSS NUCLEAR MEJORADO (CON EL PARCHE FINAL) ---
 st.markdown("""
     <style>
     /* Ocultar Header superior (Hamburguesa, Deploy, etc.) */
@@ -31,6 +31,7 @@ st.markdown("""
     /* Ocultar la barra inferior donde sale "Manage app" */
     .stAppDeployButton {display: none !important;}
     [data-testid="stToolbar"] {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important;} /* <--- ESTA LÍNEA BORRA EL MANAGE APP */
     
     /* Ocultar botones internos del canvas */
     div[data-testid="stCanvas"] button {display: none !important;}
