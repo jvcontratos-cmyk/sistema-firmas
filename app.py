@@ -24,64 +24,37 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS PROTOCOLO FANTASMA: INVISIBLE E INTOCABLE ---
+# --- CSS PLAN Z: LIMPIEZA TOTAL PARA MODO EMBED ---
 st.markdown("""
     <style>
-    /* ================================================================= */
-    /* ESTRATEGIA: NO BORRAR, SINO VOLVER FANTASMA (Invisible + Intocable) */
-    /* ================================================================= */
-
-    /* 1. OBJETIVO: LA BARRA DE HERRAMIENTAS MÓVIL (Toolbar) */
-    [data-testid="stToolbar"], 
-    div[class*="stToolbar"],
-    .stApp > header {
-        opacity: 0 !important;              /* 100% Transparente */
-        pointer-events: none !important;    /* Los clics la atraviesan */
-        height: 0px !important;             /* Altura cero */
-        overflow: hidden !important;        /* Si algo sobresale, escóndelo */
-        z-index: -1 !important;             /* Mándalo al fondo del abismo */
-        position: absolute !important;      /* Despegala del flujo normal */
+    /* 1. OCULTAR LA BARRA BLANCA DE "BUILT WITH STREAMLIT" (La del modo Embed) */
+    footer {
+        visibility: hidden !important;
+        display: none !important;
+        height: 0px !important;
     }
-
-    /* 2. OBJETIVO: LA CALAVERA (Viewer Badge) */
-    div[class*="viewerBadge"] {
-        opacity: 0 !important;
-        pointer-events: none !important;
-        display: none !important; /* Aquí sí intentamos borrar primero */
+    
+    /* 2. OCULTAR EL BOTÓN DE FULLSCREEN (Para que no se salgan del modo Embed) */
+    button[title="View fullscreen"] {
+        display: none !important;
     }
-
-    /* 3. OBJETIVO: LA CORONA (Deploy Button) */
+    
+    /* 3. REFUGIO ADICIONAL: OCULTAR CALAVERA/CORONA (Por si entran sin el link embed) */
     .stAppDeployButton, 
-    div[class*="stAppDeployButton"],
-    [data-testid="stStatusWidget"] {
-        opacity: 0 !important;
-        pointer-events: none !important;
+    [data-testid="stToolbar"], 
+    [data-testid="stHeader"], 
+    div[class*="viewerBadge"] {
+        visibility: hidden !important;
         display: none !important;
     }
 
-    /* 4. OBJETIVO: EL HEADER DECORATIVO DE COLORES */
-    [data-testid="stHeader"], 
-    [data-testid="stDecoration"] {
-        opacity: 0 !important;
-        pointer-events: none !important;
-        height: 0px !important;
-    }
-
-    /* 5. LIMPIEZA GENERAL (Footer y Menús) */
-    footer, #MainMenu {
-        visibility: hidden !important;
-        height: 0px !important;
-    }
-    
-    /* 6. BOTONES INTERNOS (Canvas y Sidebar) */
-    div[data-testid="stCanvas"] button {display: none !important;}
-    section[data-testid="stSidebar"] button {display: none !important;}
-    
-    /* 7. AJUSTE DE MARGENES (Para que no quede espacio vacío arriba) */
+    /* 4. AJUSTES DE ESPACIO */
     .block-container {
         padding-top: 1rem !important; 
-        margin-top: -3rem !important; /* Forzar subida del contenido */
     }
+    
+    /* 5. OCULTAR MENÚS */
+    #MainMenu {display: none !important;}
     </style>
     """, unsafe_allow_html=True)
 
