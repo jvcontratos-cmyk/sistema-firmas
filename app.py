@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 # --- CONFIGURACIÓN DE PÁGINA (MODO KIOSCO) ---
 st.set_page_config(page_title="Portal de Contratos", page_icon="✍️", layout="wide")
 
-# --- CSS NUCLEAR MEJORADO (ADIÓS MANAGE APP) ---
+# --- CSS NUCLEAR MEJORADO ---
 st.markdown("""
     <style>
     /* Ocultar Header superior (Hamburguesa, Deploy, etc.) */
@@ -84,24 +84,26 @@ with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/471/471662.png", width=50)
     st.subheader("Preguntas Frecuentes")
     
-    with st.expander("💰 ¿Por qué mi sueldo es menor al que me dijeron?"):
+    # PREGUNTA 1: SUELDO
+    with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
         st.markdown("""
-        Es probable que se refiera a la diferencia entre **Bruto** y **Neto**:
-        * **Sueldo Bruto:** Es el monto total que figura en el contrato.
-        * **Sueldo Neto:** Es lo que realmente recibe en su cuenta, luego de los descuentos de ley obligatorios (AFP, ONP, etc.).
+        En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto.
         
-        *Revise su boleta de pago para ver el detalle de estos descuentos.*
+        El monto informado durante su reclutamiento es el **Sueldo Bruto**, el cual incluye el básico más otros conceptos (como horas extras, bonificaciones, etc.).
+        
+        *Podrá ver el detalle completo de sus ingresos reflejado en su **boleta de pago** a fin de mes.*
         """)
 
-    with st.expander("clock ¿Por qué el contrato dice 8hrs si trabajo 12hrs?"):
+    # PREGUNTA 2: HORAS (Corregido icono y texto)
+    with st.expander("🕒 ¿Por qué el contrato dice 8hrs si trabajo 12hrs?"):
         st.markdown("""
-        La ley peruana establece la **Jornada Ordinaria** base en 8 horas diarias.
+        La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias.
         
         Si su turno es de 12 horas:
-        * Las primeras 8 horas cubren la jornada legal.
-        * Las **4 horas restantes** se contabilizan y pagan como **HORAS EXTRAS (Sobretiempo)**.
+        * Las primeras 8 horas cubren esa jornada legal.
+        * Las **4 horas restantes** se consideran y pagan como **HORAS EXTRAS**.
         
-        *Este pago adicional se verá reflejado en su liquidación final de mes.*
+        *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*
         """)
     
     st.markdown("---")
@@ -122,7 +124,7 @@ def registrar_firma_sheet(dni):
         sh = client_sheets.open_by_key(SHEET_ID).sheet1
         cell = sh.find(dni)
         if cell:
-            # Hora Perú (UTC -5) manual para no instalar librerías extra
+            # Hora Perú (UTC -5)
             hora_peru = datetime.utcnow() - timedelta(hours=5)
             fecha_fmt = hora_peru.strftime("%Y-%m-%d %H:%M:%S")
             
@@ -182,7 +184,7 @@ if st.session_state['dni_validado'] is None:
         with st.spinner("Verificando..."):
             estado_sheet = consultar_estado_dni(dni_input)
         
-        # NUEVO MENSAJE AMABLE
+        # MENSAJE DE ALERTA (AZUL/AMABLE)
         if estado_sheet == "FIRMADO":
             st.info(f"ℹ️ El DNI {dni_input} ya registra un contrato firmado.")
             st.markdown("""
@@ -198,7 +200,6 @@ if st.session_state['dni_validado'] is None:
                         archivo_encontrado = archivo
                         break
             
-            # Doble check en procesados
             if not archivo_encontrado and os.path.exists(CARPETA_PROCESADOS):
                 for archivo in os.listdir(CARPETA_PROCESADOS):
                     if archivo.startswith(dni_input):
@@ -219,7 +220,8 @@ else:
     if st.session_state['firmado_ok']:
         st.success("✅ ¡Firma registrada exitosamente!")
         st.markdown(f"**Archivo:** {archivo}")
-        st.info("Su contrato ha sido archivado en la central y bloqueado para evitar duplicidad.")
+        # MENSAJE DE ÉXITO CORREGIDO
+        st.info("Su contrato ha sido guardado en la base de datos.")
         
         ruta_salida = os.path.join(CARPETA_FIRMADOS, archivo)
         if os.path.exists(ruta_salida):
