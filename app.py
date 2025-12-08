@@ -12,15 +12,12 @@ import requests
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Portal de Firmas", page_icon="✍️", layout="centered")
 
-# 1. LEER LA URL DEL PUENTE DESDE LOS SECRETOS (SEGURIDAD)
+# LEER SECRETOS
 if "drive_script_url" in st.secrets["general"]:
     WEB_APP_URL = st.secrets["general"]["drive_script_url"]
 else:
-    st.error("⚠️ FALTA CONFIGURAR EL LINK DEL SCRIPT EN LOS SECRETS.")
+    st.error("⚠️ Falta configurar el secreto drive_script_url")
     st.stop()
-
-# 2. TU CARPETA DE DRIVE (ID)
-DRIVE_FOLDER_ID = "1g-ht7BZCUiyN4um1M9bytrrVAZu7gViN"
 
 CARPETA_PENDIENTES = "." 
 CARPETA_FIRMADOS = "FIRMADOS"
@@ -36,19 +33,22 @@ def enviar_a_drive_script(ruta_archivo, nombre_archivo):
         with open(ruta_archivo, "rb") as f:
             pdf_base64 = base64.b64encode(f.read()).decode('utf-8')
         
+        # No necesitamos folderId aquí, el script ya lo tiene fijo si lo pusiste allá,
+        # o si usas el script genérico, asegúrate de que el script sepa dónde guardar.
+        # Basado en tu último script funcional, solo enviamos file y filename.
         payload = {
             "file": pdf_base64,
-            "filename": nombre_archivo,
-            "folderId": DRIVE_FOLDER_ID
+            "filename": nombre_archivo
         }
         
         response = requests.post(WEB_APP_URL, json=payload)
         
-        if response.status_code == 200:
+        if response.status_code == 200 and "Guardado" in response.text:
             return True
         else:
-            st.error(f"Error del Script: {response.text}")
-            return False
+            # Si el script devuelve algo que no es éxito, lo tomamos como error
+            st.warning(f"Respuesta del servidor: {response.text}")
+            return False # Cambiamos a False para que avise
     except Exception as e:
         st.error(f"Error de conexión: {e}")
         return False
@@ -60,9 +60,13 @@ def estampar_firma(pdf_path, imagen_firma, output_path):
     total_paginas = len(pdf_original.pages)
     ANCHO, ALTO = 110, 60
 
+    # === 📍 COORDENADAS FINALES (AJUSTADAS) ===
     COORDENADAS = {
-        5: [(380, 390), (380, 260)],
+        # HOJA 5: Arriba bajó 2 puntos (390 -> 388). Abajo intacta.
+        5: [(380, 388), (380, 260)],
+        # HOJA 6: Intacta
         6: [(380, 115)],
+        # HOJA 8: Intacta
         8: [(380, 175)]
     }
 
@@ -107,6 +111,7 @@ if st.session_state['dni_validado'] is None:
 else:
     archivo = st.session_state['archivo_actual']
     ruta_pdf = archivo
+    
     st.success(f"📄 Contrato: {archivo}")
     
     try:
@@ -118,10 +123,18 @@ else:
 
     st.markdown("---")
     st.header("👇 Firme aquí")
-    canvas_result = st_canvas(stroke_width=2, stroke_color="#000000", background_color="#ffffff", height=200, width=600, drawing_mode="freedraw", key=f"canvas_{st.session_state['canvas_key']}")
+    
+    # CAMBIO 1: display_toolbar=False para quitar los botoncitos internos
+    canvas_result = st_canvas(
+        stroke_width=2, stroke_color="#000000", background_color="#ffffff",
+        height=200, width=600, drawing_mode="freedraw",
+        display_toolbar=False,
+        key=f"canvas_{st.session_state['canvas_key']}",
+    )
 
     col1, col2 = st.columns([1, 4])
     with col1:
+        # Este botón de borrar externo SÍ se queda
         if st.button("🗑️ Borrar"):
             st.session_state['canvas_key'] += 1
             st.rerun()
@@ -130,10 +143,11 @@ else:
         if st.button("✅ ACEPTAR Y FIRMAR", type="primary", use_container_width=True):
             if canvas_result.image_data is not None:
                 ruta_temp = "firma_temp.png"
-                nombre_final = f"FIRMADO_{archivo}"
+                # CAMBIO 3: Nombre de archivo limpio (sin "FIRMADO_")
+                nombre_final = archivo
                 ruta_salida = os.path.join(CARPETA_FIRMADOS, nombre_final)
                 
-                with st.spinner("Firmando y enviando a Drive... ☁️"):
+                with st.spinner("Procesando contrato..."):
                     try:
                         img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
                         data = img.getdata()
@@ -153,20 +167,23 @@ else:
                         
                         if exito:
                             st.balloons()
-                            st.success("¡ÉXITO! El contrato ya está en tu Google Drive. 📂")
+                            # CAMBIO 2: Mensaje discreto para el trabajador
+                            st.success("✅ Contrato firmado correctamente.")
+                            # El botón de descarga personal sigue activo por si acaso
                             with open(ruta_salida, "rb") as f:
-                                st.download_button("📥 Descargar copia personal", f, file_name=nombre_final, mime="application/pdf")
+                                st.download_button("📥 Descargar mi copia", f, file_name=nombre_final, mime="application/pdf")
                         else:
-                            st.warning("Firmado, pero falló la subida. Descarga manual:")
+                            # Si falla Drive, avisamos diferente
+                            st.warning("Contrato firmado localmente. Hubo un problema de conexión con el archivo central.")
                             with open(ruta_salida, "rb") as f:
-                                st.download_button("📥 Descargar ahora", f, file_name=nombre_final)
+                                st.download_button("📥 Descargar copia ahora", f, file_name=nombre_final)
 
                     except Exception as e:
-                        st.error(f"Error: {e}")
+                        st.error(f"Error en el proceso: {e}")
                     finally:
                         if os.path.exists(ruta_temp): os.remove(ruta_temp)
             else:
-                st.warning("Falta la firma.")
+                st.warning("Por favor, dibuje su firma antes de aceptar.")
 
     if st.button("⬅️ Salir"):
         st.session_state['dni_validado'] = None
