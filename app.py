@@ -12,44 +12,57 @@ import requests
 import fitz  # PyMuPDF
 import gspread 
 from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build # Para leer Drive desde Python
+from googleapiclient.discovery import build 
 from googleapiclient.http import MediaIoBaseDownload
 from datetime import datetime, timedelta
 
-# --- CONFIGURACIÓN DE PÁGINA (MODO KIOSCO) ---
-st.set_page_config(page_title="Portal de Contratos", page_icon="✍️", layout="wide")
+# --- CONFIGURACIÓN DE PÁGINA (MODO KIOSCO + BARRA FIJA) ---
+st.set_page_config(
+    page_title="Portal de Contratos", 
+    page_icon="✍️", 
+    layout="wide",
+    initial_sidebar_state="expanded" # <--- ESTO OBLIGA A QUE SIEMPRE ARRANQUE ABIERTA
+)
 
-# --- CSS NUCLEAR REFORZADO ---
+# --- CSS NUCLEAR REFORZADO (BARRA LATERAL INMOVIBLE) ---
 st.markdown("""
     <style>
+    /* 1. Ocultar Header superior y Decoraciones */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
     [data-testid="stDecoration"] {display: none !important;}
+    
+    /* 2. Ocultar Footer y Menú hamburguesa */
     footer {visibility: hidden !important;}
     #MainMenu {visibility: hidden !important;}
+    
+    /* 3. Ocultar la barra inferior y CUALQUIER botón de Deploy/Manage */
     .stAppDeployButton {display: none !important;}
     .stDeployButton {display: none !important;}
     [data-testid="stToolbar"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important;}
     button[kind="header"] {display: none !important;}
+    
+    /* 4. Ocultar botones internos del canvas */
     div[data-testid="stCanvas"] button {display: none !important;}
     div[data-testid="stElementToolbar"] {display: none !important;}
+    
+    /* 5. BLOQUEAR CIERRE DE BARRA LATERAL (FAQ FIJO) */
+    /* Esto oculta el botón "X" o ">" para que nadie pueda cerrar el FAQ */
+    section[data-testid="stSidebar"] button {display: none !important;}
+    
+    /* 6. Ajustar espacios */
     .block-container {padding-top: 2rem !important;}
     </style>
     """, unsafe_allow_html=True)
 
-# 1. AUTENTICACIÓN GOOGLE (SHEETS + DRIVE LECTURA)
+# 1. AUTENTICACIÓN GOOGLE
 if "gcp_service_account" in st.secrets:
     creds_dict = dict(st.secrets["gcp_service_account"])
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ]
+    scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     try:
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-        # Cliente para Excel
         client_sheets = gspread.authorize(creds)
-        # Cliente para Drive (Lectura/Borrado)
         service_drive = build('drive', 'v3', credentials=creds)
     except Exception as e:
         st.error(f"Error conectando con Google: {e}")
@@ -58,18 +71,18 @@ else:
     st.error("⚠️ Falta configuración interna.")
     st.stop()
 
-# URL DEL SCRIPT (PUENTE PARA SUBIR ARCHIVOS SIN CUOTA)
+# URL DEL SCRIPT
 if "drive_script_url" in st.secrets["general"]:
     WEB_APP_URL = st.secrets["general"]["drive_script_url"]
 else:
     st.stop()
 
-# --- CONFIGURACIÓN DE IDs ---
+# --- CONFIGURACIÓN DE IDs (100% Seguros aquí) ---
 SHEET_ID = "1OmzmHkZsKjJlPw2V2prVlv_LbcS8RzmdLPP1eL6EGNE"
-DRIVE_FOLDER_PENDING_ID = "1tu19AXukyc_DvS0xkOxoL5wa9gLEJNS7" # <--- CARPETA ENTRADA (ORIGINALES)
-DRIVE_FOLDER_SIGNED_ID = "1g-ht7BZCUiyN4um1M9bytrrVAZu7gViN"   # <--- CARPETA SALIDA (FIRMADOS)
+DRIVE_FOLDER_PENDING_ID = "1tu19AXukyc_DvS0xkOxoL5wa9gLEJNS7" 
+DRIVE_FOLDER_SIGNED_ID = "1g-ht7BZCUiyN4um1M9bytrrVAZu7gViN"
 
-# Carpetas temporales locales (solo memoria)
+# Carpetas temporales
 CARPETA_TEMP = "TEMP_WORK"
 os.makedirs(CARPETA_TEMP, exist_ok=True)
 
@@ -125,19 +138,17 @@ def registrar_firma_sheet(dni):
     except: return False
 
 def buscar_archivo_drive(dni):
-    """Busca un PDF en Drive que contenga el DNI en el nombre."""
     try:
         query = f"'{DRIVE_FOLDER_PENDING_ID}' in parents and name contains '{dni}' and mimeType = 'application/pdf' and trashed = false"
         results = service_drive.files().list(q=query, fields="files(id, name)").execute()
         items = results.get('files', [])
         if items:
-            return items[0] # Retorna el primer archivo encontrado {id, name}
+            return items[0] 
         return None
     except Exception as e:
         return None
 
 def descargar_archivo_drive(file_id, nombre_destino):
-    """Descarga el archivo de Drive a la carpeta temporal local."""
     try:
         request = service_drive.files().get_media(fileId=file_id)
         fh = io.FileIO(nombre_destino, 'wb')
@@ -149,14 +160,12 @@ def descargar_archivo_drive(file_id, nombre_destino):
     except: return False
 
 def borrar_archivo_drive(file_id):
-    """Borra el archivo original de Drive (Pendientes) para limpiar."""
     try:
         service_drive.files().delete(fileId=file_id).execute()
         return True
     except: return False
 
 def enviar_a_drive_script(ruta_archivo, nombre_archivo):
-    """Sube el archivo firmado usando el Puente (Apps Script)."""
     try:
         with open(ruta_archivo, "rb") as f:
             pdf_base64 = base64.b64encode(f.read()).decode('utf-8')
@@ -218,13 +227,12 @@ if st.session_state['dni_validado'] is None:
                 archivo_drive = buscar_archivo_drive(dni_input)
             
             if archivo_drive:
-                # Descargar a temporal para mostrar y firmar
                 ruta_local = os.path.join(CARPETA_TEMP, archivo_drive['name'])
                 descargo_ok = descargar_archivo_drive(archivo_drive['id'], ruta_local)
                 
                 if descargo_ok:
                     st.session_state['dni_validado'] = dni_input
-                    st.session_state['archivo_id'] = archivo_drive['id'] # Guardamos ID para borrar luego
+                    st.session_state['archivo_id'] = archivo_drive['id'] 
                     st.session_state['archivo_nombre'] = archivo_drive['name']
                     st.session_state['firmado_ok'] = False
                     st.rerun()
@@ -242,7 +250,6 @@ else:
         st.markdown(f"**Archivo:** {nombre_archivo}")
         st.info("Su contrato ha sido guardado en la base de datos.")
         
-        # OJO: La descarga local del firmado depende de si lo guardamos en TEMP
         ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
         
         if os.path.exists(ruta_salida_firmado):
@@ -251,7 +258,6 @@ else:
         
         st.markdown("---")
         if st.button("🏠 FINALIZAR Y SALIR"):
-            # Limpieza de sesión
             st.session_state['dni_validado'] = None
             st.session_state['firmado_ok'] = False
             st.rerun()
@@ -285,7 +291,6 @@ else:
                     
                     with st.spinner("Procesando firma, guardando y limpiando..."):
                         try:
-                            # 1. Guardar Firma
                             img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
                             data = img.getdata()
                             newData = []
@@ -297,16 +302,9 @@ else:
                             img.putdata(newData)
                             img.save(ruta_firma, "PNG")
                             
-                            # 2. Estampar
                             estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
-                            
-                            # 3. Subir Firmado a Drive (Salida)
                             enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
-                            
-                            # 4. Actualizar Excel
                             registrar_firma_sheet(st.session_state['dni_validado'])
-                            
-                            # 5. BORRAR ORIGINAL DE DRIVE (Entrada) - Limpieza
                             borrar_archivo_drive(st.session_state['archivo_id'])
                             
                             st.session_state['firmado_ok'] = True
