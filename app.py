@@ -10,7 +10,7 @@ from PIL import Image
 import requests
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="Portal de Firmas", page_icon="✍️", layout="centered")
+st.set_page_config(page_title="Portal de Contratos", page_icon="✍️", layout="centered")
 
 # LEER SECRETOS
 if "drive_script_url" in st.secrets["general"]:
@@ -22,13 +22,12 @@ else:
 # TU CARPETA DE DRIVE
 DRIVE_FOLDER_ID = "1g-ht7BZCUiyN4um1M9bytrrVAZu7gViN"
 
-# === CAMBIO AQUÍ: AHORA APUNTAMOS A LA CARPETA ===
+# CARPETA DE BÚSQUEDA
 CARPETA_PENDIENTES = "PENDIENTES"  
-# =================================================
-
 CARPETA_FIRMADOS = "FIRMADOS"
+
+# Aseguramos que existan
 os.makedirs(CARPETA_FIRMADOS, exist_ok=True)
-# Aseguramos que exista la carpeta PENDIENTES para que no de error si está vacía
 os.makedirs(CARPETA_PENDIENTES, exist_ok=True)
 
 if 'dni_validado' not in st.session_state: st.session_state['dni_validado'] = None
@@ -113,20 +112,23 @@ if st.session_state['dni_validado'] is None:
             st.session_state['archivo_actual'] = archivo_encontrado
             st.rerun()
         else:
-            st.error("❌ Contrato no encontrado en la carpeta PENDIENTES.")
+            # CAMBIO 1: MENSAJE DISCRETO
+            st.error("❌ Contrato no ubicado.")
 else:
     archivo = st.session_state['archivo_actual']
-    # AHORA LA RUTA INCLUYE LA CARPETA
     ruta_pdf = os.path.join(CARPETA_PENDIENTES, archivo)
     
     st.success(f"📄 Contrato: {archivo}")
     
+    # VISUALIZACIÓN MEJORADA (Usa <embed> en vez de iframe para evitar errores grises)
     try:
         with open(ruta_pdf, "rb") as f:
             base64_pdf = base64.b64encode(f.read()).decode('utf-8')
-        pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="600" type="application/pdf"></iframe>'
+        # CAMBIO 2: Usamos <embed> que suele fallar menos
+        pdf_display = f'<embed src="data:application/pdf;base64,{base64_pdf}" width="100%" height="600px" type="application/pdf">'
         st.markdown(pdf_display, unsafe_allow_html=True)
-    except: pass
+    except: 
+        st.warning("No se pudo previsualizar el PDF (pero puede firmarlo).")
 
     st.markdown("---")
     st.header("👇 Firme aquí")
