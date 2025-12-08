@@ -24,54 +24,40 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS ESTRATEGIA: CAMUFLAJE NEGRO PARA MODO EMBED ---
+# --- CSS LIMPIO: SIN PARCHES, SOLO OCULTACIÓN ---
 st.markdown("""
     <style>
-    /* 1. LIMPIEZA DE CABECERA */
+    /* 1. BORRAR HEADER */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
     
-    /* 2. EL PARCHE INVISIBLE (NEGRO) */
-    /* Creamos una caja del MISMO COLOR que el fondo oscuro de Streamlit (#0e1117) */
-    body::after {
-        content: "";
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        height: 35px; /* Altura ajustada para cubrir solo el footer */
-        background-color: #0e1117 !important; /* <--- COLOR NEGRO PARA CAMUFLAJE */
-        z-index: 2147483647 !important; /* Z-index máximo posible para estar encima de todo */
-        pointer-events: auto; /* Bloquea los clics en esa zona */
-    }
-
-    /* 3. INTENTO DE APLASTAR EL FOOTER ORIGINAL */
+    /* 2. BORRAR FOOTER Y FULLSCREEN (Directamente, sin barras encima) */
     footer {
-        height: 0px !important;
-        min-height: 0px !important;
-        max-height: 0px !important;
-        overflow: hidden !important;
-        opacity: 0 !important;
+        display: none !important;
         visibility: hidden !important;
-        pointer-events: none !important;
+        height: 0px !important;
     }
-    
-    /* 4. OCULTAR EL BOTÓN FULLSCREEN ESPECÍFICO */
     button[title="View fullscreen"] {
         display: none !important;
-        width: 0px !important;
-        height: 0px !important;
-    }
-
-    /* 5. AJUSTE DE MARGEN PARA QUE EL CONTENIDO NO QUEDE TAPADO POR EL PARCHE */
-    .block-container {
-        padding-bottom: 40px !important; 
-        padding-top: 1rem !important;
     }
     
-    /* 6. BORRAR MENÚS SOBRANTES */
+    /* 3. BORRAR ELEMENTOS DE LA UI DE STREAMLIT */
+    .stAppDeployButton, 
+    [data-testid="stToolbar"], 
+    div[class*="viewerBadge"] {
+        display: none !important;
+    }
     #MainMenu {display: none !important;}
-    div[data-testid="stToolbar"] {display: none !important;}
+    
+    /* 4. AJUSTE DE MÁRGENES */
+    /* Quitamos cualquier relleno inferior para aprovechar toda la pantalla */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 0rem !important;
+    }
+    
+    /* 5. ELIMINAR CUALQUIER PARCHE ANTERIOR */
+    body::after {content: none !important;}
     </style>
     """, unsafe_allow_html=True)
 
@@ -210,35 +196,21 @@ if st.session_state['dni_validado'] is None:
         dni_input = st.text_input("DIGITE SU DNI", max_chars=15)
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
-    # === FAQ (CENTRAL) ===
-    st.markdown("---")
-    st.subheader("❓ Preguntas Frecuentes")
-    
-    with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
-        st.markdown("""
-        En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto.
-        El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos).
-        *Lo verá reflejado en su **boleta de pago** a fin de mes.*
-        """)
-
-    with st.expander("🕒 ¿Por qué el contrato dice 8hrs si trabajo 12hrs?"):
-        st.markdown("""
-        La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias.
-        Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**.
-        *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*
-        """)
-    st.info("📞 **¿Dudas adicionales?** Contacte al área de RRHH.")
-
+    # === LÓGICA DE VALIDACIÓN (AHORA AQUÍ, ANTES DEL FAQ) ===
     if submitted and dni_input:
         with st.spinner("Conectando con base de datos..."):
             estado_sheet = consultar_estado_dni(dni_input)
         
+        # CASO 1: YA FIRMÓ
         if estado_sheet == "FIRMADO":
+            # Usamos st.info justo aquí para que salga arriba
             st.info(f"ℹ️ El DNI {dni_input} ya registra un contrato firmado.")
             st.markdown("""
             **Si necesita una copia de su contrato** o cree que esto es un error, 
             por favor **contacte al área de Recursos Humanos**.
             """)
+        
+        # CASO 2: NO FIRMADO, BUSCAMOS EN DRIVE
         else:
             with st.spinner("Buscando contrato en la nube..."):
                 archivo_drive = buscar_archivo_drive(dni_input)
@@ -256,7 +228,27 @@ if st.session_state['dni_validado'] is None:
                 else:
                     st.error("Error al descargar el documento. Intente nuevamente.")
             else:
+                # CASO 3: NO EXISTE EL CONTRATO (MENSAJE ARRIBA)
                 st.error("❌ Contrato no ubicado (Verifique que su DNI esté correcto).")
+
+    # === FAQ (AHORA DESPUÉS DE LOS MENSAJES) ===
+    st.markdown("---")
+    st.subheader("❓ Preguntas Frecuentes")
+    
+    with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
+        st.markdown("""
+        En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto.
+        El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos).
+        *Lo verá reflejado en su **boleta de pago** a fin de mes.*
+        """)
+
+    with st.expander("🕒 ¿Por qué el contrato dice 8hrs si trabajo 12hrs?"):
+        st.markdown("""
+        La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias.
+        Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**.
+        *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*
+        """)
+    st.info("📞 **¿Dudas adicionales?** Contacte al área de RRHH.")
 
 else:
     nombre_archivo = st.session_state['archivo_nombre']
@@ -306,7 +298,8 @@ else:
                     ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
                     ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
                     
-                    with st.spinner("Procesando firma, guardando y limpiando..."):
+                    # CAMBIO 3: TEXTO DEL SPINNER ACTUALIZADO
+                    with st.spinner("⏳ Procesando firma..."):
                         try:
                             # 1. Imagen de Firma
                             img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
