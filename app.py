@@ -21,37 +21,43 @@ st.set_page_config(
     page_title="Portal de Contratos", 
     page_icon="✍️", 
     layout="wide",
-    initial_sidebar_state="collapsed" # Barra lateral cerrada por defecto (ya no la usamos)
+    initial_sidebar_state="collapsed"
 )
 
-# --- CSS NUCLEAR: EXTERMINIO TOTAL DE LA BARRA MÓVIL ---
+# --- CSS NUCLEAR: NIVEL EXTERMINIO (Calavera y Corona FUERA) ---
 st.markdown("""
     <style>
-    /* 1. OCULTAR HEADER, DECORACIONES Y MENÚS SUPERIORES */
+    /* 1. OCULTAR HEADER Y MENÚS DE STREAMLIT */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
     [data-testid="stDecoration"] {display: none !important;}
     
-    /* 2. OCULTAR LA BARRA INFERIOR FLOTANTE (Calavera/Corona) */
-    /* Atacamos todas las variantes posibles de esa barra */
-    .stApp > header {display: none !important;}
-    [data-testid="stToolbar"] {display: none !important;}
-    div[class*="stToolbar"] {display: none !important;}
+    /* 2. OCULTAR LA "CALAVERA" (Avatar / Viewer Badge) */
+    /* Busca cualquier elemento que tenga 'viewerBadge' en su nombre de clase */
     div[class*="viewerBadge"] {display: none !important;}
     
-    /* 3. OCULTAR FOOTER */
+    /* 3. OCULTAR LA "CORONA" (Botón de Deploy / Manage App) */
+    /* Ataca todas las variantes posibles del botón */
+    .stAppDeployButton {display: none !important;}
+    div[class*="stAppDeployButton"] {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important;}
+    
+    /* 4. OCULTAR LA BARRA DE HERRAMIENTAS FLOTANTE COMPLETA */
+    [data-testid="stToolbar"] {display: none !important;}
+    div[class*="stToolbar"] {display: none !important;}
+    
+    /* 5. OCULTAR FOOTER */
     footer {visibility: hidden !important;}
     #MainMenu {visibility: hidden !important;}
     
-    /* 4. OCULTAR BOTONES DE DEPLOY/MANAGE */
-    .stAppDeployButton {display: none !important;}
-    [data-testid="stStatusWidget"] {display: none !important;}
-    
-    /* 5. OCULTAR BOTONES INTERNOS DE HERRAMIENTAS */
+    /* 6. OCULTAR BOTONES INTERNOS DE HERRAMIENTAS DE DIBUJO */
     div[data-testid="stCanvas"] button {display: none !important;}
     div[data-testid="stElementToolbar"] {display: none !important;}
     
-    /* 6. AJUSTAR ESPACIOS */
+    /* 7. OCULTAR BOTONES DE LA BARRA LATERAL */
+    section[data-testid="stSidebar"] button {display: none !important;}
+    
+    /* 8. AJUSTES DE ESPACIO */
     .block-container {padding-top: 2rem !important;}
     .stApp {margin-bottom: 0px !important;}
     </style>
@@ -192,7 +198,7 @@ if st.session_state['dni_validado'] is None:
         dni_input = st.text_input("DIGITE SU DNI", max_chars=15)
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
-    # === NUEVA UBICACIÓN DEL FAQ (Visible siempre en pantalla principal) ===
+    # === FAQ (UBICACIÓN CENTRAL) ===
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
     
@@ -210,7 +216,7 @@ if st.session_state['dni_validado'] is None:
         *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*
         """)
     st.info("📞 **¿Dudas adicionales?** Contacte al área de RRHH.")
-    # =======================================================================
+    # =================================
 
     if submitted and dni_input:
         with st.spinner("Conectando con base de datos..."):
