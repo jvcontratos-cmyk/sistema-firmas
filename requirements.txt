@@ -4,3 +4,5 @@ PyPDF2
 reportlab
 Pillow
 numpy
+google-api-python-client
+google-auth
