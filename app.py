@@ -24,42 +24,39 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS NUCLEAR: NIVEL EXTERMINIO (Calavera y Corona FUERA) ---
+# --- CSS NUCLEAR: EXTERMINIO DE FLOTANTES MÓVILES ---
 st.markdown("""
     <style>
-    /* 1. OCULTAR HEADER Y MENÚS DE STREAMLIT */
+    /* 1. ELIMINAR CUALQUIER HEADER (INCLUYENDO EL FLOTANTE MÓVIL) */
     header {visibility: hidden !important;}
+    .stApp > header {display: none !important;}
     [data-testid="stHeader"] {display: none !important;}
     [data-testid="stDecoration"] {display: none !important;}
     
-    /* 2. OCULTAR LA "CALAVERA" (Avatar / Viewer Badge) */
-    /* Busca cualquier elemento que tenga 'viewerBadge' en su nombre de clase */
+    /* 2. ELIMINAR LA BARRA DE HERRAMIENTAS (DONDE VIVEN CALAVERA Y CORONA) */
+    [data-testid="stToolbar"] {display: none !important;}
+    div[class*="stToolbar"] {display: none !important;}
+    
+    /* 3. ELIMINAR ESPECÍFICAMENTE LA "CALAVERA" (Viewer Badge) */
     div[class*="viewerBadge"] {display: none !important;}
     
-    /* 3. OCULTAR LA "CORONA" (Botón de Deploy / Manage App) */
-    /* Ataca todas las variantes posibles del botón */
+    /* 4. ELIMINAR ESPECÍFICAMENTE LA "CORONA" (Manage App) */
     .stAppDeployButton {display: none !important;}
     div[class*="stAppDeployButton"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important;}
     
-    /* 4. OCULTAR LA BARRA DE HERRAMIENTAS FLOTANTE COMPLETA */
-    [data-testid="stToolbar"] {display: none !important;}
-    div[class*="stToolbar"] {display: none !important;}
-    
-    /* 5. OCULTAR FOOTER */
+    /* 5. ELIMINAR MENÚS Y FOOTERS */
     footer {visibility: hidden !important;}
     #MainMenu {visibility: hidden !important;}
     
-    /* 6. OCULTAR BOTONES INTERNOS DE HERRAMIENTAS DE DIBUJO */
+    /* 6. ELIMINAR BOTONES INTERNOS */
     div[data-testid="stCanvas"] button {display: none !important;}
     div[data-testid="stElementToolbar"] {display: none !important;}
-    
-    /* 7. OCULTAR BOTONES DE LA BARRA LATERAL */
     section[data-testid="stSidebar"] button {display: none !important;}
     
-    /* 8. AJUSTES DE ESPACIO */
-    .block-container {padding-top: 2rem !important;}
-    .stApp {margin-bottom: 0px !important;}
+    /* 7. AJUSTAR ESPACIOS (Para que no quede hueco arriba) */
+    .block-container {padding-top: 1rem !important;}
+    .stApp {margin-top: 0px !important;}
     </style>
     """, unsafe_allow_html=True)
 
@@ -198,7 +195,7 @@ if st.session_state['dni_validado'] is None:
         dni_input = st.text_input("DIGITE SU DNI", max_chars=15)
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
-    # === FAQ (UBICACIÓN CENTRAL) ===
+    # === FAQ (CENTRAL Y DESPLEGABLE) ===
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
     
