@@ -8,10 +8,17 @@ import io
 import base64
 from PIL import Image
 
+# --- LIBRERÍAS DE GOOGLE DRIVE ---
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Portal de Firmas", page_icon="✍️", layout="centered")
 
-# Buscamos en la raíz (".")
+# ID DE TU CARPETA EN DRIVE
+DRIVE_FOLDER_ID = "1g-ht7BZCUiyN4um1M9bytrrVAZu7gViN"
+
 CARPETA_PENDIENTES = "." 
 CARPETA_FIRMADOS = "FIRMADOS"
 os.makedirs(CARPETA_FIRMADOS, exist_ok=True)
@@ -20,33 +27,44 @@ if 'dni_validado' not in st.session_state: st.session_state['dni_validado'] = No
 if 'archivo_actual' not in st.session_state: st.session_state['archivo_actual'] = None
 if 'canvas_key' not in st.session_state: st.session_state['canvas_key'] = 0
 
-# --- FUNCIÓN DE ESTAMPADO ---
+# --- FUNCIÓN: SUBIR A DRIVE ---
+def subir_a_drive(ruta_archivo, nombre_archivo):
+    try:
+        # Usamos las credenciales guardadas en Streamlit Secrets
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        creds = service_account.Credentials.from_service_account_info(
+            creds_dict, scopes=['https://www.googleapis.com/auth/drive']
+        )
+        service = build('drive', 'v3', credentials=creds)
+
+        file_metadata = {
+            'name': nombre_archivo,
+            'parents': [DRIVE_FOLDER_ID]
+        }
+        media = MediaFileUpload(ruta_archivo, mimetype='application/pdf')
+        
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+        return True
+    except Exception as e:
+        st.error(f"Error subiendo a Drive: {e}")
+        return False
+
+# --- FUNCIÓN: ESTAMPAR FIRMA ---
 def estampar_firma(pdf_path, imagen_firma, output_path):
     pdf_original = PdfReader(pdf_path)
     pdf_writer = PdfWriter()
     total_paginas = len(pdf_original.pages)
-
     ANCHO, ALTO = 110, 60
 
-    # === 📍 MAPA DE COORDENADAS FINAL ===
+    # === 📍 COORDENADAS FINALES (CALIBRADAS) ===
     COORDENADAS = {
-        # HOJA 5
-        5: [
-            # ARRIBA: Bajamos de 400 a 390 (El ajuste de "2 puntitos" del Jefe)
-            (380, 390),  
-            # ABAJO: PERFECTA (No tocar)
-            (380, 260)   
-        ],
-        
-        # HOJA 6: PERFECTA (No tocar)
-        6: [
-            (380, 115)   
-        ],
-        
-        # HOJA 8: PERFECTA (No tocar)
-        8: [
-            (380, 175)
-        ]
+        5: [(380, 390), (380, 260)], # Hoja 5: Arriba y Abajo
+        6: [(380, 115)],             # Hoja 6
+        8: [(380, 175)]              # Hoja 8
     }
 
     for i in range(total_paginas):
@@ -56,10 +74,8 @@ def estampar_firma(pdf_path, imagen_firma, output_path):
         if num_pag in COORDENADAS:
             packet = io.BytesIO()
             c = canvas.Canvas(packet, pagesize=letter, bottomup=True)
-            
             for (posX, posY) in COORDENADAS[num_pag]:
                 c.drawImage(imagen_firma, posX, posY, width=ANCHO, height=ALTO, mask='auto')
-            
             c.save()
             packet.seek(0)
             sello = PdfReader(packet)
@@ -124,31 +140,47 @@ else:
         if st.button("✅ ACEPTAR Y FIRMAR", type="primary", use_container_width=True):
             if canvas_result.image_data is not None:
                 ruta_temp = "firma_temp.png"
-                ruta_salida = os.path.join(CARPETA_FIRMADOS, f"FIRMADO_{archivo}")
-                try:
-                    img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
-                    data = img.getdata()
-                    newData = []
-                    for item in data:
-                        if item[0] > 230 and item[1] > 230 and item[2] > 230:
-                            newData.append((255, 255, 255, 0))
+                nombre_final = f"FIRMADO_{archivo}"
+                ruta_salida = os.path.join(CARPETA_FIRMADOS, nombre_final)
+                
+                with st.spinner("Firmando y guardando en la nube... ☁️"):
+                    try:
+                        # 1. Procesar imagen
+                        img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
+                        data = img.getdata()
+                        newData = []
+                        for item in data:
+                            if item[0] > 230 and item[1] > 230 and item[2] > 230:
+                                newData.append((255, 255, 255, 0))
+                            else:
+                                newData.append(item)
+                        img.putdata(newData)
+                        img.save(ruta_temp, "PNG")
+                        
+                        # 2. Estampar PDF
+                        estampar_firma(ruta_pdf, ruta_temp, ruta_salida)
+                        
+                        # 3. SUBIR A GOOGLE DRIVE
+                        exito_drive = subir_a_drive(ruta_salida, nombre_final)
+                        
+                        if exito_drive:
+                            st.balloons()
+                            st.success(f"¡LISTO! ✅ El contrato se guardó correctamente en Google Drive.")
+                            
+                            # Botón de descarga opcional
+                            with open(ruta_salida, "rb") as f:
+                                st.download_button("📥 Descargar copia personal", f, file_name=nombre_final, mime="application/pdf")
                         else:
-                            newData.append(item)
-                    img.putdata(newData)
-                    img.save(ruta_temp, "PNG")
-                    
-                    estampar_firma(ruta_pdf, ruta_temp, ruta_salida)
-                    
-                    st.balloons()
-                    st.success("¡Firmado!")
-                    with open(ruta_salida, "rb") as f:
-                        st.download_button("📥 DESCARGAR CONTRATO", f, file_name=f"FIRMADO_{archivo}", mime="application/pdf")
-                except Exception as e:
-                    st.error(f"Error: {e}")
-                finally:
-                    if os.path.exists(ruta_temp): os.remove(ruta_temp)
+                            st.warning("El contrato se firmó, pero hubo un error subiéndolo a Drive. Descárgalo manualmente.")
+                            with open(ruta_salida, "rb") as f:
+                                st.download_button("📥 Descargar ahora", f, file_name=nombre_final)
+
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+                    finally:
+                        if os.path.exists(ruta_temp): os.remove(ruta_temp)
             else:
-                st.warning("Dibuje su firma primero.")
+                st.warning("Falta la firma.")
 
     if st.button("⬅️ Salir"):
         st.session_state['dni_validado'] = None
