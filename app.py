@@ -19,12 +19,17 @@ else:
     st.error("⚠️ Falta configurar el secreto drive_script_url")
     st.stop()
 
-# TU CARPETA DE DRIVE (El ID que faltaba)
+# TU CARPETA DE DRIVE
 DRIVE_FOLDER_ID = "1g-ht7BZCUiyN4um1M9bytrrVAZu7gViN"
 
-CARPETA_PENDIENTES = "." 
+# === CAMBIO AQUÍ: AHORA APUNTAMOS A LA CARPETA ===
+CARPETA_PENDIENTES = "PENDIENTES"  
+# =================================================
+
 CARPETA_FIRMADOS = "FIRMADOS"
 os.makedirs(CARPETA_FIRMADOS, exist_ok=True)
+# Aseguramos que exista la carpeta PENDIENTES para que no de error si está vacía
+os.makedirs(CARPETA_PENDIENTES, exist_ok=True)
 
 if 'dni_validado' not in st.session_state: st.session_state['dni_validado'] = None
 if 'archivo_actual' not in st.session_state: st.session_state['archivo_actual'] = None
@@ -36,16 +41,14 @@ def enviar_a_drive_script(ruta_archivo, nombre_archivo):
         with open(ruta_archivo, "rb") as f:
             pdf_base64 = base64.b64encode(f.read()).decode('utf-8')
         
-        # AQUI ESTABA EL ERROR: Faltaba enviar el folderId
         payload = {
             "file": pdf_base64,
             "filename": nombre_archivo,
-            "folderId": DRIVE_FOLDER_ID  # <--- ¡ESTA LÍNEA ES LA CLAVE!
+            "folderId": DRIVE_FOLDER_ID
         }
         
         response = requests.post(WEB_APP_URL, json=payload)
         
-        # Aceptamos tanto "Recibido y Guardado" como cualquier 200 OK del script
         if response.status_code == 200:
             return True
         else:
@@ -62,13 +65,10 @@ def estampar_firma(pdf_path, imagen_firma, output_path):
     total_paginas = len(pdf_original.pages)
     ANCHO, ALTO = 110, 60
 
-    # === 📍 COORDENADAS FINALES (AJUSTADAS) ===
+    # === 📍 COORDENADAS ===
     COORDENADAS = {
-        # HOJA 5: Arriba bajó 2 puntos (390 -> 388). Abajo intacta.
         5: [(380, 388), (380, 260)],
-        # HOJA 6: Intacta
         6: [(380, 115)],
-        # HOJA 8: Intacta
         8: [(380, 175)]
     }
 
@@ -100,19 +100,24 @@ if st.session_state['dni_validado'] is None:
 
     if submitted and dni_input:
         archivo_encontrado = None
-        for archivo in os.listdir(CARPETA_PENDIENTES):
-            if archivo.startswith(dni_input) and archivo.lower().endswith(".pdf"):
-                archivo_encontrado = archivo
-                break
+        
+        # BUSCAR EN LA CARPETA PENDIENTES
+        if os.path.exists(CARPETA_PENDIENTES):
+            for archivo in os.listdir(CARPETA_PENDIENTES):
+                if archivo.startswith(dni_input) and archivo.lower().endswith(".pdf"):
+                    archivo_encontrado = archivo
+                    break
+        
         if archivo_encontrado:
             st.session_state['dni_validado'] = dni_input
             st.session_state['archivo_actual'] = archivo_encontrado
             st.rerun()
         else:
-            st.error("❌ Contrato no encontrado.")
+            st.error("❌ Contrato no encontrado en la carpeta PENDIENTES.")
 else:
     archivo = st.session_state['archivo_actual']
-    ruta_pdf = archivo
+    # AHORA LA RUTA INCLUYE LA CARPETA
+    ruta_pdf = os.path.join(CARPETA_PENDIENTES, archivo)
     
     st.success(f"📄 Contrato: {archivo}")
     
@@ -126,7 +131,6 @@ else:
     st.markdown("---")
     st.header("👇 Firme aquí")
     
-    # Lienzo limpio sin botones internos
     canvas_result = st_canvas(
         stroke_width=2, stroke_color="#000000", background_color="#ffffff",
         height=200, width=600, drawing_mode="freedraw",
@@ -144,7 +148,6 @@ else:
         if st.button("✅ ACEPTAR Y FIRMAR", type="primary", use_container_width=True):
             if canvas_result.image_data is not None:
                 ruta_temp = "firma_temp.png"
-                # Nombre limpio: DNI - NOMBRE.pdf
                 nombre_final = archivo
                 ruta_salida = os.path.join(CARPETA_FIRMADOS, nombre_final)
                 
@@ -163,13 +166,11 @@ else:
                         
                         estampar_firma(ruta_pdf, ruta_temp, ruta_salida)
                         
-                        # --- ENVIAR AL SCRIPT (AHORA SÍ CON ID) ---
                         exito = enviar_a_drive_script(ruta_salida, nombre_final)
                         
                         if exito:
                             st.balloons()
                             st.success("✅ Contrato firmado correctamente.")
-                            # Botón de descarga limpio
                             with open(ruta_salida, "rb") as f:
                                 st.download_button("📥 Descargar mi copia", f, file_name=nombre_final, mime="application/pdf")
                         else:
