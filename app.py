@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components 
 import os
 import shutil
 from streamlit_drawable_canvas import st_canvas
@@ -25,73 +24,47 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- JAVASCRIPT: EL FRANCOTIRADOR DE RESPALDO ---
-# Busca específicamente el footer y el botón de fullscreen cada 0.5s y los borra
-components.html("""
-<script>
-    setInterval(function() {
-        // 1. Matar el Footer
-        var footer = document.querySelector('footer');
-        if (footer) {
-            footer.style.display = 'none';
-            footer.style.visibility = 'hidden';
-            footer.innerHTML = ''; // Vaciar contenido por si acaso
-        }
-        
-        // 2. Matar el Botón Fullscreen
-        var fullScreenBtn = document.querySelector('button[title="View fullscreen"]');
-        if (fullScreenBtn) {
-            fullScreenBtn.style.display = 'none';
-        }
-    }, 100); // Revisar 10 veces por segundo
-</script>
-""", height=0, width=0)
-
-# --- CSS NUCLEAR: TÉCNICA FANTASMA (Invisible + Fuera de pantalla) ---
+# --- CSS ESTRATEGIA: PARCHE BLANCO SOBRE BARRA EMBED ---
 st.markdown("""
     <style>
-    /* ============================================================ */
-    /* ATAQUE AL FOOTER "BUILT WITH STREAMLIT" */
-    /* ============================================================ */
-    footer {
-        visibility: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-        height: 0px !important;
-        max-height: 0px !important;
-        margin: 0px !important;
-        padding: 0px !important;
-        overflow: hidden !important;
-        z-index: -9999 !important;      /* Al fondo del abismo */
-        position: fixed !important;     /* Despegar del flujo */
-        bottom: -100px !important;      /* Tirar fuera de la pantalla */
+    /* 1. LIMPIEZA BÁSICA (Por si acaso) */
+    header {visibility: hidden !important;}
+    [data-testid="stHeader"] {display: none !important;}
+    
+    /* 2. EL PARCHE BLANCO (TU IDEA MAESTRA) */
+    /* Creamos una caja blanca fija en el fondo de la pantalla */
+    body::after {
+        content: "";
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 50px; /* Altura suficiente para tapar la barra "Built with..." */
+        background-color: white; /* Color idéntico al fondo */
+        z-index: 9999999; /* Encima de todo */
+        pointer-events: auto; /* Bloquea los clics (para que no den a Fullscreen) */
     }
 
-    /* ============================================================ */
-    /* ATAQUE AL BOTÓN FULLSCREEN */
-    /* ============================================================ */
+    /* 3. INTENTO DE OCULTAR LA BARRA (Doble seguridad) */
+    footer {
+        display: none !important;
+        opacity: 0 !important;
+    }
+    
+    /* 4. OCULTAR BOTÓN FULLSCREEN ESPECÍFICO */
     button[title="View fullscreen"] {
         display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
     }
 
-    /* ============================================================ */
-    /* LIMPIEZA GENERAL DE SOBRAS */
-    /* ============================================================ */
-    .stAppDeployButton, 
-    [data-testid="stToolbar"], 
-    [data-testid="stHeader"], 
-    div[class*="viewerBadge"] {
-        display: none !important;
-    }
-    
-    #MainMenu {display: none !important;}
-    
-    /* AJUSTE PARA QUE NO QUEDE HUECO BLANCO ABAJO */
+    /* 5. AJUSTE DE MARGEN PARA QUE EL CONTENIDO NO QUEDE TAPADO POR EL PARCHE */
     .block-container {
-        padding-bottom: 0px !important;
+        padding-bottom: 60px !important; /* Dejamos espacio para el parche */
+        padding-top: 1rem !important;
     }
+    
+    /* 6. BORRAR MENÚS SOBRANTES */
+    #MainMenu {display: none !important;}
+    div[data-testid="stToolbar"] {display: none !important;}
     </style>
     """, unsafe_allow_html=True)
 
