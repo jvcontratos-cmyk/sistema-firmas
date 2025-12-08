@@ -24,50 +24,54 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS: LIMPIEZA TOTAL SIN PARCHES ---
+# --- CSS ESTRATEGIA: CAMUFLAJE NEGRO PARA MODO EMBED ---
 st.markdown("""
     <style>
-    /* 1. ELIMINAR EL HEADER SUPERIOR */
+    /* 1. LIMPIEZA DE CABECERA */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
     
-    /* 2. ELIMINAR EL FOOTER "BUILT WITH STREAMLIT" (Modo Embed) */
-    /* Atacamos directamente la etiqueta footer para que no ocupe espacio */
+    /* 2. EL PARCHE INVISIBLE (NEGRO) */
+    /* Creamos una caja del MISMO COLOR que el fondo oscuro de Streamlit (#0e1117) */
+    body::after {
+        content: "";
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 35px; /* Altura ajustada para cubrir solo el footer */
+        background-color: #0e1117 !important; /* <--- COLOR NEGRO PARA CAMUFLAJE */
+        z-index: 2147483647 !important; /* Z-index máximo posible para estar encima de todo */
+        pointer-events: auto; /* Bloquea los clics en esa zona */
+    }
+
+    /* 3. INTENTO DE APLASTAR EL FOOTER ORIGINAL */
     footer {
-        display: none !important;
-        visibility: hidden !important;
         height: 0px !important;
-        margin: 0px !important;
-        padding: 0px !important;
+        min-height: 0px !important;
+        max-height: 0px !important;
+        overflow: hidden !important;
         opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
     }
     
-    /* 3. ELIMINAR EL BOTÓN FULLSCREEN */
+    /* 4. OCULTAR EL BOTÓN FULLSCREEN ESPECÍFICO */
     button[title="View fullscreen"] {
         display: none !important;
+        width: 0px !important;
+        height: 0px !important;
     }
-    
-    /* 4. ELIMINAR EL BOTÓN DE "MANAGE APP" Y "VIEWER BADGE" */
-    .stAppDeployButton, 
-    [data-testid="stToolbar"], 
-    div[class*="viewerBadge"] {
-        display: none !important;
-    }
-    
-    /* 5. ELIMINAR EL MENÚ HAMBURGUESA */
-    #MainMenu {display: none !important;}
-    
-    /* 6. AJUSTAR MÁRGENES (Para que no quede hueco abajo) */
+
+    /* 5. AJUSTE DE MARGEN PARA QUE EL CONTENIDO NO QUEDE TAPADO POR EL PARCHE */
     .block-container {
+        padding-bottom: 40px !important; 
         padding-top: 1rem !important;
-        padding-bottom: 0rem !important; /* Importante: quitamos el relleno inferior */
     }
     
-    /* 7. ASEGURAR QUE NO HAYA BARRAS BLANCAS EXTRAÑAS */
-    body::after {
-        content: none !important; /* Borra cualquier parche anterior */
-        display: none !important;
-    }
+    /* 6. BORRAR MENÚS SOBRANTES */
+    #MainMenu {display: none !important;}
+    div[data-testid="stToolbar"] {display: none !important;}
     </style>
     """, unsafe_allow_html=True)
 
@@ -304,6 +308,7 @@ else:
                     
                     with st.spinner("Procesando firma, guardando y limpiando..."):
                         try:
+                            # 1. Imagen de Firma
                             img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
                             data = img.getdata()
                             newData = []
@@ -313,3 +318,32 @@ else:
                                 else:
                                     newData.append(item)
                             img.putdata(newData)
+                            img.save(ruta_firma, "PNG")
+                            
+                            # 2. Estampar en PDF
+                            estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
+                            
+                            # 3. Subir a Drive
+                            enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
+                            
+                            # 4. Registrar en Excel
+                            registrar_firma_sheet(st.session_state['dni_validado'])
+                            
+                            # 5. Borrar Original
+                            borrar_archivo_drive(st.session_state['archivo_id'])
+                            
+                            st.session_state['firmado_ok'] = True
+                            st.balloons()
+                            st.rerun()
+                        
+                        except Exception as e:
+                            st.error(f"Error técnico: {e}")
+                        
+                        finally:
+                            if os.path.exists(ruta_firma): os.remove(ruta_firma)
+                else:
+                    st.warning("⚠️ Por favor, dibuje su firma.")
+
+        if st.button("⬅️ Salir"):
+            st.session_state['dni_validado'] = None
+            st.rerun()
