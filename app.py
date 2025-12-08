@@ -17,27 +17,30 @@ from datetime import datetime, timedelta
 # --- CONFIGURACIÓN DE PÁGINA (MODO KIOSCO) ---
 st.set_page_config(page_title="Portal de Contratos", page_icon="✍️", layout="wide")
 
-# --- CSS NUCLEAR MEJORADO (CON EL PARCHE FINAL) ---
+# --- CSS NUCLEAR REFORZADO (NIVEL EXTREMO) ---
 st.markdown("""
     <style>
-    /* Ocultar Header superior (Hamburguesa, Deploy, etc.) */
-    header {visibility: hidden;}
-    [data-testid="stHeader"] {display: none;}
+    /* 1. Ocultar Header superior y Decoraciones */
+    header {visibility: hidden !important;}
+    [data-testid="stHeader"] {display: none !important;}
+    [data-testid="stDecoration"] {display: none !important;}
     
-    /* Ocultar Footer y marcas de agua */
-    footer {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
+    /* 2. Ocultar Footer y Menú hamburguesa */
+    footer {visibility: hidden !important;}
+    #MainMenu {visibility: hidden !important;}
     
-    /* Ocultar la barra inferior donde sale "Manage app" */
+    /* 3. Ocultar la barra inferior y CUALQUIER botón de Deploy/Manage */
     .stAppDeployButton {display: none !important;}
+    .stDeployButton {display: none !important;} /* Variante extra */
     [data-testid="stToolbar"] {display: none !important;}
-    [data-testid="stStatusWidget"] {display: none !important;} /* <--- ESTA LÍNEA BORRA EL MANAGE APP */
+    [data-testid="stStatusWidget"] {display: none !important;}
+    button[kind="header"] {display: none !important;}
     
-    /* Ocultar botones internos del canvas */
+    /* 4. Ocultar botones internos del canvas */
     div[data-testid="stCanvas"] button {display: none !important;}
     div[data-testid="stElementToolbar"] {display: none !important;}
     
-    /* Ajustar espacios */
+    /* 5. Ajustar espacios para que no quede hueco arriba */
     .block-container {padding-top: 2rem !important;}
     </style>
     """, unsafe_allow_html=True)
@@ -95,7 +98,7 @@ with st.sidebar:
         *Podrá ver el detalle completo de sus ingresos reflejado en su **boleta de pago** a fin de mes.*
         """)
 
-    # PREGUNTA 2: HORAS (Corregido icono y texto)
+    # PREGUNTA 2: HORAS
     with st.expander("🕒 ¿Por qué el contrato dice 8hrs si trabajo 12hrs?"):
         st.markdown("""
         La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias.
