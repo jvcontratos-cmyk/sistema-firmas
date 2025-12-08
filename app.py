@@ -8,26 +8,34 @@ import io
 import base64
 from PIL import Image
 import requests
+import fitz  # PyMuPDF (El motor de imágenes)
 
-# --- CONFIGURACIÓN ---
+# --- CONFIGURACIÓN DE PÁGINA (MODO KIOSCO) ---
 st.set_page_config(page_title="Portal de Contratos", page_icon="✍️", layout="centered")
 
-# --- CSS AGRESIVO PARA OCULTAR BOTONES ---
+# --- CSS NUCLEAR: OCULTAR TODO LO QUE NO SEA TU APP ---
 st.markdown("""
     <style>
-    /* Ocultar botones específicos de la barra de herramientas del canvas */
-    button[title="Reset"], 
-    button[title="Undo"], 
-    button[title="Redo"], 
-    button[title="Download"],
-    button[title="Delete"] {
+    /* 1. Ocultar la barra superior (Share, Star, Hamburguesa, Decoración roja) */
+    header {visibility: hidden;}
+    [data-testid="stHeader"] {display: none;}
+    
+    /* 2. Ocultar el pie de página "Made with Streamlit" */
+    footer {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
+    
+    /* 3. Ocultar botones internos del canvas (deshacer, borrar chiquito) */
+    div[data-testid="stCanvas"] button {
         display: none !important;
-        visibility: hidden !important;
-        height: 0px !important;
     }
-    /* Por si acaso, ocultar el contenedor de la barra si existe */
-    div[data-testid="stCanvas"] > div:first-child > div:nth-child(2) {
+    /* 4. Ocultar barra de herramientas flotante del canvas */
+    div[data-testid="stElementToolbar"] {
         display: none !important;
+    }
+    
+    /* 5. Ajustar el margen superior porque al quitar el header queda hueco */
+    .block-container {
+        padding-top: 1rem !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -36,24 +44,23 @@ st.markdown("""
 if "drive_script_url" in st.secrets["general"]:
     WEB_APP_URL = st.secrets["general"]["drive_script_url"]
 else:
-    st.error("⚠️ Falta configurar el secreto drive_script_url")
+    st.error("⚠️ Error interno de configuración.")
     st.stop()
 
-# TU CARPETA DE DRIVE
+# CONFIGURACIÓN
 DRIVE_FOLDER_ID = "1g-ht7BZCUiyN4um1M9bytrrVAZu7gViN"
-
-# CARPETA DE BÚSQUEDA
 CARPETA_PENDIENTES = "PENDIENTES"  
 CARPETA_FIRMADOS = "FIRMADOS"
 
 os.makedirs(CARPETA_FIRMADOS, exist_ok=True)
 os.makedirs(CARPETA_PENDIENTES, exist_ok=True)
 
+# VARIABLES DE SESIÓN
 if 'dni_validado' not in st.session_state: st.session_state['dni_validado'] = None
 if 'archivo_actual' not in st.session_state: st.session_state['archivo_actual'] = None
 if 'canvas_key' not in st.session_state: st.session_state['canvas_key'] = 0
 
-# --- FUNCIÓN: ENVIAR AL PUENTE DE DRIVE ---
+# --- FUNCIÓN: ENVIAR A DRIVE ---
 def enviar_a_drive_script(ruta_archivo, nombre_archivo):
     try:
         with open(ruta_archivo, "rb") as f:
@@ -64,17 +71,12 @@ def enviar_a_drive_script(ruta_archivo, nombre_archivo):
             "filename": nombre_archivo,
             "folderId": DRIVE_FOLDER_ID
         }
-        
         response = requests.post(WEB_APP_URL, json=payload)
-        
-        if response.status_code == 200:
-            return True
-        else:
-            return False
-    except Exception as e:
+        return response.status_code == 200
+    except:
         return False
 
-# --- FUNCIÓN DE ESTAMPADO ---
+# --- FUNCIÓN: ESTAMPAR FIRMA ---
 def estampar_firma(pdf_path, imagen_firma, output_path):
     pdf_original = PdfReader(pdf_path)
     pdf_writer = PdfWriter()
@@ -104,6 +106,17 @@ def estampar_firma(pdf_path, imagen_firma, output_path):
     with open(output_path, "wb") as f:
         pdf_writer.write(f)
 
+# --- FUNCIÓN: MOSTRAR PDF COMO IMÁGENES (CERO DESCARGA) ---
+def mostrar_pdf_como_imagenes(ruta_pdf):
+    try:
+        doc = fitz.open(ruta_pdf)
+        for pagina in doc:
+            pix = pagina.get_pixmap(dpi=150) # Calidad HD
+            img_bytes = pix.tobytes("png")
+            st.image(img_bytes, use_container_width=True)
+    except Exception as e:
+        st.error("Error visualizando el documento.")
+
 # --- INTERFAZ ---
 st.title("✍️ Portal de Contratos")
 
@@ -127,25 +140,29 @@ if st.session_state['dni_validado'] is None:
             st.rerun()
         else:
             st.error("❌ Contrato no ubicado.")
+
 else:
+    # --- PANTALLA DE FIRMA ---
     archivo = st.session_state['archivo_actual']
     ruta_pdf = os.path.join(CARPETA_PENDIENTES, archivo)
     
-    # --- ZONA DE INFORMACIÓN DEL CONTRATO (SIN PDF ROTO) ---
-    st.info(f"📄 **Contrato cargado:** {archivo}")
+    st.success(f"✅ Documento listo: **{archivo}**")
+    st.info("Lea el contrato a continuación y firme al final.")
     
-    # Botón opcional para ver el PDF real si quieren leerlo antes
-    with open(ruta_pdf, "rb") as f:
-        st.download_button("👁️ Leer Contrato Completo (PDF)", f, file_name=archivo, mime="application/pdf")
+    st.markdown("---")
+    
+    # 1. VISOR DE IMÁGENES (NO PDF, NO DESCARGA)
+    with st.container(height=500, border=True): # Cajita con scroll
+        mostrar_pdf_como_imagenes(ruta_pdf)
 
     st.markdown("---")
     st.header("👇 Firme aquí")
     
-    # Lienzo
+    # 2. LIENZO LIMPIO
     canvas_result = st_canvas(
         stroke_width=2, stroke_color="#000000", background_color="#ffffff",
         height=200, width=600, drawing_mode="freedraw",
-        display_toolbar=False,  # Intento oficial
+        display_toolbar=False, 
         key=f"canvas_{st.session_state['canvas_key']}",
     )
 
@@ -162,8 +179,9 @@ else:
                 nombre_final = archivo
                 ruta_salida = os.path.join(CARPETA_FIRMADOS, nombre_final)
                 
-                with st.spinner("Procesando contrato..."):
+                with st.spinner("Procesando firma..."):
                     try:
+                        # Guardar imagen firma
                         img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
                         data = img.getdata()
                         newData = []
@@ -175,26 +193,25 @@ else:
                         img.putdata(newData)
                         img.save(ruta_temp, "PNG")
                         
+                        # Estampar en PDF
                         estampar_firma(ruta_pdf, ruta_temp, ruta_salida)
                         
+                        # Enviar a Drive
                         exito = enviar_a_drive_script(ruta_salida, nombre_final)
                         
                         if exito:
                             st.balloons()
-                            st.success("✅ Contrato firmado correctamente.")
-                            with open(ruta_salida, "rb") as f:
-                                st.download_button("📥 Descargar mi copia", f, file_name=nombre_final, mime="application/pdf")
+                            st.success("✅ Contrato firmado y archivado correctamente.")
+                            # CERO BOTONES DE DESCARGA
                         else:
-                            st.success("✅ Contrato firmado correctamente (Copia Local).")
-                            with open(ruta_salida, "rb") as f:
-                                st.download_button("📥 Descargar mi copia", f, file_name=nombre_final)
+                            st.success("✅ Contrato firmado (Copia Local).")
 
                     except Exception as e:
-                        st.error(f"Error en el proceso: {e}")
+                        st.error("Error técnico al procesar.")
                     finally:
                         if os.path.exists(ruta_temp): os.remove(ruta_temp)
             else:
-                st.warning("Por favor, dibuje su firma antes de aceptar.")
+                st.warning("⚠️ Por favor, dibuje su firma.")
 
     if st.button("⬅️ Salir"):
         st.session_state['dni_validado'] = None
