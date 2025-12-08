@@ -217,7 +217,8 @@ else:
                     nombre_final = archivo
                     ruta_salida = os.path.join(CARPETA_FIRMADOS, nombre_final)
                     
-                    with st.spinner("Procesando y bloqueando documento..."):
+                    # --- CAMBIO AQUÍ: MENSAJE MÁS AMIGABLE ---
+                    with st.spinner("Procesando documento..."):
                         try:
                             # 1. Crear imagen firma
                             img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
@@ -240,7 +241,6 @@ else:
                             
                             # 4. MOVER ARCHIVO A "PROCESADOS" (Bloqueo local)
                             ruta_destino_final = os.path.join(CARPETA_PROCESADOS, archivo)
-                            # Si ya existe en procesados, lo sobreescribimos por si acaso
                             if os.path.exists(ruta_destino_final):
                                 os.remove(ruta_destino_final)
                             shutil.move(ruta_origen, ruta_destino_final)
@@ -248,7 +248,7 @@ else:
                             # 5. ACTIVAR ESTADO DE ÉXITO Y RECARGAR
                             st.session_state['firmado_ok'] = True
                             st.balloons()
-                            st.rerun() # Recarga para mostrar la pantalla de FASE B
+                            st.rerun() 
 
                         except Exception as e:
                             st.error(f"Error técnico: {e}")
