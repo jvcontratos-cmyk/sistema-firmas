@@ -24,47 +24,50 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS ESTRATEGIA: PARCHE BLANCO SOBRE BARRA EMBED ---
+# --- CSS: LIMPIEZA TOTAL SIN PARCHES ---
 st.markdown("""
     <style>
-    /* 1. LIMPIEZA BÁSICA (Por si acaso) */
+    /* 1. ELIMINAR EL HEADER SUPERIOR */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
     
-    /* 2. EL PARCHE BLANCO (TU IDEA MAESTRA) */
-    /* Creamos una caja blanca fija en el fondo de la pantalla */
-    body::after {
-        content: "";
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        height: 50px; /* Altura suficiente para tapar la barra "Built with..." */
-        background-color: white; /* Color idéntico al fondo */
-        z-index: 9999999; /* Encima de todo */
-        pointer-events: auto; /* Bloquea los clics (para que no den a Fullscreen) */
-    }
-
-    /* 3. INTENTO DE OCULTAR LA BARRA (Doble seguridad) */
+    /* 2. ELIMINAR EL FOOTER "BUILT WITH STREAMLIT" (Modo Embed) */
+    /* Atacamos directamente la etiqueta footer para que no ocupe espacio */
     footer {
         display: none !important;
+        visibility: hidden !important;
+        height: 0px !important;
+        margin: 0px !important;
+        padding: 0px !important;
         opacity: 0 !important;
     }
     
-    /* 4. OCULTAR BOTÓN FULLSCREEN ESPECÍFICO */
+    /* 3. ELIMINAR EL BOTÓN FULLSCREEN */
     button[title="View fullscreen"] {
         display: none !important;
     }
-
-    /* 5. AJUSTE DE MARGEN PARA QUE EL CONTENIDO NO QUEDE TAPADO POR EL PARCHE */
-    .block-container {
-        padding-bottom: 60px !important; /* Dejamos espacio para el parche */
-        padding-top: 1rem !important;
+    
+    /* 4. ELIMINAR EL BOTÓN DE "MANAGE APP" Y "VIEWER BADGE" */
+    .stAppDeployButton, 
+    [data-testid="stToolbar"], 
+    div[class*="viewerBadge"] {
+        display: none !important;
     }
     
-    /* 6. BORRAR MENÚS SOBRANTES */
+    /* 5. ELIMINAR EL MENÚ HAMBURGUESA */
     #MainMenu {display: none !important;}
-    div[data-testid="stToolbar"] {display: none !important;}
+    
+    /* 6. AJUSTAR MÁRGENES (Para que no quede hueco abajo) */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 0rem !important; /* Importante: quitamos el relleno inferior */
+    }
+    
+    /* 7. ASEGURAR QUE NO HAYA BARRAS BLANCAS EXTRAÑAS */
+    body::after {
+        content: none !important; /* Borra cualquier parche anterior */
+        display: none !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -310,23 +313,3 @@ else:
                                 else:
                                     newData.append(item)
                             img.putdata(newData)
-                            img.save(ruta_firma, "PNG")
-                            
-                            estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
-                            enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
-                            registrar_firma_sheet(st.session_state['dni_validado'])
-                            borrar_archivo_drive(st.session_state['archivo_id'])
-                            
-                            st.session_state['firmado_ok'] = True
-                            st.balloons()
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Error técnico: {e}")
-                        finally:
-                            if os.path.exists(ruta_firma): os.remove(ruta_firma)
-                else:
-                    st.warning("⚠️ Por favor, dibuje su firma.")
-
-        if st.button("⬅️ Salir"):
-            st.session_state['dni_validado'] = None
-            st.rerun()
