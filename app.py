@@ -16,52 +16,44 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from datetime import datetime, timedelta
 
-# --- CONFIGURACIÓN DE PÁGINA (MODO KIOSCO + BARRA FIJA) ---
+# --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
     page_title="Portal de Contratos", 
     page_icon="✍️", 
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed" # Barra lateral cerrada por defecto (ya no la usamos)
 )
 
-# --- CSS NUCLEAR REFORZADO (VERSIÓN MÓVIL BLINDADA) ---
+# --- CSS NUCLEAR: EXTERMINIO TOTAL DE LA BARRA MÓVIL ---
 st.markdown("""
     <style>
-    /* 1. Ocultar Header superior, Decoraciones y Menú hamburguesa */
+    /* 1. OCULTAR HEADER, DECORACIONES Y MENÚS SUPERIORES */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
     [data-testid="stDecoration"] {display: none !important;}
     
-    /* 2. Ocultar Footer (Made with Streamlit) */
+    /* 2. OCULTAR LA BARRA INFERIOR FLOTANTE (Calavera/Corona) */
+    /* Atacamos todas las variantes posibles de esa barra */
+    .stApp > header {display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
+    div[class*="stToolbar"] {display: none !important;}
+    div[class*="viewerBadge"] {display: none !important;}
+    
+    /* 3. OCULTAR FOOTER */
     footer {visibility: hidden !important;}
     #MainMenu {visibility: hidden !important;}
     
-    /* 3. OCULTAR BARRA MÓVIL INFERIOR (Calavera/Corona) */
+    /* 4. OCULTAR BOTONES DE DEPLOY/MANAGE */
     .stAppDeployButton {display: none !important;}
-    [data-testid="stToolbar"] {
-        visibility: hidden !important;
-        display: none !important;
-        height: 0px !important;
-    }
-    
-    /* 4. Ocultar el Widget de Estado (Manage app en PC) */
     [data-testid="stStatusWidget"] {display: none !important;}
     
-    /* 5. Ocultar botones internos del canvas */
+    /* 5. OCULTAR BOTONES INTERNOS DE HERRAMIENTAS */
     div[data-testid="stCanvas"] button {display: none !important;}
     div[data-testid="stElementToolbar"] {display: none !important;}
     
-    /* 6. Bloquear cierre de barra lateral (FAQ Fijo) */
-    section[data-testid="stSidebar"] button {display: none !important;}
-    
-    /* 7. Ajustar espacios para que no quede hueco */
-    .block-container {padding-top: 1rem !important;}
-    
-    /* AJUSTE EXTRA: Quitar padding inferior en móviles */
-    .stApp {
-        margin-bottom: 0px !important;
-        padding-bottom: 0px !important;
-    }
+    /* 6. AJUSTAR ESPACIOS */
+    .block-container {padding-top: 2rem !important;}
+    .stApp {margin-bottom: 0px !important;}
     </style>
     """, unsafe_allow_html=True)
 
@@ -101,27 +93,6 @@ if 'archivo_id' not in st.session_state: st.session_state['archivo_id'] = None
 if 'archivo_nombre' not in st.session_state: st.session_state['archivo_nombre'] = None
 if 'canvas_key' not in st.session_state: st.session_state['canvas_key'] = 0
 if 'firmado_ok' not in st.session_state: st.session_state['firmado_ok'] = False
-
-# --- BARRA LATERAL (FAQ) ---
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/471/471662.png", width=50)
-    st.subheader("Preguntas Frecuentes")
-    
-    with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
-        st.markdown("""
-        En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto.
-        El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos).
-        *Lo verá reflejado en su **boleta de pago** a fin de mes.*
-        """)
-
-    with st.expander("🕒 ¿Por qué el contrato dice 8hrs si trabajo 12hrs?"):
-        st.markdown("""
-        La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias.
-        Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**.
-        *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*
-        """)
-    st.markdown("---")
-    st.info("📞 **¿Dudas adicionales?**\nContacte al área de RRHH.")
 
 # --- FUNCIONES ---
 
@@ -220,6 +191,26 @@ if st.session_state['dni_validado'] is None:
     with st.form("login_form"):
         dni_input = st.text_input("DIGITE SU DNI", max_chars=15)
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
+
+    # === NUEVA UBICACIÓN DEL FAQ (Visible siempre en pantalla principal) ===
+    st.markdown("---")
+    st.subheader("❓ Preguntas Frecuentes")
+    
+    with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
+        st.markdown("""
+        En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto.
+        El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos).
+        *Lo verá reflejado en su **boleta de pago** a fin de mes.*
+        """)
+
+    with st.expander("🕒 ¿Por qué el contrato dice 8hrs si trabajo 12hrs?"):
+        st.markdown("""
+        La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias.
+        Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**.
+        *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*
+        """)
+    st.info("📞 **¿Dudas adicionales?** Contacte al área de RRHH.")
+    # =======================================================================
 
     if submitted and dni_input:
         with st.spinner("Conectando con base de datos..."):
