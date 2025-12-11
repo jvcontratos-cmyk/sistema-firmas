@@ -160,24 +160,24 @@ def estampar_firma(pdf_path, imagen_firma, output_path):
         pdf_writer.add_page(pagina)
     with open(output_path, "wb") as f: pdf_writer.write(f)
 
-# --- FUNCIÓN PÁGINA 9 CON TUS COORDENADAS NUEVAS (ACTUALIZADO) ---
+# --- FUNCIÓN PÁGINA 9 CON COORDENADAS ACTUALIZADAS (V3) ---
 def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes, output_path):
     pdf_original = PdfReader(pdf_path)
     pdf_writer = PdfWriter()
     total_paginas = len(pdf_original.pages)
     
-    # === TUS COORDENADAS ACTUALIZADAS ===
+    # === TUS NUEVAS COORDENADAS ===
     # FIRMA (Cuadro Izquierdo)
-    X_FIRMA, Y_FIRMA = 90, 400
+    X_FIRMA, Y_FIRMA = 100, 370
     W_FIRMA, H_FIRMA = 230, 150
     
     # FOTO (Cuadro Derecho)
-    X_FOTO, Y_FOTO = 290, 450
+    X_FOTO, Y_FOTO = 290, 400
     W_FOTO, H_FOTO = 230, 150 
     
     # FECHA (Abajo Izquierda)
-    X_FECHA, Y_FECHA = 145, 350 
-    # ====================================
+    X_FECHA, Y_FECHA = 140, 330 
+    # ==============================
 
     for i in range(total_paginas):
         pagina = pdf_original.pages[i]
@@ -276,6 +276,7 @@ else:
         st.info("Contrato guardado exitosamente.")
         
         ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
+        
         if os.path.exists(ruta_salida_firmado):
             with open(ruta_salida_firmado, "rb") as f:
                 st.download_button("📥 DESCARGAR CONTRATO", f, file_name=f"FIRMADO_{nombre_archivo}", mime="application/pdf", type="primary")
