@@ -171,12 +171,12 @@ def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes
     X_FIRMA, Y_FIRMA = 100, 370
     W_FIRMA, H_FIRMA = 230, 150
     
-    # FOTO (Cuadro Derecho) - Y AJUSTADO A 360
-    X_FOTO, Y_FOTO = 290, 360
+    # FOTO (Cuadro Derecho) - Y AJUSTADO A 370
+    X_FOTO, Y_FOTO = 290, 370
     W_FOTO, H_FOTO = 230, 150 
     
-    # FECHA (Abajo Izquierda) - X AJUSTADO A 145, Y AJUSTADO A 310
-    X_FECHA, Y_FECHA = 145, 310 
+    # FECHA (Abajo Izquierda) - X AJUSTADO A 147, Y AJUSTADO A 309
+    X_FECHA, Y_FECHA = 147, 309 
     # ==============================
 
     for i in range(total_paginas):
