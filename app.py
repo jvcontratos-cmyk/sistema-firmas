@@ -26,10 +26,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS LIMPIO: SIN PARCHES, SOLO OCULTACIÓN ---
+# --- CSS LIMPIO: SOLO OCULTACIÓN (SIN BARRAS RARAS) ---
 st.markdown("""
     <style>
-    /* 1. BORRAR HEADER */
+    /* 1. BORRAR HEADER Y MENÚS */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
     
@@ -38,7 +38,7 @@ st.markdown("""
     button[title="View fullscreen"] {display: none !important;}
     .viewerBadge_container__1QSob {display: none !important;}
     
-    /* 3. BORRAR ELEMENTOS UI */
+    /* 3. BORRAR ELEMENTOS FLOTANTES */
     .stAppDeployButton, [data-testid="stToolbar"], div[class*="viewerBadge"] {display: none !important;}
     #MainMenu {display: none !important;}
     
@@ -154,25 +154,20 @@ def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes
     pdf_writer = PdfWriter()
     total_paginas = len(pdf_original.pages)
     
-    # Coordenadas y Tamaños (Ajustados para los recuadros de la hoja de consentimiento)
-    # Suponiendo tamaño carta estándar.
-    
-    # 1. FIRMA (Lado Izquierdo)
+    # Coordenadas Ajustadas para la Página 9 (Hoja de Consentimiento)
     X_FIRMA, Y_FIRMA = 70, 250
     W_FIRMA, H_FIRMA = 200, 120
     
-    # 2. FOTO (Lado Derecho)
     X_FOTO, Y_FOTO = 340, 250
-    W_FOTO, H_FOTO = 200, 150 # Un poco más alto para la selfie
+    W_FOTO, H_FOTO = 200, 150 
     
-    # 3. FECHA (Abajo a la izquierda)
-    X_FECHA, Y_FECHA = 150, 180 # Ajustado a la línea "FECHA Y HORA:"
+    X_FECHA, Y_FECHA = 150, 180 
 
     for i in range(total_paginas):
         pagina = pdf_original.pages[i]
         
-        # SI ES LA PÁGINA 9 (Recordar que el índice empieza en 0, así que es 8)
-        if i == 8: 
+        # SI ES LA ÚLTIMA PÁGINA (o la 9, índice 8)
+        if i == total_paginas - 1: 
             packet = io.BytesIO()
             c = canvas.Canvas(packet, pagesize=letter)
             
@@ -220,7 +215,8 @@ if st.session_state['dni_validado'] is None:
         dni_input = st.text_input("DIGITE SU DNI", max_chars=15)
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
-    # === MENSAJES (AL CENTRO) ===
+    # === [AQUÍ ESTÁ EL ARREGLO] === 
+    # La lógica va INMEDIATAMENTE después del botón, ANTES de los FAQ.
     if submitted and dni_input:
         with st.spinner("Conectando con base de datos..."):
             estado_sheet = consultar_estado_dni(dni_input)
@@ -246,9 +242,10 @@ if st.session_state['dni_validado'] is None:
                 else:
                     st.error("Error al descargar. Intente nuevamente.")
             else:
-                st.error("❌ Contrato no ubicado.")
+                st.error("❌ Contrato no ubicado (Verifique que su DNI esté correcto).")
+    # ==============================
 
-    # === FAQ ===
+    # === FAQ (AHORA SALE DESPUÉS) ===
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
     with st.expander("💰 ¿Por qué mi sueldo figura diferente?"):
@@ -278,7 +275,7 @@ else:
             st.rerun()
 
     else:
-        st.success(f"✅ Documento: **{nombre_archivo}**")
+        st.success(f"✅ Documento listo: **{nombre_archivo}**")
         st.info("Lea el contrato. Al final encontrará la validación de identidad.")
         
         with st.container(height=500, border=True):
@@ -330,7 +327,8 @@ else:
                         ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
                         ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
                         
-                        with st.spinner("⏳ Procesando firma y biometría..."):
+                        # AQUÍ ESTÁ EL CAMBIO DE TEXTO QUE PEDISTE
+                        with st.spinner("⏳ Procesando firma..."):
                             try:
                                 # Guardar Firma
                                 img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
