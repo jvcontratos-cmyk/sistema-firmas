@@ -230,14 +230,22 @@ if st.session_state['dni_validado'] is None:
         dni_input = st.text_input("DIGITE SU DNI", max_chars=15)
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
-    # LÓGICA DE VALIDACIÓN
+# === LÓGICA DE VALIDACIÓN (REEMPLAZA ESTE BLOQUE COMPLETO) ===
     if submitted and dni_input:
         with st.spinner("Conectando con base de datos..."):
+            # 1. PRIMERO: Consultamos si ya firmó en el Excel
             estado_sheet = consultar_estado_dni(dni_input)
         
+        # 2. CONDICIONAL DE FRENO: Si ya firmó, paramos aquí
         if estado_sheet == "FIRMADO":
             st.info(f"ℹ️ El DNI {dni_input} ya registra un contrato firmado.")
-            st.markdown("**Si necesita una copia de su contrato** o cree que esto es un error, por favor **contacte al área de Administración de Personal**.")
+            st.markdown("""
+            **Si necesita una copia de su contrato** o cree que esto es un error, 
+            por favor **contacte al área de Recursos Humanos**.
+            """)
+            # IMPORTANTE: No hacemos nada más, aquí muere el proceso para este DNI
+        
+        # 3. SI NO HA FIRMADO: Buscamos el contrato en Drive
         else:
             with st.spinner("Buscando contrato en la nube..."):
                 archivo_drive = buscar_archivo_drive(dni_input)
@@ -254,7 +262,7 @@ if st.session_state['dni_validado'] is None:
                     st.session_state['foto_bio'] = None
                     st.rerun()
                 else:
-                    st.error("Error al descargar. Intente nuevamente.")
+                    st.error("Error al descargar el documento. Intente nuevamente.")
             else:
                 st.error("❌ Contrato no ubicado (Verifique que su DNI esté correcto).")
 
@@ -374,6 +382,7 @@ else:
         if st.button("⬅️ Salir"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
