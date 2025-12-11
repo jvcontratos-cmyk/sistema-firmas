@@ -183,43 +183,49 @@ def estampar_firma(pdf_path, imagen_firma, output_path):
         pdf_writer.add_page(pagina)
     with open(output_path, "wb") as f: pdf_writer.write(f)
 
-# --- [NUEVO] Función para rellenar la Página 9 (Firma + Foto + Fecha) ---
+# --- [NUEVO] Función para rellenar la Página 9 (Consentimiento) ---
 def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes, output_path):
     pdf_original = PdfReader(pdf_path)
     pdf_writer = PdfWriter()
     total_paginas = len(pdf_original.pages)
     
-    # Coordenadas Ajustadas para la Página 9
-    X_FIRMA, Y_FIRMA = 70, 250
-    W_FIRMA, H_FIRMA = 200, 120
-    X_FOTO, Y_FOTO = 340, 250
-    W_FOTO, H_FOTO = 200, 150 
-    X_FECHA, Y_FECHA = 150, 180 
+    # Coordenadas Ajustadas a la Hoja 9 (Side-by-Side)
+    # FIRMA (Izquierda)
+    X_FIRMA, Y_FIRMA = 70, 230
+    W_FIRMA, H_FIRMA = 220, 150
+    
+    # FOTO (Derecha)
+    X_FOTO, Y_FOTO = 320, 230
+    W_FOTO, H_FOTO = 220, 180 
+    
+    # FECHA (Abajo Izquierda - Debajo del cuadro de firma)
+    X_FECHA, Y_FECHA = 70, 180 
 
     for i in range(total_paginas):
         pagina = pdf_original.pages[i]
         
-        # SI ES LA ÚLTIMA PÁGINA (o la 9, índice 8)
+        # SI ES LA ÚLTIMA PÁGINA (o la 9, índice 8 si empieza en 0)
+        # Usamos total_paginas - 1 para que siempre sea la última
         if i == total_paginas - 1: 
             packet = io.BytesIO()
             c = canvas.Canvas(packet, pagesize=letter)
             
-            # A. PONER FIRMA
+            # A. PONER FIRMA (Recuadro Izquierdo)
             try:
                 c.drawImage(imagen_firma_path, X_FIRMA, Y_FIRMA, width=W_FIRMA, height=H_FIRMA, mask='auto', preserveAspectRatio=True)
             except: pass
             
-            # B. PONER FOTO BIOMÉTRICA
+            # B. PONER FOTO BIOMÉTRICA (Recuadro Derecho)
             if imagen_foto_bytes:
                 try:
                     image_bio = ImageReader(io.BytesIO(imagen_foto_bytes))
                     c.drawImage(image_bio, X_FOTO, Y_FOTO, width=W_FOTO, height=H_FOTO, preserveAspectRatio=True)
                 except: pass
             
-            # C. PONER FECHA Y HORA
+            # C. PONER FECHA Y HORA (Abajo)
             hora_actual = (datetime.utcnow() - timedelta(hours=5)).strftime("%d/%m/%Y %H:%M:%S")
             c.setFont("Helvetica-Bold", 10)
-            c.drawString(X_FECHA, Y_FECHA, hora_actual)
+            c.drawString(X_FECHA, Y_FECHA, f"{hora_actual}")
             
             c.save()
             packet.seek(0)
@@ -325,7 +331,7 @@ else:
 
     else:
         st.success(f"✅ Documento listo: **{nombre_archivo}**")
-        st.info("Lea el contrato. Al final encontrará la validación de identidad.")
+        st.info("Lea el contrato y firme al final.")
         
         with st.container(height=500, border=True):
             if os.path.exists(ruta_pdf_local):
