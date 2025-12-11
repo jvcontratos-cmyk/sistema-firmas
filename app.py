@@ -249,9 +249,9 @@ if st.session_state['dni_validado'] is None:
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
     with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
-        st.markdown("En el contrato se estipula la **Remuneración Básica**. El monto informado en reclutamiento es el **Sueldo Bruto**.")
+        st.markdown("En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto. El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos). *Lo verá reflejado en su **boleta de pago** a fin de mes.*")
     with st.expander("🕒 ¿Por qué el contrato dice 8hrs si trabajo 12hrs?"):
-        st.markdown("La jornada base es de 8 horas. El resto se paga como **HORAS EXTRAS**.")
+        st.markdown("La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias. Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**. *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*")
     st.info("📞 **¿Dudas adicionales?** Contacte al área de Administración de Personal.")
 
 else:
@@ -364,4 +364,5 @@ else:
                                 if os.path.exists(ruta_firma): os.remove(ruta_firma)
                     else:
                         st.warning("⚠️ Falta la firma.")
+
 
