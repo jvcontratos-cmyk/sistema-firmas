@@ -248,11 +248,11 @@ if st.session_state['dni_validado'] is None:
     # === FAQ (AHORA SALE DESPUÉS) ===
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
-    with st.expander("💰 ¿Por qué mi sueldo figura diferente?"):
-        st.markdown("El contrato muestra el **Básico**. En reclutamiento se informa el **Bruto**.")
-    with st.expander("🕒 ¿Por qué 8hrs si trabajo 12hrs?"):
-        st.markdown("La base legal es 8hrs. El resto son **HORAS EXTRAS**.")
-    st.info("📞 **RRHH:** 999-999-999")
+    with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
+        st.markdown("En el contrato se estipula la **Remuneración Básica**. El monto informado en reclutamiento es el **Sueldo Bruto**.")
+    with st.expander("🕒 ¿Por qué el contrato dice 8hrs si trabajo 12hrs?"):
+        st.markdown("La jornada base es de 8 horas. El resto se paga como **HORAS EXTRAS**.")
+    st.info("📞 **¿Dudas adicionales?** Contacte al área de Administración de Personal.")
 
 else:
     # --- PANTALLA DE FIRMA ---
@@ -364,3 +364,4 @@ else:
                                 if os.path.exists(ruta_firma): os.remove(ruta_firma)
                     else:
                         st.warning("⚠️ Falta la firma.")
+
