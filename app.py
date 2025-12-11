@@ -144,7 +144,7 @@ def estampar_firma(pdf_path, imagen_firma, output_path):
     pdf_writer = PdfWriter()
     total_paginas = len(pdf_original.pages)
     ANCHO, ALTO = 100, 50
-    COORDENADAS = {5: [(380, 388), (380, 260)], 6: [(390, 120)], 8: [(380, 175)]}
+    COORDENADAS = {5: [(380, 388), (380, 260)], 6: [(400, 130)], 8: [(380, 175)]}
     for i in range(total_paginas):
         pagina = pdf_original.pages[i]
         num_pag = i + 1 
@@ -374,5 +374,6 @@ else:
         if st.button("⬅️ Salir"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
