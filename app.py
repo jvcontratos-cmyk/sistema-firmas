@@ -172,11 +172,11 @@ def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes
     W_FIRMA, H_FIRMA = 230, 150
     
     # FOTO (Cuadro Derecho) - INTACTA
-    X_FOTO, Y_FOTO = 290, 360
+    X_FOTO, Y_FOTO = 290, 380
     W_FOTO, H_FOTO = 230, 150 
     
     # FECHA (Abajo Izquierda) - AJUSTADO: X=150 (Antes 145)
-    X_FECHA, Y_FECHA = 150, 310 
+    X_FECHA, Y_FECHA = 150, 308 
     # ===================
 
     for i in range(total_paginas):
@@ -374,3 +374,4 @@ else:
         if st.button("⬅️ Salir"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
