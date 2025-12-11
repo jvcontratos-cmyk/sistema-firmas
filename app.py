@@ -160,24 +160,24 @@ def estampar_firma(pdf_path, imagen_firma, output_path):
         pdf_writer.add_page(pagina)
     with open(output_path, "wb") as f: pdf_writer.write(f)
 
-# --- FUNCIÓN PÁGINA 9 CON COORDENADAS AJUSTADAS ---
+# --- FUNCIÓN PÁGINA 9 CON TUS COORDENADAS NUEVAS ---
 def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes, output_path):
     pdf_original = PdfReader(pdf_path)
     pdf_writer = PdfWriter()
     total_paginas = len(pdf_original.pages)
     
-    # === COORDENADAS AJUSTADAS PARA LOS CUADROS ===
-    # FIRMA (Cuadro Izquierdo) - Subimos un poco Y, ajustamos ancho
-    X_FIRMA, Y_FIRMA = 60, 260
+    # === TUS COORDENADAS ACTUALIZADAS ===
+    # FIRMA (Cuadro Izquierdo)
+    X_FIRMA, Y_FIRMA = 80, 300
     W_FIRMA, H_FIRMA = 230, 150
     
-    # FOTO (Cuadro Derecho) - Subimos Y, ajustamos X inicial y ancho
-    X_FOTO, Y_FOTO = 320, 260
+    # FOTO (Cuadro Derecho)
+    X_FOTO, Y_FOTO = 290, 300
     W_FOTO, H_FOTO = 230, 150 
     
-    # FECHA (Abajo Izquierda) - Ajustamos X para que no monte el texto
-    X_FECHA, Y_FECHA = 160, 180 
-    # =============================================
+    # FECHA (Abajo Izquierda)
+    X_FECHA, Y_FECHA = 150, 400 
+    # ====================================
 
     for i in range(total_paginas):
         pagina = pdf_original.pages[i]
@@ -350,7 +350,7 @@ else:
                                 # 1. Estampar normal
                                 estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
                                 
-                                # 2. Estampar Página 9 (Coord. Ajustadas)
+                                # 2. Estampar Página 9 (Con tus coordenadas)
                                 estampar_firma_y_foto_pagina9(
                                     ruta_salida_firmado, 
                                     ruta_firma, 
