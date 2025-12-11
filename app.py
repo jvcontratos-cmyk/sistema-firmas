@@ -160,24 +160,24 @@ def estampar_firma(pdf_path, imagen_firma, output_path):
         pdf_writer.add_page(pagina)
     with open(output_path, "wb") as f: pdf_writer.write(f)
 
-# --- FUNCIÓN PÁGINA 9 CON TUS COORDENADAS (ACTUALIZADO) ---
+# --- FUNCIÓN PÁGINA 9 (AJUSTE FINAL: FECHA +5pt DERECHA) ---
 def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes, output_path):
     pdf_original = PdfReader(pdf_path)
     pdf_writer = PdfWriter()
     total_paginas = len(pdf_original.pages)
     
-    # === TUS NUEVAS COORDENADAS ===
+    # === COORDENADAS ===
     # FIRMA (Cuadro Izquierdo) - INTACTA
     X_FIRMA, Y_FIRMA = 100, 370
     W_FIRMA, H_FIRMA = 230, 150
     
-    # FOTO (Cuadro Derecho) - Y AJUSTADO A 370
-    X_FOTO, Y_FOTO = 290, 370
+    # FOTO (Cuadro Derecho) - INTACTA
+    X_FOTO, Y_FOTO = 290, 360
     W_FOTO, H_FOTO = 230, 150 
     
-    # FECHA (Abajo Izquierda) - X AJUSTADO A 147, Y AJUSTADO A 309
-    X_FECHA, Y_FECHA = 147, 309 
-    # ==============================
+    # FECHA (Abajo Izquierda) - AJUSTADO: X=150 (Antes 145)
+    X_FECHA, Y_FECHA = 150, 310 
+    # ===================
 
     for i in range(total_paginas):
         pagina = pdf_original.pages[i]
@@ -237,7 +237,7 @@ if st.session_state['dni_validado'] is None:
         
         if estado_sheet == "FIRMADO":
             st.info(f"ℹ️ El DNI {dni_input} ya registra un contrato firmado.")
-            st.markdown("**Si necesita copia**, contacte a RRHH.")
+            st.markdown("**Si necesita una copia de su contrato** o cree que esto es un error, por favor **contacte al área de Administración de Personal**.")
         else:
             with st.spinner("Buscando contrato en la nube..."):
                 archivo_drive = buscar_archivo_drive(dni_input)
@@ -256,16 +256,16 @@ if st.session_state['dni_validado'] is None:
                 else:
                     st.error("Error al descargar. Intente nuevamente.")
             else:
-                st.error("❌ Contrato no ubicado.")
+                st.error("❌ Contrato no ubicado (Verifique que su DNI esté correcto).")
 
     # FAQ
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
-    with st.expander("💰 ¿Por qué mi sueldo figura diferente?"):
-        st.markdown("El contrato muestra el **Básico**. En reclutamiento se informa el **Bruto**.")
-    with st.expander("🕒 ¿Por qué 8hrs si trabajo 12hrs?"):
-        st.markdown("La base legal es 8hrs. El resto son **HORAS EXTRAS**.")
-    st.info("📞 **RRHH:** 999-999-999")
+    with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
+        st.markdown("En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto. El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos). *Lo verá reflejado en su **boleta de pago** a fin de mes.*")
+    with st.expander("🕒 ¿Por qué el contrato dice 8hrs si trabajo 12hrs?"):
+        st.markdown("La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias. Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**. *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*")
+    st.info("📞 **¿Dudas adicionales?** Contacte al área de Administración de Personal.")
 
 else:
     nombre_archivo = st.session_state['archivo_nombre']
@@ -299,11 +299,11 @@ else:
         # ZONA DE BIOMETRÍA Y FIRMA (CANDADO)
         if st.session_state['foto_bio'] is None:
             st.subheader("1. Validación de Identidad")
-            st.warning("📸 Tome una foto para activar la firma.")
+            st.warning("📸 Es necesario tomarse una selfie para activar la firma.")
             foto = st.camera_input("Selfie de verificación", label_visibility="collapsed")
             if foto:
                 st.session_state['foto_bio'] = foto.getvalue()
-                st.success("Foto OK")
+                st.success("Foto Ok")
                 st.rerun()
         else:
             st.success("✅ Identidad Validada")
