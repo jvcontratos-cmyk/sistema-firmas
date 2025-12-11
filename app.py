@@ -5,7 +5,7 @@ from streamlit_drawable_canvas import st_canvas
 from PyPDF2 import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
-# --- [NUEVO] Import necesario para procesar la foto ---
+# Import necesario para procesar la foto
 from reportlab.lib.utils import ImageReader 
 import io
 import base64
@@ -26,39 +26,16 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS LIMPIO: SIN PARCHES, SOLO OCULTACIÓN ---
+# --- CSS LIMPIO ---
 st.markdown("""
     <style>
-    /* 1. BORRAR HEADER */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
-    
-    /* 2. BORRAR FOOTER Y FULLSCREEN (Directamente, sin barras encima) */
-    footer {
-        display: none !important;
-        visibility: hidden !important;
-        height: 0px !important;
-    }
-    button[title="View fullscreen"] {
-        display: none !important;
-    }
-    
-    /* 3. BORRAR ELEMENTOS DE LA UI DE STREAMLIT */
-    .stAppDeployButton, 
-    [data-testid="stToolbar"], 
-    div[class*="viewerBadge"] {
-        display: none !important;
-    }
+    footer {display: none !important; visibility: hidden !important; height: 0px !important;}
+    button[title="View fullscreen"] {display: none !important;}
+    .stAppDeployButton, [data-testid="stToolbar"], div[class*="viewerBadge"] {display: none !important;}
     #MainMenu {display: none !important;}
-    
-    /* 4. AJUSTE DE MÁRGENES */
-    /* Quitamos cualquier relleno inferior para aprovechar toda la pantalla */
-    .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 0rem !important;
-    }
-    
-    /* 5. ELIMINAR CUALQUIER PARCHE ANTERIOR */
+    .block-container {padding-top: 1rem !important; padding-bottom: 0rem !important;}
     body::after {content: none !important;}
     </style>
     """, unsafe_allow_html=True)
@@ -99,7 +76,7 @@ if 'archivo_id' not in st.session_state: st.session_state['archivo_id'] = None
 if 'archivo_nombre' not in st.session_state: st.session_state['archivo_nombre'] = None
 if 'canvas_key' not in st.session_state: st.session_state['canvas_key'] = 0
 if 'firmado_ok' not in st.session_state: st.session_state['firmado_ok'] = False
-# --- [NUEVO] Variable para guardar la foto temporalmente ---
+# Variable para guardar la foto temporalmente
 if 'foto_bio' not in st.session_state: st.session_state['foto_bio'] = None 
 
 # --- FUNCIONES ---
@@ -183,46 +160,46 @@ def estampar_firma(pdf_path, imagen_firma, output_path):
         pdf_writer.add_page(pagina)
     with open(output_path, "wb") as f: pdf_writer.write(f)
 
-# --- [NUEVO] Función para rellenar la Página 9 (Consentimiento) ---
+# --- FUNCIÓN PÁGINA 9 CON COORDENADAS AJUSTADAS ---
 def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes, output_path):
     pdf_original = PdfReader(pdf_path)
     pdf_writer = PdfWriter()
     total_paginas = len(pdf_original.pages)
     
-    # Coordenadas Ajustadas a la Hoja 9 (Side-by-Side)
-    # FIRMA (Izquierda)
-    X_FIRMA, Y_FIRMA = 70, 230
-    W_FIRMA, H_FIRMA = 220, 150
+    # === COORDENADAS AJUSTADAS PARA LOS CUADROS ===
+    # FIRMA (Cuadro Izquierdo) - Subimos un poco Y, ajustamos ancho
+    X_FIRMA, Y_FIRMA = 60, 260
+    W_FIRMA, H_FIRMA = 230, 150
     
-    # FOTO (Derecha)
-    X_FOTO, Y_FOTO = 320, 230
-    W_FOTO, H_FOTO = 220, 180 
+    # FOTO (Cuadro Derecho) - Subimos Y, ajustamos X inicial y ancho
+    X_FOTO, Y_FOTO = 320, 260
+    W_FOTO, H_FOTO = 230, 150 
     
-    # FECHA (Abajo Izquierda - Debajo del cuadro de firma)
-    X_FECHA, Y_FECHA = 70, 180 
+    # FECHA (Abajo Izquierda) - Ajustamos X para que no monte el texto
+    X_FECHA, Y_FECHA = 160, 180 
+    # =============================================
 
     for i in range(total_paginas):
         pagina = pdf_original.pages[i]
         
-        # SI ES LA ÚLTIMA PÁGINA (o la 9, índice 8 si empieza en 0)
-        # Usamos total_paginas - 1 para que siempre sea la última
+        # SI ES LA ÚLTIMA PÁGINA
         if i == total_paginas - 1: 
             packet = io.BytesIO()
             c = canvas.Canvas(packet, pagesize=letter)
             
-            # A. PONER FIRMA (Recuadro Izquierdo)
+            # A. PONER FIRMA
             try:
                 c.drawImage(imagen_firma_path, X_FIRMA, Y_FIRMA, width=W_FIRMA, height=H_FIRMA, mask='auto', preserveAspectRatio=True)
             except: pass
             
-            # B. PONER FOTO BIOMÉTRICA (Recuadro Derecho)
+            # B. PONER FOTO BIOMÉTRICA
             if imagen_foto_bytes:
                 try:
                     image_bio = ImageReader(io.BytesIO(imagen_foto_bytes))
                     c.drawImage(image_bio, X_FOTO, Y_FOTO, width=W_FOTO, height=H_FOTO, preserveAspectRatio=True)
                 except: pass
             
-            # C. PONER FECHA Y HORA (Abajo)
+            # C. PONER FECHA Y HORA
             hora_actual = (datetime.utcnow() - timedelta(hours=5)).strftime("%d/%m/%Y %H:%M:%S")
             c.setFont("Helvetica-Bold", 10)
             c.drawString(X_FECHA, Y_FECHA, f"{hora_actual}")
@@ -253,21 +230,14 @@ if st.session_state['dni_validado'] is None:
         dni_input = st.text_input("DIGITE SU DNI", max_chars=15)
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
-    # === LÓGICA DE VALIDACIÓN (AHORA AQUÍ, ANTES DEL FAQ) ===
+    # LÓGICA DE VALIDACIÓN
     if submitted and dni_input:
         with st.spinner("Conectando con base de datos..."):
             estado_sheet = consultar_estado_dni(dni_input)
         
-        # CASO 1: YA FIRMÓ
         if estado_sheet == "FIRMADO":
-            # Usamos st.info justo aquí para que salga arriba
             st.info(f"ℹ️ El DNI {dni_input} ya registra un contrato firmado.")
-            st.markdown("""
-            **Si necesita una copia de su contrato** o cree que esto es un error, 
-            por favor **contacte al área de Recursos Humanos**.
-            """)
-        
-        # CASO 2: NO FIRMADO, BUSCAMOS EN DRIVE
+            st.markdown("**Si necesita copia**, contacte a RRHH.")
         else:
             with st.spinner("Buscando contrato en la nube..."):
                 archivo_drive = buscar_archivo_drive(dni_input)
@@ -281,93 +251,74 @@ if st.session_state['dni_validado'] is None:
                     st.session_state['archivo_id'] = archivo_drive['id'] 
                     st.session_state['archivo_nombre'] = archivo_drive['name']
                     st.session_state['firmado_ok'] = False
-                    st.session_state['foto_bio'] = None # <--- Reset foto al entrar
+                    st.session_state['foto_bio'] = None
                     st.rerun()
                 else:
-                    st.error("Error al descargar el documento. Intente nuevamente.")
+                    st.error("Error al descargar. Intente nuevamente.")
             else:
-                # CASO 3: NO EXISTE EL CONTRATO (MENSAJE ARRIBA)
-                st.error("❌ Contrato no ubicado (Verifique que su DNI esté correcto).")
+                st.error("❌ Contrato no ubicado.")
 
-    # === FAQ (AHORA DESPUÉS DE LOS MENSAJES) ===
+    # FAQ
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
-    
-    with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
-        st.markdown("""
-        En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto.
-        El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos).
-        *Lo verá reflejado en su **boleta de pago** a fin de mes.*
-        """)
-
-    with st.expander("🕒 ¿Por qué el contrato dice 8hrs si trabajo 12hrs?"):
-        st.markdown("""
-        La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias.
-        Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**.
-        *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*
-        """)
-    st.info("📞 **¿Dudas adicionales?** Contacte al área de RRHH.")
+    with st.expander("💰 ¿Por qué mi sueldo figura diferente?"):
+        st.markdown("El contrato muestra el **Básico**. En reclutamiento se informa el **Bruto**.")
+    with st.expander("🕒 ¿Por qué 8hrs si trabajo 12hrs?"):
+        st.markdown("La base legal es 8hrs. El resto son **HORAS EXTRAS**.")
+    st.info("📞 **RRHH:** 999-999-999")
 
 else:
     nombre_archivo = st.session_state['archivo_nombre']
     ruta_pdf_local = os.path.join(CARPETA_TEMP, nombre_archivo)
     
     if st.session_state['firmado_ok']:
-        st.success("✅ ¡Firma registrada exitosamente!")
-        st.markdown(f"**Archivo:** {nombre_archivo}")
-        st.info("Su contrato ha sido guardado en la base de datos.")
+        st.success("✅ ¡Firma y Biometría registradas!")
+        st.info("Contrato guardado exitosamente.")
         
         ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
         
         if os.path.exists(ruta_salida_firmado):
             with open(ruta_salida_firmado, "rb") as f:
-                st.download_button("📥 DESCARGAR MI CONTRATO FIRMADO", f, file_name=nombre_archivo, mime="application/pdf", type="primary")
+                st.download_button("📥 DESCARGAR CONTRATO", f, file_name=f"FIRMADO_{nombre_archivo}", mime="application/pdf", type="primary")
         
         st.markdown("---")
-        if st.button("🏠 FINALIZAR Y SALIR"):
+        if st.button("🏠 SALIR"):
             st.session_state['dni_validado'] = None
             st.session_state['firmado_ok'] = False
             st.rerun()
 
     else:
         st.success(f"✅ Documento listo: **{nombre_archivo}**")
-        st.info("Lea el contrato y firme al final.")
+        st.info("Lea el contrato. Al final encontrará la validación de identidad.")
         
         with st.container(height=500, border=True):
             if os.path.exists(ruta_pdf_local):
                 mostrar_pdf_como_imagenes(ruta_pdf_local)
-            else:
-                st.error("El archivo temporal se perdió. Por favor ingrese nuevamente.")
 
         st.markdown("---")
         
-        # === [NUEVO] ZONA DE BIOMETRÍA Y FIRMA (MODO CANDADO) ===
-        
-        # 1. FOTO (PRIMERO) - SI NO HAY FOTO, MOSTRAMOS CÁMARA
+        # ZONA DE BIOMETRÍA Y FIRMA (CANDADO)
         if st.session_state['foto_bio'] is None:
             st.subheader("1. Validación de Identidad")
-            st.warning("📸 Por seguridad, debe tomarse una foto para activar la firma.")
+            st.warning("📸 Tome una foto para activar la firma.")
             foto = st.camera_input("Selfie de verificación", label_visibility="collapsed")
-            
             if foto:
                 st.session_state['foto_bio'] = foto.getvalue()
-                st.success("Foto capturada correctamente.")
+                st.success("Foto OK")
                 st.rerun()
-
-        # 2. FIRMA (SOLO SI HAY FOTO)
         else:
             st.success("✅ Identidad Validada")
             col_a, col_b = st.columns([1,4])
             with col_a:
-                st.image(st.session_state['foto_bio'], width=100, caption="Su foto")
+                st.image(st.session_state['foto_bio'], width=100)
             with col_b:
-                if st.button("🔄 Volver a tomar foto"):
+                if st.button("🔄 Retomar Foto"):
                     st.session_state['foto_bio'] = None
                     st.rerun()
 
             st.markdown("---")
             st.subheader("2. Conformidad y Firma")
-            st.caption("Dibuje su firma en el recuadro:")
+            st.caption("Dibuje su firma:")
             
             canvas_result = st_canvas(stroke_width=2, stroke_color="#000000", background_color="#ffffff", height=200, width=600, drawing_mode="freedraw", display_toolbar=False, key=f"canvas_{st.session_state['canvas_key']}")
 
@@ -385,7 +336,6 @@ else:
                         
                         with st.spinner("⏳ Procesando firma y biometría..."):
                             try:
-                                # 1. Imagen de Firma
                                 img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
                                 data = img.getdata()
                                 newData = []
@@ -397,33 +347,26 @@ else:
                                 img.putdata(newData)
                                 img.save(ruta_firma, "PNG")
                                 
-                                # 2. PRIMERO: Estampar en páginas normales (5,6,8)
+                                # 1. Estampar normal
                                 estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
                                 
-                                # 3. [NUEVO] SEGUNDO: Estampar en Página 9 (Foto y Firma)
+                                # 2. Estampar Página 9 (Coord. Ajustadas)
                                 estampar_firma_y_foto_pagina9(
-                                    ruta_salida_firmado, # Entrada (ya firmado normal)
+                                    ruta_salida_firmado, 
                                     ruta_firma, 
                                     st.session_state['foto_bio'], 
-                                    ruta_salida_firmado  # Salida (sobreescribe)
+                                    ruta_salida_firmado
                                 )
                                 
-                                # 4. Subir a Drive
                                 enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
-                                
-                                # 5. Registrar en Excel
                                 registrar_firma_sheet(st.session_state['dni_validado'])
-                                
-                                # 6. Borrar Original
                                 borrar_archivo_drive(st.session_state['archivo_id'])
                                 
                                 st.session_state['firmado_ok'] = True
                                 st.balloons()
                                 st.rerun()
-                            
                             except Exception as e:
                                 st.error(f"Error técnico: {e}")
-                            
                             finally:
                                 if os.path.exists(ruta_firma): os.remove(ruta_firma)
                     else:
