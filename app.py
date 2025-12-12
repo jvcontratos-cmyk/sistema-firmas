@@ -337,9 +337,13 @@ else:
 
     else:
         st.success(f"✅ Documento listo: **{nombre_archivo}**")
-        st.info("Lea el contrato. Al final encontrará la validación de identidad.")
+        
+        # --- AGREGA ESTA LÍNEA ---
+        st.info("🔍 **Toque la imagen y use el botón ROJO** en la esquina para ampliar y leer.")
+        # -------------------------
         
         with st.container(height=500, border=True):
+             # ... (resto de tu código)
             if os.path.exists(ruta_pdf_local):
                 mostrar_pdf_como_imagenes(ruta_pdf_local)
 
@@ -423,4 +427,5 @@ else:
         if st.button("⬅️ Salir"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
