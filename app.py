@@ -363,9 +363,6 @@ else:
                 st.session_state['foto_bio'] = foto_input.getvalue()
                 st.success("✅ Foto capturada correctamente")
                 st.rerun()
-        
-        else:
-            # ... (Aquí sigue el código que ya tienes: st.success("Identidad Validada") ... etc)
         else:
             st.success("✅ Identidad Validada")
             col_a, col_b = st.columns([1,4])
@@ -435,6 +432,7 @@ else:
         if st.button("⬅️ Salir"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
