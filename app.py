@@ -349,21 +349,24 @@ else:
 
         st.markdown("---")
         
-        # ZONA DE BIOMETRÍA Y FIRMA (CANDADO)
+        # ZONA DE BIOMETRÍA Y FIRMA (SOLUCIÓN CÁMARA NATIVA)
         if st.session_state['foto_bio'] is None:
             st.subheader("1. Validación de Identidad")
-            st.warning("📸 Es necesario tomarse una selfie para activar la firma.")
             
-            # --- CÁMARA DIRECTA (EN VIVO) ---
-            foto = st.camera_input("Selfie de verificación", label_visibility="collapsed")
+            # Mensaje para que sepan qué hacer
+            st.info("📸 Toque el botón abajo y seleccione **'Cámara'** para tomar su foto.")
             
-            if foto:
-                st.session_state['foto_bio'] = foto.getvalue()
-                st.success("Foto Ok")
+            # ESTE ES EL CAMBIO CLAVE: "file_uploader" abre la cámara nativa en Android/iPhone
+            # Le ponemos label_visibility="collapsed" para que se vea limpio
+            foto_input = st.file_uploader("📸 TOMAR FOTO", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
+            
+            if foto_input is not None:
+                st.session_state['foto_bio'] = foto_input.getvalue()
+                st.success("✅ Foto capturada")
                 st.rerun()
         
         else:
-            # --- AQUÍ ESTÁ EL ARREGLO DE LA INDENTACIÓN (TODO ESTO VA DENTRO DEL ELSE) ---
+            # --- AQUÍ ESTÁ ARREGLADA LA INDENTACIÓN (ESPACIOS) ---
             st.success("✅ Identidad Validada")
             col_a, col_b = st.columns([1,4])
             with col_a:
@@ -424,7 +427,7 @@ else:
                                     borrar_archivo_drive(st.session_state['archivo_id'])
                                     st.rerun()
                                 else:
-                                    st.error("⚠️ Error Crítico: No se encontró su DNI en el Excel para actualizar el estado.")
+                                    st.error("⚠️ Error: No se encontró su DNI en el Excel.")
                                     
                             except Exception as e:
                                 st.error(f"Error técnico: {e}")
@@ -432,7 +435,3 @@ else:
                                 if os.path.exists(ruta_firma): os.remove(ruta_firma)
                     else:
                         st.warning("⚠️ Por favor, dibuje su firma.")
-
-        if st.button("⬅️ Salir"):
-            st.session_state['dni_validado'] = None
-            st.rerun()
