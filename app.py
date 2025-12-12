@@ -27,16 +27,43 @@ st.set_page_config(
 )
 
 # --- CSS LIMPIO ---
+# --- CSS LIMPIO + BOTÓN ZOOM ROJO + CÁMARA ESPAÑOL ---
 st.markdown("""
     <style>
+    /* Ocultar elementos base */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
     footer {display: none !important; visibility: hidden !important; height: 0px !important;}
-    button[title="View fullscreen"] {display: none !important;}
     .stAppDeployButton, [data-testid="stToolbar"], div[class*="viewerBadge"] {display: none !important;}
     #MainMenu {display: none !important;}
     .block-container {padding-top: 1rem !important; padding-bottom: 0rem !important;}
     body::after {content: none !important;}
+    
+    /* TRADUCCIÓN BOTÓN CÁMARA */
+    div[data-testid="stCameraInput"] button {font-size: 0 !important;}
+    div[data-testid="stCameraInput"] button::after {
+        content: "📸 TOMAR FOTO";
+        font-size: 16px !important; 
+        visibility: visible !important;
+        display: block !important;
+    }
+    div[data-testid="stCameraInput"] button:contains("Clear photo")::after {
+        content: "🔄 REPETIR";
+    }
+
+    /* BOTÓN DE ZOOM (PANTALLA COMPLETA) - ROJO Y GRANDE */
+    button[title="View fullscreen"] {
+        display: block !important;
+        background-color: rgba(255, 75, 75, 0.8) !important; /* Rojo */
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 50% !important;
+        color: white !important;
+        transform: scale(1.2);
+        right: 10px !important;
+        top: 10px !important;
+        z-index: 9999 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -230,7 +257,8 @@ def mostrar_pdf_como_imagenes(ruta_pdf):
     try:
         doc = fitz.open(ruta_pdf)
         for pagina in doc:
-            pix = pagina.get_pixmap(dpi=150)
+            # Aumentamos calidad a 220 para que se lea bien en el iPhone al hacer zoom
+            pix = pagina.get_pixmap(dpi=220)
             st.image(pix.tobytes("png"), use_container_width=True)
     except: st.error("Error visualizando documento.")
 
@@ -395,3 +423,4 @@ else:
         if st.button("⬅️ Salir"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
