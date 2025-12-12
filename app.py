@@ -231,21 +231,22 @@ if st.session_state['dni_validado'] is None:
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
 # === LÓGICA DE VALIDACIÓN (REEMPLAZA ESTE BLOQUE COMPLETO) ===
+   # === REEMPLAZA DESDE AQUÍ ===
     if submitted and dni_input:
         with st.spinner("Conectando con base de datos..."):
-            # 1. PRIMERO: Consultamos si ya firmó en el Excel
+            # 1. PRIMERO: Consultamos al Excel
             estado_sheet = consultar_estado_dni(dni_input)
         
-        # 2. CONDICIONAL DE FRENO: Si ya firmó, paramos aquí
+        # 2. SI YA FIRMÓ: Mostramos mensaje y NO hacemos nada más
         if estado_sheet == "FIRMADO":
             st.info(f"ℹ️ El DNI {dni_input} ya registra un contrato firmado.")
             st.markdown("""
             **Si necesita una copia de su contrato** o cree que esto es un error, 
-            por favor **contacte al área de Recursos Humanos**.
+            por favor **contacte al área de Administración de Personal**.
             """)
-            # IMPORTANTE: No hacemos nada más, aquí muere el proceso para este DNI
+            # Al no poner 'else' ni 'rerun', el código se detiene aquí visualmente.
         
-        # 3. SI NO HA FIRMADO: Buscamos el contrato en Drive
+        # 3. SI NO HA FIRMADO: Recién buscamos en Drive
         else:
             with st.spinner("Buscando contrato en la nube..."):
                 archivo_drive = buscar_archivo_drive(dni_input)
@@ -259,13 +260,13 @@ if st.session_state['dni_validado'] is None:
                     st.session_state['archivo_id'] = archivo_drive['id'] 
                     st.session_state['archivo_nombre'] = archivo_drive['name']
                     st.session_state['firmado_ok'] = False
-                    st.session_state['foto_bio'] = None
+                    st.session_state['foto_bio'] = None # Reseteamos foto
                     st.rerun()
                 else:
                     st.error("Error al descargar el documento. Intente nuevamente.")
             else:
                 st.error("❌ Contrato no ubicado (Verifique que su DNI esté correcto).")
-
+    # === HASTA AQUÍ TERMINA EL BLOQUE A PEGAR ===
     # FAQ
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
@@ -382,6 +383,7 @@ else:
         if st.button("⬅️ Salir"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
