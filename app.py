@@ -84,22 +84,35 @@ if 'foto_bio' not in st.session_state: st.session_state['foto_bio'] = None
 def consultar_estado_dni(dni):
     try:
         sh = client_sheets.open_by_key(SHEET_ID).sheet1
-        cell = sh.find(dni)
-        if cell:
-            return sh.cell(cell.row, 2).value 
+        # ESTRATEGIA BLINDADA: Bajamos toda la columna A y buscamos manual
+        # Esto arregla el error si en Excel está como número y aquí como texto
+        dnis_en_excel = sh.col_values(1) 
+        dni_buscado = str(dni).strip()
+        
+        for i, valor_celda in enumerate(dnis_en_excel):
+            if str(valor_celda).strip() == dni_buscado:
+                # Retornamos el valor de la columna 2 (ESTADO) de esa fila
+                return sh.cell(i + 1, 2).value 
         return None
     except: return None
 
 def registrar_firma_sheet(dni):
     try:
         sh = client_sheets.open_by_key(SHEET_ID).sheet1
-        cell = sh.find(dni)
-        if cell:
-            hora_peru = datetime.utcnow() - timedelta(hours=5)
-            fecha_fmt = hora_peru.strftime("%Y-%m-%d %H:%M:%S")
-            sh.update_cell(cell.row, 2, "FIRMADO")
-            sh.update_cell(cell.row, 3, fecha_fmt)
-            return True
+        dnis_en_excel = sh.col_values(1)
+        dni_buscado = str(dni).strip()
+        
+        for i, valor_celda in enumerate(dnis_en_excel):
+            if str(valor_celda).strip() == dni_buscado:
+                fila = i + 1 # Sumamos 1 porque Python cuenta desde 0
+                hora_peru = datetime.utcnow() - timedelta(hours=5)
+                fecha_fmt = hora_peru.strftime("%Y-%m-%d %H:%M:%S")
+                
+                # Escribimos en Columna 2 (Estado) y 3 (Fecha)
+                sh.update_cell(fila, 2, "FIRMADO")
+                sh.update_cell(fila, 3, fecha_fmt)
+                return True
+        return False
     except: return False
 
 def buscar_archivo_drive(dni):
@@ -230,24 +243,22 @@ if st.session_state['dni_validado'] is None:
         dni_input = st.text_input("DIGITE SU DNI", max_chars=15)
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
-# === LÓGICA DE VALIDACIÓN (REEMPLAZA ESTE BLOQUE COMPLETO) ===
-   # === REEMPLAZA DESDE AQUÍ ===
-    # === LÓGICA DE VALIDACIÓN (REEMPLAZA ESTE BLOQUE ENTERO) ===
+# === LÓGICA DE VALIDACIÓN CORREGIDA ===
     if submitted and dni_input:
         with st.spinner("Conectando con base de datos..."):
-            # 1. CONSULTA DE SEGURIDAD AL EXCEL
+            # 1. VERIFICAMOS PRIMERO EN EL EXCEL
             estado_sheet = consultar_estado_dni(dni_input)
         
-        # 2. SI YA FIRMÓ: BLOQUEO TOTAL (FRENO DE MANO)
+        # 2. SI YA FIRMÓ: LE PONEMOS EL FRENO DE MANO
         if estado_sheet == "FIRMADO":
             st.info(f"ℹ️ El DNI {dni_input} ya registra un contrato firmado.")
             st.markdown("""
             **Si necesita una copia de su contrato** o cree que esto es un error, 
             por favor **contacte al área de Recursos Humanos**.
             """)
-            # IMPORTANTE: Al no poner nada más aquí, el código SE DETIENE y no deja firmar de nuevo.
+            # AL NO PONER NADA MÁS AQUÍ, EL CÓDIGO SE DETIENE Y NO DEJA AVANZAR
         
-        # 3. SI NO HA FIRMADO: Recién buscamos en Drive
+        # 3. SI NO HA FIRMADO: BUSCAMOS EN DRIVE
         else:
             with st.spinner("Buscando contrato en la nube..."):
                 archivo_drive = buscar_archivo_drive(dni_input)
@@ -266,7 +277,7 @@ if st.session_state['dni_validado'] is None:
                 else:
                     st.error("Error al descargar el documento. Intente nuevamente.")
             else:
-                st.error("❌ Contrato no ubicado (Verifique que su DNI esté correcto).")
+                st.error("❌ Contrato no ubicado (Verifique que su DNI esté correcto en la lista).")
     # === HASTA AQUÍ TERMINA EL BLOQUE A PEGAR ===
     # FAQ
     st.markdown("---")
@@ -384,9 +395,3 @@ else:
         if st.button("⬅️ Salir"):
             st.session_state['dni_validado'] = None
             st.rerun()
-
-
-
-
-
-
