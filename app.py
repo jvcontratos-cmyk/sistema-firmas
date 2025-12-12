@@ -232,19 +232,20 @@ if st.session_state['dni_validado'] is None:
 
 # === LÓGICA DE VALIDACIÓN (REEMPLAZA ESTE BLOQUE COMPLETO) ===
    # === REEMPLAZA DESDE AQUÍ ===
+    # === LÓGICA DE VALIDACIÓN (REEMPLAZA ESTE BLOQUE ENTERO) ===
     if submitted and dni_input:
         with st.spinner("Conectando con base de datos..."):
-            # 1. PRIMERO: Consultamos al Excel
+            # 1. CONSULTA DE SEGURIDAD AL EXCEL
             estado_sheet = consultar_estado_dni(dni_input)
         
-        # 2. SI YA FIRMÓ: Mostramos mensaje y NO hacemos nada más
+        # 2. SI YA FIRMÓ: BLOQUEO TOTAL (FRENO DE MANO)
         if estado_sheet == "FIRMADO":
             st.info(f"ℹ️ El DNI {dni_input} ya registra un contrato firmado.")
             st.markdown("""
             **Si necesita una copia de su contrato** o cree que esto es un error, 
-            por favor **contacte al área de Administración de Personal**.
+            por favor **contacte al área de Recursos Humanos**.
             """)
-            # Al no poner 'else' ni 'rerun', el código se detiene aquí visualmente.
+            # IMPORTANTE: Al no poner nada más aquí, el código SE DETIENE y no deja firmar de nuevo.
         
         # 3. SI NO HA FIRMADO: Recién buscamos en Drive
         else:
@@ -260,7 +261,7 @@ if st.session_state['dni_validado'] is None:
                     st.session_state['archivo_id'] = archivo_drive['id'] 
                     st.session_state['archivo_nombre'] = archivo_drive['name']
                     st.session_state['firmado_ok'] = False
-                    st.session_state['foto_bio'] = None # Reseteamos foto
+                    st.session_state['foto_bio'] = None
                     st.rerun()
                 else:
                     st.error("Error al descargar el documento. Intente nuevamente.")
@@ -383,6 +384,7 @@ else:
         if st.button("⬅️ Salir"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
