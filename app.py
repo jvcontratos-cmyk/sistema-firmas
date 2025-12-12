@@ -349,21 +349,21 @@ else:
 
         st.markdown("---")
         
-       # ZONA DE BIOMETRÍA Y FIRMA (CANDADO)
+        # ZONA DE BIOMETRÍA Y FIRMA (CANDADO)
         if st.session_state['foto_bio'] is None:
             st.subheader("1. Validación de Identidad")
+            st.warning("📸 Es necesario tomarse una selfie para activar la firma.")
             
-            # Instrucción clara para el trabajador
-            st.info("📸 Para activar la firma, presione el botón de abajo y seleccione **'Cámara'** o **'Tomar Foto'** en su celular.")
+            # --- CÁMARA DIRECTA (EN VIVO) ---
+            foto = st.camera_input("Selfie de verificación", label_visibility="collapsed")
             
-            # Usamos file_uploader que es ROBUSTO y abre la cámara nativa del celular
-            foto_input = st.file_uploader("📸 TOCAR AQUÍ PARA TOMAR FOTO", type=["jpg", "png", "jpeg"])
-            
-            if foto_input is not None:
-                st.session_state['foto_bio'] = foto_input.getvalue()
-                st.success("✅ Foto capturada correctamente")
+            if foto:
+                st.session_state['foto_bio'] = foto.getvalue()
+                st.success("Foto Ok")
                 st.rerun()
+        
         else:
+            # --- AQUÍ ESTÁ EL ARREGLO DE LA INDENTACIÓN (TODO ESTO VA DENTRO DEL ELSE) ---
             st.success("✅ Identidad Validada")
             col_a, col_b = st.columns([1,4])
             with col_a:
@@ -407,7 +407,7 @@ else:
                                 # 1. Estampar normal
                                 estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
                                 
-                                # 2. Estampar Página 9 (Con tus coordenadas)
+                                # 2. Estampar Página 9
                                 estampar_firma_y_foto_pagina9(
                                     ruta_salida_firmado, 
                                     ruta_firma, 
@@ -416,12 +416,16 @@ else:
                                 )
                                 
                                 enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
-                                registrar_firma_sheet(st.session_state['dni_validado'])
-                                borrar_archivo_drive(st.session_state['archivo_id'])
                                 
-                                st.session_state['firmado_ok'] = True
-                                st.balloons()
-                                st.rerun()
+                                # REGISTRO EN EXCEL
+                                if registrar_firma_sheet(st.session_state['dni_validado']):
+                                    st.session_state['firmado_ok'] = True
+                                    st.balloons()
+                                    borrar_archivo_drive(st.session_state['archivo_id'])
+                                    st.rerun()
+                                else:
+                                    st.error("⚠️ Error Crítico: No se encontró su DNI en el Excel para actualizar el estado.")
+                                    
                             except Exception as e:
                                 st.error(f"Error técnico: {e}")
                             finally:
@@ -432,7 +436,3 @@ else:
         if st.button("⬅️ Salir"):
             st.session_state['dni_validado'] = None
             st.rerun()
-
-
-
-
