@@ -349,15 +349,23 @@ else:
 
         st.markdown("---")
         
-        # ZONA DE BIOMETRÍA Y FIRMA (CANDADO)
+       # ZONA DE BIOMETRÍA Y FIRMA (CANDADO)
         if st.session_state['foto_bio'] is None:
             st.subheader("1. Validación de Identidad")
-            st.warning("📸 Es necesario tomarse una selfie para activar la firma.")
-            foto = st.camera_input("Selfie de verificación", label_visibility="collapsed")
-            if foto:
-                st.session_state['foto_bio'] = foto.getvalue()
-                st.success("Foto Ok")
+            
+            # Instrucción clara para el trabajador
+            st.info("📸 Para activar la firma, presione el botón de abajo y seleccione **'Cámara'** o **'Tomar Foto'** en su celular.")
+            
+            # Usamos file_uploader que es ROBUSTO y abre la cámara nativa del celular
+            foto_input = st.file_uploader("📸 TOCAR AQUÍ PARA TOMAR FOTO", type=["jpg", "png", "jpeg"])
+            
+            if foto_input is not None:
+                st.session_state['foto_bio'] = foto_input.getvalue()
+                st.success("✅ Foto capturada correctamente")
                 st.rerun()
+        
+        else:
+            # ... (Aquí sigue el código que ya tienes: st.success("Identidad Validada") ... etc)
         else:
             st.success("✅ Identidad Validada")
             col_a, col_b = st.columns([1,4])
@@ -427,5 +435,6 @@ else:
         if st.button("⬅️ Salir"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
