@@ -378,33 +378,50 @@ else:
         if st.session_state['foto_bio'] is None:
             st.error("⚠️ Primero debe tomarse la foto en el paso 2 👆")
         else:
-            st.caption("Dibuje su firma en el recuadro blanco:")
-            canvas_result = st_canvas(stroke_width=2, stroke_color="#000000", background_color="#ffffff", height=200, width=600, drawing_mode="freedraw", display_toolbar=False, key=f"canvas_{st.session_state['canvas_key']}")
+            st.caption("Dibuje su firma en el recuadro blanco. Si se equivoca, use el ícono de **Papelera 🗑️** que está pegado al recuadro.")
             
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                if st.button("🗑️ Borrar"):
-                    st.session_state['canvas_key'] += 1
-                    st.rerun()
+            # CAMBIO CLAVE: display_toolbar=True activa el borrado INSTANTÁNEO
+            canvas_result = st_canvas(
+                stroke_width=2, 
+                stroke_color="#000000", 
+                background_color="#ffffff", 
+                height=200, 
+                width=600, 
+                drawing_mode="freedraw", 
+                display_toolbar=True, # <--- ESTO ACTIVA EL BORRADO RÁPIDO
+                key=f"canvas_{st.session_state['canvas_key']}"
+            )
             
-            with col2:
-                if st.button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True):
-                    if canvas_result.image_data is not None:
-                        # === PROCESO DE GUARDADO ===
-                        ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
-                        ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
-                        
-                        with st.spinner("⏳ Guardando contrato... Por favor espere."):
-                            try:
-                                # 1. Procesar Firma Transparente
-                                img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
-                                data = img.getdata()
-                                newData = []
-                                for item in data:
-                                    if item[0] > 230 and item[1] > 230 and item[2] > 230:
-                                        newData.append((255, 255, 255, 0))
-                                    else:
-                                        newData.append(item)
+            # YA NO EXISTE EL BOTÓN DE BORRAR LENTO AQUÍ, USARÁN EL DE LA BARRA
+            
+            # Botón de Firmar (Le puse un poco de espacio arriba para separar)
+            st.write("") 
+            if st.button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True):
+                if canvas_result.image_data is not None:
+                    # === PROCESO DE GUARDADO ===
+                    ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
+                    ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
+                    
+                    with st.spinner("⏳ Guardando contrato... Por favor espere."):
+                        try:
+                            # 1. Procesar Firma
+                            img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
+                            data = img.getdata()
+                            # Detectar si firmó (si hay pixeles negros)
+                            es_blanco = True
+                            newData = []
+                            for item in data:
+                                if item[0] < 200 or item[1] < 200 or item[2] < 200: # Si hay algo oscuro
+                                    es_blanco = False
+                                
+                                if item[0] > 230 and item[1] > 230 and item[2] > 230:
+                                    newData.append((255, 255, 255, 0))
+                                else:
+                                    newData.append(item)
+                            
+                            if es_blanco:
+                                st.warning("⚠️ El recuadro está vacío. Por favor firme.")
+                            else:
                                 img.putdata(newData)
                                 img.save(ruta_firma, "PNG")
                                 
@@ -422,13 +439,13 @@ else:
                                     st.rerun()
                                 else:
                                     st.error("⚠️ Error de conexión con Excel. Avise a Soporte.")
-                                    
-                            except Exception as e:
-                                st.error(f"Error técnico: {e}")
-                            finally:
-                                if os.path.exists(ruta_firma): os.remove(ruta_firma)
-                    else:
-                        st.warning("⚠️ Falta su firma.")
+                                
+                        except Exception as e:
+                            st.error(f"Error técnico: {e}")
+                        finally:
+                            if os.path.exists(ruta_firma): os.remove(ruta_firma)
+                else:
+                    st.warning("⚠️ Falta su firma.")
 
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
