@@ -320,6 +320,7 @@ else:
     nombre_archivo = st.session_state['archivo_nombre']
     ruta_pdf_local = os.path.join(CARPETA_TEMP, nombre_archivo)
     
+    # PANTALLA DE ÉXITO (YA FIRMADO)
     if st.session_state['firmado_ok']:
         st.success("✅ ¡Firma y Biometría registradas!")
         st.info("Contrato guardado exitosamente.")
@@ -335,64 +336,67 @@ else:
             st.session_state['firmado_ok'] = False
             st.rerun()
 
+    # PANTALLA DE FIRMA (PASOS 1, 2 y 3)
     else:
-        st.success(f"✅ Documento listo: **{nombre_archivo}**")
+        st.success(f"Hola, **{nombre_archivo.replace('.pdf','')}**")
+        st.info("👇 **Siga los pasos 1, 2 y 3 para completar su ingreso.**")
         
-        # --- AGREGA ESTA LÍNEA ---
-        st.info("🔍 **Toque la imagen y use el botón ROJO** en la esquina para ampliar y leer.")
-        # -------------------------
+        # --- PASO 1: CONTRATO (COLAPSABLE / ACORDEÓN) ---
+        # "expanded=False" hace que empiece cerrado para que no estorbe en celulares
+        with st.expander("📄 1. CLIC AQUÍ PARA LEER EL CONTRATO (ABRIR/CERRAR)", expanded=False):
+            st.info("🔍 Puede ampliar las páginas usando el botón ROJO en la esquina.")
+            with st.container(height=500, border=True):
+                if os.path.exists(ruta_pdf_local):
+                    mostrar_pdf_como_imagenes(ruta_pdf_local)
         
-        with st.container(height=500, border=True):
-             # ... (resto de tu código)
-            if os.path.exists(ruta_pdf_local):
-                mostrar_pdf_como_imagenes(ruta_pdf_local)
-
+        # --- PASO 2: FOTO (MÉTODO ROBUSTO - BOTÓN NATIVO) ---
         st.markdown("---")
+        st.subheader("2. Foto de Identidad")
         
-        # ZONA DE BIOMETRÍA Y FIRMA (CANDADO)
         if st.session_state['foto_bio'] is None:
-            st.subheader("1. Validación de Identidad")
-            st.warning("📸 Es necesario tomarse una selfie para activar la firma.")
-            
-            # --- CÁMARA DIRECTA (EN VIVO) ---
-            foto = st.camera_input("Selfie de verificación", label_visibility="collapsed")
-            
-            if foto:
-                st.session_state['foto_bio'] = foto.getvalue()
-                st.success("Foto Ok")
+            st.warning("📸 Toque el botón y seleccione **'Cámara'**:")
+            # Usamos file_uploader pero etiquetado para que usen la cámara
+            foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
+            if foto_input is not None:
+                st.session_state['foto_bio'] = foto_input.getvalue()
                 st.rerun()
-        
         else:
-            # --- AQUÍ ESTÁ EL ARREGLO DE LA INDENTACIÓN (TODO ESTO VA DENTRO DEL ELSE) ---
-            st.success("✅ Identidad Validada")
-            col_a, col_b = st.columns([1,4])
+            col_a, col_b = st.columns([1,3])
             with col_a:
                 st.image(st.session_state['foto_bio'], width=100)
             with col_b:
-                if st.button("🔄 Retomar Foto"):
+                st.success("✅ Foto guardada")
+                if st.button("🔄 Cambiar Foto"):
                     st.session_state['foto_bio'] = None
                     st.rerun()
 
-            st.markdown("---")
-            st.subheader("2. Conformidad y Firma")
-            st.caption("Dibuje su firma:")
-            
+        # --- PASO 3: FIRMA DIGITAL ---
+        st.markdown("---")
+        st.subheader("3. Firma y Conformidad")
+        
+        # Candado: Solo deja firmar si ya hay foto
+        if st.session_state['foto_bio'] is None:
+            st.error("⚠️ Primero debe tomarse la foto en el paso 2 👆")
+        else:
+            st.caption("Dibuje su firma en el recuadro blanco:")
             canvas_result = st_canvas(stroke_width=2, stroke_color="#000000", background_color="#ffffff", height=200, width=600, drawing_mode="freedraw", display_toolbar=False, key=f"canvas_{st.session_state['canvas_key']}")
-
-            col1, col2 = st.columns([1, 4])
+            
+            col1, col2 = st.columns([1, 3])
             with col1:
                 if st.button("🗑️ Borrar"):
                     st.session_state['canvas_key'] += 1
                     st.rerun()
             
             with col2:
-                if st.button("✅ ACEPTAR Y FIRMAR", type="primary", use_container_width=True):
+                if st.button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True):
                     if canvas_result.image_data is not None:
+                        # === PROCESO DE GUARDADO ===
                         ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
                         ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
                         
-                        with st.spinner("⏳ Procesando firma y biometría..."):
+                        with st.spinner("⏳ Guardando contrato... Por favor espere."):
                             try:
+                                # 1. Procesar Firma Transparente
                                 img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
                                 data = img.getdata()
                                 newData = []
@@ -404,35 +408,28 @@ else:
                                 img.putdata(newData)
                                 img.save(ruta_firma, "PNG")
                                 
-                                # 1. Estampar normal
+                                # 2. Estampar en PDF
                                 estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
+                                estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
                                 
-                                # 2. Estampar Página 9
-                                estampar_firma_y_foto_pagina9(
-                                    ruta_salida_firmado, 
-                                    ruta_firma, 
-                                    st.session_state['foto_bio'], 
-                                    ruta_salida_firmado
-                                )
-                                
+                                # 3. Enviar a Drive y Excel
                                 enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
                                 
-                                # REGISTRO EN EXCEL
                                 if registrar_firma_sheet(st.session_state['dni_validado']):
                                     st.session_state['firmado_ok'] = True
-                                    st.balloons()
                                     borrar_archivo_drive(st.session_state['archivo_id'])
+                                    st.balloons()
                                     st.rerun()
                                 else:
-                                    st.error("⚠️ Error Crítico: No se encontró su DNI en el Excel para actualizar el estado.")
+                                    st.error("⚠️ Error de conexión con Excel. Avise a Soporte.")
                                     
                             except Exception as e:
                                 st.error(f"Error técnico: {e}")
                             finally:
                                 if os.path.exists(ruta_firma): os.remove(ruta_firma)
                     else:
-                        st.warning("⚠️ Por favor, dibuje su firma.")
+                        st.warning("⚠️ Falta su firma.")
 
-        if st.button("⬅️ Salir"):
+        if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
