@@ -27,10 +27,10 @@ st.set_page_config(
 )
 
 # --- CSS LIMPIO ---
-# --- CSS LIMPIO + BOTÓN ZOOM ROJO + CÁMARA ESPAÑOL ---
+# --- CSS LIMPIO + BOTÓN ZOOM ROJO + TRADUCCIÓN REAL ---
 st.markdown("""
     <style>
-    /* Ocultar elementos base */
+    /* 1. Ocultar elementos base */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
     footer {display: none !important; visibility: hidden !important; height: 0px !important;}
@@ -39,30 +39,50 @@ st.markdown("""
     .block-container {padding-top: 1rem !important; padding-bottom: 0rem !important;}
     body::after {content: none !important;}
     
-    /* TRADUCCIÓN BOTÓN CÁMARA */
-    div[data-testid="stCameraInput"] button {font-size: 0 !important;}
-    div[data-testid="stCameraInput"] button::after {
-        content: "📸 TOMAR FOTO";
-        font-size: 16px !important; 
-        visibility: visible !important;
-        display: block !important;
-    }
-    div[data-testid="stCameraInput"] button:contains("Clear photo")::after {
-        content: "🔄 REPETIR";
-    }
-
-    /* BOTÓN DE ZOOM (PANTALLA COMPLETA) - ROJO Y GRANDE */
+    /* 2. BOTÓN DE ZOOM (PANTALLA COMPLETA) - ROJO Y GRANDE */
     button[title="View fullscreen"] {
         display: block !important;
-        background-color: rgba(255, 75, 75, 0.8) !important; /* Rojo */
-        width: 40px !important;
-        height: 40px !important;
+        background-color: rgba(255, 75, 75, 0.9) !important; /* Rojo */
+        width: 50px !important;
+        height: 50px !important;
         border-radius: 50% !important;
         color: white !important;
         transform: scale(1.2);
-        right: 10px !important;
-        top: 10px !important;
+        right: 15px !important;
+        top: 15px !important;
         z-index: 9999 !important;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.3) !important;
+    }
+
+    /* 3. ESTILO PARA EL ACORDEÓN (VER CONTRATO) */
+    .streamlit-expanderHeader {
+        background-color: #f0f2f6;
+        border-radius: 10px;
+        font-weight: bold;
+    }
+
+    /* 4. TRUCO DE MAQUILLAJE: TRADUCIR BOTÓN "BROWSE FILES" A ESPAÑOL */
+    
+    /* A) Ocultar texto chico "Drag and drop..." */
+    [data-testid='stFileUploaderDropzone'] div div small {
+        display: none !important;
+    }
+    
+    /* B) Ocultar texto "Browse files" haciendo el color transparente */
+    [data-testid="stFileUploader"] button {
+        color: transparent !important;
+    }
+    
+    /* C) Poner el texto en Español encima */
+    [data-testid="stFileUploader"] button::after {
+        content: "📷 TOMAR FOTO (CÁMARA)";
+        color: #31333F !important;
+        font-size: 16px !important;
+        font-weight: bold !important;
+        position: absolute;
+        left: 0;
+        right: 0;
+        margin: auto;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -466,3 +486,4 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
