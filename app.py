@@ -370,7 +370,7 @@ else:
                     st.session_state['foto_bio'] = None
                     st.rerun()
 
-        # --- PASO 3: FIRMA DIGITAL ---
+        # --- PASO 3: FIRMA DIGITAL (SIN PARPADEO) ---
         st.markdown("---")
         st.subheader("3. Firma y Conformidad")
         
@@ -378,72 +378,88 @@ else:
         if st.session_state['foto_bio'] is None:
             st.error("⚠️ Primero debe tomarse la foto en el paso 2 👆")
         else:
-            st.caption("Dibuje su firma en el recuadro blanco. Si se equivoca, use el ícono de **Papelera 🗑️** que está pegado al recuadro.")
+            st.caption("Dibuje su firma. Use la **Papelera 🗑️** de la barra para borrar si se equivoca.")
             
-            # CAMBIO CLAVE: display_toolbar=True activa el borrado INSTANTÁNEO
-            canvas_result = st_canvas(
-                stroke_width=2, 
-                stroke_color="#000000", 
-                background_color="#ffffff", 
-                height=200, 
-                width=600, 
-                drawing_mode="freedraw", 
-                display_toolbar=True, # <--- ESTO ACTIVA EL BORRADO RÁPIDO
-                key=f"canvas_{st.session_state['canvas_key']}"
-            )
-            
-            # YA NO EXISTE EL BOTÓN DE BORRAR LENTO AQUÍ, USARÁN EL DE LA BARRA
-            
-            # Botón de Firmar (Le puse un poco de espacio arriba para separar)
-            st.write("") 
-            if st.button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True):
+            # === AQUÍ EMPIEZA LA "CAJA FUERTE" (FORMULARIO) ===
+            # Esto congela la pantalla para que no parpadee mientras dibujan
+            with st.form(key="formulario_firma", clear_on_submit=False):
+                
+                # El canvas está DENTRO del form. 
+                canvas_result = st_canvas(
+                    stroke_width=2, 
+                    stroke_color="#000000", 
+                    background_color="#ffffff", 
+                    height=200, 
+                    width=600, 
+                    drawing_mode="freedraw",
+                    # ¡AQUÍ ESTÁ LA BASURITA! True activa la barra con la papelera
+                    display_toolbar=True, 
+                    key=f"canvas_{st.session_state['canvas_key']}"
+                )
+                
+                st.write("") # Espacio visual
+                
+                # ESTE BOTÓN ENVÍA TODO DE GOLPE (Solo parpadea 1 vez aquí al final)
+                enviar_firma = st.form_submit_button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True)
+
+            # === LÓGICA DE GUARDADO (FUERA DEL FORM) ===
+            if enviar_firma:
                 if canvas_result.image_data is not None:
-                    # === PROCESO DE GUARDADO ===
-                    ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
-                    ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
+                    # Detectar si está vacío (Anti-Trampa)
+                    img_data = canvas_result.image_data.astype('uint8')
+                    # Convertimos a imagen para analizar
+                    img_temp = Image.fromarray(img_data)
+                    # Convertimos a escala de grises para ver si hay trazos
+                    # (Si la imagen es pura transparencia o blanco, el resultado es uniforme)
+                    # Una forma rápida: sumar los valores del canal Alpha (transparencia)
+                    # Si todo es transparente (0), no han dibujado nada.
                     
-                    with st.spinner("⏳ Guardando contrato... Por favor espere."):
-                        try:
-                            # 1. Procesar Firma
-                            img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
-                            data = img.getdata()
-                            # Detectar si firmó (si hay pixeles negros)
-                            es_blanco = True
-                            newData = []
-                            for item in data:
-                                if item[0] < 200 or item[1] < 200 or item[2] < 200: # Si hay algo oscuro
-                                    es_blanco = False
+                    # Lógica simplificada de validación visual
+                    if img_data[:, :, 3].sum() == 0:
+                        st.warning("⚠️ El recuadro está vacío. Por favor firme.")
+                    else:
+                        ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
+                        ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
+                        
+                        with st.spinner("⏳ Guardando contrato..."):
+                            try:
+                                # 1. Procesar Firma (Volver transparente el fondo)
+                                img = Image.fromarray(img_data, 'RGBA')
+                                data = img.getdata()
+                                newData = []
+                                es_blanco = True # Asumimos que es blanco hasta encontrar un pixel oscuro
+                                for item in data:
+                                    if item[0] < 200: es_blanco = False 
+                                    if item[0] > 230 and item[1] > 230 and item[2] > 230:
+                                        newData.append((255, 255, 255, 0))
+                                    else:
+                                        newData.append(item)
                                 
-                                if item[0] > 230 and item[1] > 230 and item[2] > 230:
-                                    newData.append((255, 255, 255, 0))
+                                if es_blanco:
+                                    st.warning("⚠️ El recuadro parece vacío. Por favor firme bien.")
                                 else:
-                                    newData.append(item)
+                                    img.putdata(newData)
+                                    img.save(ruta_firma, "PNG")
+                                    
+                                    # 2. Estampar
+                                    estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
+                                    estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
+                                    
+                                    # 3. Enviar
+                                    enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
+                                    
+                                    if registrar_firma_sheet(st.session_state['dni_validado']):
+                                        st.session_state['firmado_ok'] = True
+                                        borrar_archivo_drive(st.session_state['archivo_id'])
+                                        st.balloons()
+                                        st.rerun()
+                                    else:
+                                        st.error("⚠️ Error de conexión con Excel.")
                             
-                            if es_blanco:
-                                st.warning("⚠️ El recuadro está vacío. Por favor firme.")
-                            else:
-                                img.putdata(newData)
-                                img.save(ruta_firma, "PNG")
-                                
-                                # 2. Estampar en PDF
-                                estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
-                                estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
-                                
-                                # 3. Enviar a Drive y Excel
-                                enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
-                                
-                                if registrar_firma_sheet(st.session_state['dni_validado']):
-                                    st.session_state['firmado_ok'] = True
-                                    borrar_archivo_drive(st.session_state['archivo_id'])
-                                    st.balloons()
-                                    st.rerun()
-                                else:
-                                    st.error("⚠️ Error de conexión con Excel. Avise a Soporte.")
-                                
-                        except Exception as e:
-                            st.error(f"Error técnico: {e}")
-                        finally:
-                            if os.path.exists(ruta_firma): os.remove(ruta_firma)
+                            except Exception as e:
+                                st.error(f"Error técnico: {e}")
+                            finally:
+                                if os.path.exists(ruta_firma): os.remove(ruta_firma)
                 else:
                     st.warning("⚠️ Falta su firma.")
 
