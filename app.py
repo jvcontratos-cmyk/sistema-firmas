@@ -27,7 +27,7 @@ st.set_page_config(
 )
 
 # --- CSS LIMPIO ---
-# --- CSS MAESTRO (LIMPIEZA + ZOOM ROJO + CUADRO FOTO BONITO) ---
+# --- CSS MAESTRO (LIMPIEZA + ZOOM ROJO + CUADRO FOTO CENTRADO PERFECTO) ---
 st.markdown("""
     <style>
     /* 1. Ocultar elementos base de Streamlit */
@@ -61,35 +61,38 @@ st.markdown("""
         font-weight: bold;
     }
 
-    /* 4. EL "CUADRO BONITO" PARA LA FOTO */
+    /* 4. EL "CUADRO BONITO" (CENTRADO MATEMÁTICO) */
     
-    /* A) Ocultar textos en inglés (Drag&Drop, Limit, etc) */
+    /* A) Ocultar todo el contenido original (Inglés y Botones feos) */
     [data-testid='stFileUploaderDropzone'] span, 
-    [data-testid='stFileUploaderDropzone'] small {
-         display: none !important;
-    }
-    
-    /* B) Ocultar el botón feo de "Browse files" dentro del cuadro */
+    [data-testid='stFileUploaderDropzone'] small,
     [data-testid='stFileUploaderDropzone'] button {
          display: none !important;
     }
 
-    /* C) Estilo del CUADRO (Rectángulo limpio) */
+    /* B) Estilo del CAJÓN (Lienzo en blanco) */
     [data-testid='stFileUploaderDropzone'] {
-        min-height: 120px !important; /* Altura generosa para el dedo */
-        border: 2px dashed #cccccc !important; /* Borde punteado clásico */
-        background-color: #f9f9f9 !important; /* Gris muy clarito, casi blanco */
+        min-height: 120px !important;
+        border: 2px dashed #cccccc !important; /* Borde punteado */
+        background-color: #f9f9f9 !important; /* Gris casi blanco */
         border-radius: 10px !important;
-        align-items: center !important;
-        justify-content: center !important;
+        position: relative !important; /* NECESARIO para que el texto se centre respecto a esto */
     }
 
-    /* D) EL TEXTO FLOTANTE EN EL CENTRO */
+    /* C) EL TEXTO (Centrado Absoluto - Indestructible) */
     [data-testid='stFileUploaderDropzone']::after {
-        content: "📷 TOCAR AQUÍ PARA FOTO"; /* <--- TU MENSAJE */
+        content: "📷 TOCAR AQUÍ PARA FOTO"; 
         font-size: 18px !important;
-        color: #555555 !important; /* Gris oscuro profesional */
+        color: #555555 !important;
         font-weight: bold !important;
+        
+        /* AQUÍ ESTÁ LA MAGIA MATEMÁTICA: */
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important; /* Esto lo clava al centro exacto */
+        white-space: nowrap !important; /* Evita que el texto se parta en dos líneas */
+        pointer-events: none !important; /* Para que el clic pase a través del texto hacia el botón */
     }
     </style>
     """, unsafe_allow_html=True)
@@ -493,6 +496,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
