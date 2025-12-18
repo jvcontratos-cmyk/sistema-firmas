@@ -27,7 +27,7 @@ st.set_page_config(
 )
 
 # --- CSS LIMPIO ---
-# --- CSS MAESTRO (LIMPIEZA + ZOOM ROJO + BOTÓN CÁMARA FIXED) ---
+# --- CSS MAESTRO (LIMPIEZA + ZOOM ROJO + CUADRO FOTO BONITO) ---
 st.markdown("""
     <style>
     /* 1. Ocultar elementos base de Streamlit */
@@ -39,7 +39,7 @@ st.markdown("""
     .block-container {padding-top: 1rem !important; padding-bottom: 0rem !important;}
     body::after {content: none !important;}
     
-    /* 2. BOTÓN DE ZOOM (PANTALLA COMPLETA) - ROJO Y GRANDE */
+    /* 2. BOTÓN DE ZOOM ROJO */
     button[title="View fullscreen"] {
         display: block !important;
         background-color: rgba(255, 75, 75, 0.9) !important;
@@ -54,49 +54,42 @@ st.markdown("""
         box-shadow: 2px 2px 5px rgba(0,0,0,0.3) !important;
     }
 
-    /* 3. ESTILO PARA EL ACORDEÓN (VER CONTRATO) */
+    /* 3. ACORDEÓN */
     .streamlit-expanderHeader {
         background-color: #f0f2f6;
         border-radius: 10px;
         font-weight: bold;
     }
 
-    /* 4. REPARACIÓN DEL BOTÓN DE CÁMARA (VERSIÓN ESTABLE) */
+    /* 4. EL "CUADRO BONITO" PARA LA FOTO */
     
-    /* A) Ocultar el texto de instrucciones "Drag and drop" y "Limit 200MB" */
-    [data-testid='stFileUploaderDropzone'] small, 
-    [data-testid='stFileUploaderDropzone'] span {
-        display: none !important;
+    /* A) Ocultar textos en inglés (Drag&Drop, Limit, etc) */
+    [data-testid='stFileUploaderDropzone'] span, 
+    [data-testid='stFileUploaderDropzone'] small {
+         display: none !important;
     }
     
-    /* B) Asegurar que el contenedor TENGA ALTURA (¡Esto lo revive!) */
+    /* B) Ocultar el botón feo de "Browse files" dentro del cuadro */
+    [data-testid='stFileUploaderDropzone'] button {
+         display: none !important;
+    }
+
+    /* C) Estilo del CUADRO (Rectángulo limpio) */
     [data-testid='stFileUploaderDropzone'] {
-        min-height: 80px !important; /* Altura mínima para que no desaparezca */
-        border: 2px dashed #ccc !important; /* Borde punteado gris elegante */
-        background-color: #f9f9f9 !important;
+        min-height: 120px !important; /* Altura generosa para el dedo */
+        border: 2px dashed #cccccc !important; /* Borde punteado clásico */
+        background-color: #f9f9f9 !important; /* Gris muy clarito, casi blanco */
+        border-radius: 10px !important;
         align-items: center !important;
         justify-content: center !important;
     }
-    
-    /* C) Estilo del Botón (Hacerlo ancho y ocultar texto inglés) */
-    [data-testid="stFileUploader"] button {
-        width: 100% !important;
-        min-height: 45px !important;
-        color: transparent !important; /* Oculta "Browse files" */
-        border: 1px solid #ddd !important;
-        background-color: white !important;
-    }
-    
-    /* D) Poner el texto en Español CENTRADO */
-    [data-testid="stFileUploader"] button::after {
-        content: "📸 TOMAR FOTO (CÁMARA)";
-        color: #333 !important;
-        font-size: 16px !important;
+
+    /* D) EL TEXTO FLOTANTE EN EL CENTRO */
+    [data-testid='stFileUploaderDropzone']::after {
+        content: "📷 TOCAR AQUÍ PARA FOTO"; /* <--- TU MENSAJE */
+        font-size: 18px !important;
+        color: #555555 !important; /* Gris oscuro profesional */
         font-weight: bold !important;
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -500,6 +493,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
