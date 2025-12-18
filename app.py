@@ -27,10 +27,10 @@ st.set_page_config(
 )
 
 # --- CSS LIMPIO ---
-# --- CSS LIMPIO + BOTÓN ZOOM ROJO + TRADUCCIÓN REAL ---
+# --- CSS MAESTRO (LIMPIEZA + ZOOM ROJO + BOTÓN CÁMARA FIXED) ---
 st.markdown("""
     <style>
-    /* 1. Ocultar elementos base */
+    /* 1. Ocultar elementos base de Streamlit */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
     footer {display: none !important; visibility: hidden !important; height: 0px !important;}
@@ -42,7 +42,7 @@ st.markdown("""
     /* 2. BOTÓN DE ZOOM (PANTALLA COMPLETA) - ROJO Y GRANDE */
     button[title="View fullscreen"] {
         display: block !important;
-        background-color: rgba(255, 75, 75, 0.9) !important; /* Rojo */
+        background-color: rgba(255, 75, 75, 0.9) !important;
         width: 50px !important;
         height: 50px !important;
         border-radius: 50% !important;
@@ -61,28 +61,44 @@ st.markdown("""
         font-weight: bold;
     }
 
-    /* 4. TRUCO DE MAQUILLAJE: TRADUCIR BOTÓN "BROWSE FILES" A ESPAÑOL */
+    /* 4. REPARACIÓN TOTAL DEL BOTÓN DE CÁMARA */
     
-    /* A) Ocultar texto chico "Drag and drop..." */
-    [data-testid='stFileUploaderDropzone'] div div small {
+    /* A) Ocultar TODAS las instrucciones de texto (Drag & Drop, Limit, etc) */
+    [data-testid='stFileUploaderDropzone'] span, 
+    [data-testid='stFileUploaderDropzone'] small,
+    [data-testid='stFileUploaderDropzone'] div::before {
         display: none !important;
     }
     
-    /* B) Ocultar texto "Browse files" haciendo el color transparente */
-    [data-testid="stFileUploader"] button {
-        color: transparent !important;
+    /* B) Ajustar el contenedor para que solo se vea el botón */
+    [data-testid='stFileUploaderDropzone'] {
+        padding: 0px !important;
+        min-height: 0px !important;
+        border: none !important;
+        background-color: transparent !important;
     }
     
-    /* C) Poner el texto en Español encima */
+    /* C) Estilo del Botón (Hacerlo ancho y ocultar texto inglés) */
+    [data-testid="stFileUploader"] button {
+        width: 100% !important; /* Ocupa todo el ancho */
+        color: transparent !important; /* Oculta "Browse files" */
+        background-color: #f0f2f6 !important; /* Color de fondo gris claro */
+        border: 1px solid #d0d0d0 !important;
+        height: 50px !important; /* Altura fija para que no se deforme */
+        position: relative !important;
+    }
+    
+    /* D) Poner el texto en Español CENTRADO MATEMÁTICAMENTE */
     [data-testid="stFileUploader"] button::after {
         content: "📷 TOMAR FOTO (CÁMARA)";
         color: #31333F !important;
         font-size: 16px !important;
         font-weight: bold !important;
         position: absolute;
-        left: 0;
-        right: 0;
-        margin: auto;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%); /* Esto centra el texto a la fuerza */
+        width: 100%;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -486,4 +502,5 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
