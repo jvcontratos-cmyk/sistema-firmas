@@ -61,44 +61,42 @@ st.markdown("""
         font-weight: bold;
     }
 
-    /* 4. REPARACIÓN TOTAL DEL BOTÓN DE CÁMARA */
+    /* 4. REPARACIÓN DEL BOTÓN DE CÁMARA (VERSIÓN ESTABLE) */
     
-    /* A) Ocultar TODAS las instrucciones de texto (Drag & Drop, Limit, etc) */
-    [data-testid='stFileUploaderDropzone'] span, 
-    [data-testid='stFileUploaderDropzone'] small,
-    [data-testid='stFileUploaderDropzone'] div::before {
+    /* A) Ocultar el texto de instrucciones "Drag and drop" y "Limit 200MB" */
+    [data-testid='stFileUploaderDropzone'] small, 
+    [data-testid='stFileUploaderDropzone'] span {
         display: none !important;
     }
     
-    /* B) Ajustar el contenedor para que solo se vea el botón */
+    /* B) Asegurar que el contenedor TENGA ALTURA (¡Esto lo revive!) */
     [data-testid='stFileUploaderDropzone'] {
-        padding: 0px !important;
-        min-height: 0px !important;
-        border: none !important;
-        background-color: transparent !important;
+        min-height: 80px !important; /* Altura mínima para que no desaparezca */
+        border: 2px dashed #ccc !important; /* Borde punteado gris elegante */
+        background-color: #f9f9f9 !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
     
     /* C) Estilo del Botón (Hacerlo ancho y ocultar texto inglés) */
     [data-testid="stFileUploader"] button {
-        width: 100% !important; /* Ocupa todo el ancho */
+        width: 100% !important;
+        min-height: 45px !important;
         color: transparent !important; /* Oculta "Browse files" */
-        background-color: #f0f2f6 !important; /* Color de fondo gris claro */
-        border: 1px solid #d0d0d0 !important;
-        height: 50px !important; /* Altura fija para que no se deforme */
-        position: relative !important;
+        border: 1px solid #ddd !important;
+        background-color: white !important;
     }
     
-    /* D) Poner el texto en Español CENTRADO MATEMÁTICAMENTE */
+    /* D) Poner el texto en Español CENTRADO */
     [data-testid="stFileUploader"] button::after {
-        content: "📷 TOMAR FOTO (CÁMARA)";
-        color: #31333F !important;
+        content: "📸 TOMAR FOTO (CÁMARA)";
+        color: #333 !important;
         font-size: 16px !important;
         font-weight: bold !important;
         position: absolute;
-        top: 50%;
         left: 50%;
-        transform: translate(-50%, -50%); /* Esto centra el texto a la fuerza */
-        width: 100%;
+        top: 50%;
+        transform: translate(-50%, -50%);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -502,5 +500,6 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
