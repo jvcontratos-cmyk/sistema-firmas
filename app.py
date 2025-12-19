@@ -40,20 +40,48 @@ st.markdown("""
     .block-container {padding-top: 1rem !important; padding-bottom: 0rem !important;}
     body::after {content: none !important;}
     
-    /* 2. BOTÓN DE ZOOM (PANTALLA COMPLETA) - ¡MODO NUCLEAR! ☢️ */
-    [data-testid="stImageFullScreenButton"] {
+   /* ============================================================ */
+    /* 2. CÓDIGO NUCLEAR DE ZOOM (ATACA A TODAS LAS VERSIONES)      */
+    /* ============================================================ */
+    
+    /* Selector 1 (Versiones nuevas), Selector 2 (Viejas), Selector 3 (Genérico) */
+    [data-testid="stImageFullScreenButton"],
+    [data-testid="StyledFullScreenButton"],
+    button[title="View fullscreen"] {
         display: flex !important;
         visibility: visible !important;
-        opacity: 1 !important; /* Siempre visible, sin pasar mouse */
-        background-color: #FF4B4B !important; /* Rojo Liderman */
+        opacity: 1 !important;
+        
+        /* ESTILO DEL BOTÓN ROJO */
+        background-color: #FF4B4B !important; 
         color: white !important;
-        width: 50px !important; /* Tamaño grande para dedo */
-        height: 50px !important;
+        border: 2px solid white !important;
         border-radius: 50% !important;
-        border: 2px solid white !important; /* Borde blanco para resaltar */
-        box-shadow: 0px 4px 10px rgba(0,0,0,0.5) !important; /* Sombra fuerte */
-        transition: transform 0.2s !important;
-        z-index: 99999 !important; /* Encima de todo el universo */
+        
+        /* TAMAÑO Y POSICIÓN (GRANDE PARA DEDOS) */
+        width: 50px !important;
+        height: 50px !important;
+        right: 10px !important;
+        top: 10px !important;
+        
+        /* SOMBRA Y CAPA */
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.5) !important;
+        z-index: 999999 !important; /* Encima de todo */
+    }
+
+    /* PINTAR EL ÍCONO (LAS FLECHITAS) DE BLANCO */
+    [data-testid="stImageFullScreenButton"] svg,
+    [data-testid="StyledFullScreenButton"] svg,
+    button[title="View fullscreen"] svg {
+        fill: white !important;
+        stroke: white !important;
+        width: 30px !important;
+        height: 30px !important;
+    }
+    
+    /* HACK PARA MÓVIL: FORZAR QUE EL CONTENEDOR NO LO OCULTE */
+    [data-testid="stImage"] > div {
+        opacity: 1 !important;
     }
 
     /* Efecto al tocar */
@@ -554,6 +582,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
