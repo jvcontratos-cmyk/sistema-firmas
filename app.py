@@ -40,21 +40,34 @@ st.markdown("""
     .block-container {padding-top: 1rem !important; padding-bottom: 0rem !important;}
     body::after {content: none !important;}
     
-    /* 2. BOTÓN DE ZOOM ROJO */
-    button[title="View fullscreen"] {
-        display: block !important;
-        background-color: rgba(255, 75, 75, 0.9) !important;
-        width: 50px !important;
+    /* 2. BOTÓN DE ZOOM (PANTALLA COMPLETA) - ¡MODO NUCLEAR! ☢️ */
+    [data-testid="stImageFullScreenButton"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important; /* Siempre visible, sin pasar mouse */
+        background-color: #FF4B4B !important; /* Rojo Liderman */
+        color: white !important;
+        width: 50px !important; /* Tamaño grande para dedo */
         height: 50px !important;
         border-radius: 50% !important;
-        color: white !important;
-        transform: scale(1.2);
-        right: 15px !important;
-        top: 15px !important;
-        z-index: 9999 !important;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.3) !important;
+        border: 2px solid white !important; /* Borde blanco para resaltar */
+        box-shadow: 0px 4px 10px rgba(0,0,0,0.5) !important; /* Sombra fuerte */
+        transition: transform 0.2s !important;
+        z-index: 99999 !important; /* Encima de todo el universo */
     }
 
+    /* Efecto al tocar */
+    [data-testid="stImageFullScreenButton"]:active {
+        transform: scale(0.9) !important;
+    }
+    
+    /* Pintar las flechitas de blanco puro */
+    [data-testid="stImageFullScreenButton"] svg {
+        fill: white !important;
+        stroke: white !important;
+        width: 28px !important;
+        height: 28px !important;
+    }
     /* 3. ACORDEÓN */
     .streamlit-expanderHeader {
         background-color: #f0f2f6;
@@ -541,6 +554,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
