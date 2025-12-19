@@ -9,7 +9,8 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader 
 import io
 import base64
-from PIL import Image
+from PIL import Image, ExifTags # <--- IMPORTANTE: Verificar que ExifTags esté aquí
+import io
 import requests
 import fitz  # PyMuPDF
 import gspread 
@@ -137,6 +138,36 @@ if 'firmado_ok' not in st.session_state: st.session_state['firmado_ok'] = False
 if 'foto_bio' not in st.session_state: st.session_state['foto_bio'] = None 
 
 # --- FUNCIONES ---
+# ... (arriba están tus variables de sesión y carpetas temporales) ...
+
+# --- FUNCIONES ---   <--- BUSCA ESTA LÍNEA Y PEGA ABAJO 👇
+
+# === NUEVA FUNCIÓN: CORREGIR ROTACIÓN DE FOTO (EXIF) ===
+def corregir_rotacion_imagen(image):
+    """Detecta la orientación del celular y endereza la foto."""
+    try:
+        for orientation in ExifTags.TAGS.keys():
+            if ExifTags.TAGS[orientation] == 'Orientation':
+                break
+        
+        # Lee los metadatos ocultos
+        exif = image._getexif()
+        
+        if exif is not None:
+            orientation = exif.get(orientation)
+            # Aplica la rotación física según la etiqueta
+            if orientation == 3:
+                image = image.rotate(180, expand=True)
+            elif orientation == 6:
+                image = image.rotate(270, expand=True)
+            elif orientation == 8:
+                image = image.rotate(90, expand=True)
+    except (AttributeError, KeyError, IndexError):
+        # Si falla o no tiene datos, la deja como estaba
+        pass
+    
+    return image
+# ========================================================
 
 def consultar_estado_dni(dni):
     try:
@@ -371,10 +402,11 @@ else:
         st.success(f"Hola, **{nombre_archivo.replace('.pdf','')}**")
         st.info("👇 **Siga los pasos 1, 2 y 3 para completar su ingreso.**")
         
-        # --- PASO 1: CONTRATO (COLAPSABLE / ACORDEÓN) ---
-        # "expanded=False" hace que empiece cerrado para que no estorbe en celulares
-        with st.expander("📄 1. CLIC AQUÍ PARA LEER EL CONTRATO (ABRIR/CERRAR)", expanded=False):
-            st.info("🔍 Puede ampliar las páginas usando el botón ROJO en la esquina.")
+        # --- PASO 1 ---
+        with st.expander("📄 1. CLIC AQUÍ PARA LEER EL CONTRATO (VER / CERRAR)", expanded=False):
+            # CAMBIAMOS ESTA LÍNEA:
+            st.info("🔍 **TOCA LA IMAGEN** dos veces para ampliarla y leer mejor.")
+            
             with st.container(height=500, border=True):
                 if os.path.exists(ruta_pdf_local):
                     mostrar_pdf_como_imagenes(ruta_pdf_local)
@@ -387,9 +419,22 @@ else:
             st.warning("📸 Toque el botón y seleccione **'Cámara'**:")
             # Usamos file_uploader pero etiquetado para que usen la cámara
             foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
+            # === ESTE ES EL BLOQUE QUE CAMBIA ===
             if foto_input is not None:
-                st.session_state['foto_bio'] = foto_input.getvalue()
-                st.rerun()
+                # 1. Abrimos la imagen con Pillow
+                image = Image.open(foto_input)
+                
+                # 2. ¡AQUÍ OCURRE LA MAGIA! Enderezamos la foto
+                image = corregir_rotacion_imagen(image) 
+                
+                # 3. Convertimos la imagen enderezada de nuevo a bytes para guardarla
+                img_byte_arr = io.BytesIO()
+                # Usamos el formato original o JPEG por defecto
+                image.save(img_byte_arr, format=image.format if image.format else 'JPEG')
+                
+                # 4. Guardamos en sesión y recargamos
+                st.session_state['foto_bio'] = img_byte_arr.getvalue()
+                st.rerun()    
         else:
             col_a, col_b = st.columns([1,3])
             with col_a:
@@ -496,6 +541,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
