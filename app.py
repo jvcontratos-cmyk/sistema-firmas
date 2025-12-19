@@ -166,7 +166,8 @@ if 'canvas_key' not in st.session_state: st.session_state['canvas_key'] = 0
 if 'firmado_ok' not in st.session_state: st.session_state['firmado_ok'] = False
 # Variable para guardar la foto temporalmente
 if 'foto_bio' not in st.session_state: st.session_state['foto_bio'] = None 
-
+if 'modo_lectura' not in st.session_state: st.session_state['modo_lectura'] = False
+if 'pagina_actual' not in st.session_state: st.session_state['pagina_actual'] = 0
 # --- FUNCIONES ---
 
 # === NUEVA FUNCIÓN: CORREGIR ROTACIÓN DE FOTO (EXIF) ===
@@ -426,17 +427,54 @@ else:
 
     # PANTALLA DE FIRMA (PASOS 1, 2 y 3)
     else:
-        st.success(f"Hola, **{nombre_archivo.replace('.pdf','')}**")
-        st.info("👇 **Siga los pasos 1, 2 y 3 para completar su ingreso.**")
+        # === MODO CINE (VISOR DE LECTURA) ===
+        if st.session_state['modo_lectura']:
+            # 1. Barra Superior (Botón Cerrar)
+            col_close, col_title = st.columns([1, 4])
+            with col_close:
+                if st.button("❌ CERRAR", type="primary", use_container_width=True):
+                    st.session_state['modo_lectura'] = False
+                    st.rerun()
+            with col_title:
+                st.markdown(f"#### 📄 Página {st.session_state['pagina_actual'] + 1}")
+
+            # 2. Renderizar la Página Actual
+            try:
+                doc = fitz.open(ruta_pdf_local)
+                total_paginas = len(doc)
+                pagina = doc[st.session_state['pagina_actual']]
+                # DPI 250 = Calidad Ultra HD para que se lea perfecto en celular
+                pix = pagina.get_pixmap(dpi=250) 
+                st.image(pix.tobytes("png"), use_container_width=True)
+            except:
+                st.error("Error cargando la página.")
+
+            # 3. Barra de Navegación (Botones Gigantes)
+            st.markdown("---")
+            c_ant, c_sig = st.columns(2)
+            with c_ant:
+                if st.session_state['pagina_actual'] > 0:
+                    if st.button("⬅️ ANTERIOR", use_container_width=True):
+                        st.session_state['pagina_actual'] -= 1
+                        st.rerun()
+            with c_sig:
+                if st.session_state['pagina_actual'] < total_paginas - 1:
+                    if st.button("SIGUIENTE ➡️", type="primary", use_container_width=True):
+                        st.session_state['pagina_actual'] += 1
+                        st.rerun()
         
-        # --- PASO 1 ---
-        with st.expander("📄 1. CLIC AQUÍ PARA LEER EL CONTRATO (VER / CERRAR)", expanded=False):
-            # CAMBIAMOS ESTA LÍNEA:
-            st.info("🔍 **TOCA LA IMAGEN** dos veces para ampliarla y leer mejor.")
+        # === MODO NORMAL (FORMULARIO) ===
+        else:
+            st.success(f"Hola, **{nombre_archivo.replace('.pdf','')}**")
+            st.info("👇 **Siga los pasos 1, 2 y 3 para completar su ingreso.**")
             
-            with st.container(height=500, border=True):
-                if os.path.exists(ruta_pdf_local):
-                    mostrar_pdf_como_imagenes(ruta_pdf_local)
+            # --- PASO 1 NUEVO: SOLO EL BOTÓN ACTIVADOR ---
+            st.markdown("### 1. Lectura del Contrato")
+            # Este botón activa el MODO CINE
+            if st.button("📖 TOCAR AQUÍ PARA LEER EL CONTRATO (PANTALLA COMPLETA)", type="primary", use_container_width=True):
+                st.session_state['modo_lectura'] = True
+                st.session_state['pagina_actual'] = 0
+                st.rerun()
         
         # --- PASO 2: FOTO (MÉTODO ROBUSTO - BOTÓN NATIVO) ---
         st.markdown("---")
@@ -568,3 +606,4 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
