@@ -1,21 +1,18 @@
 import streamlit as st
 import os
-import shutil
 from streamlit_drawable_canvas import st_canvas
 from PyPDF2 import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
-# Import necesario para procesar la foto
-from reportlab.lib.utils import ImageReader 
+from reportlab.lib.utils import ImageReader
 import io
 import base64
-from PIL import Image, ExifTags # <--- IMPORTANTE: Verificar que ExifTags esté aquí
-import io
+from PIL import Image, ExifTags
 import requests
 import fitz  # PyMuPDF
-import gspread 
+import gspread
 from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build 
+from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from datetime import datetime, timedelta
 
@@ -27,7 +24,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS LIMPIO ---
 # --- CSS MAESTRO (LIMPIEZA + ZOOM ROJO + CUADRO FOTO CENTRADO PERFECTO) ---
 st.markdown("""
     <style>
@@ -40,7 +36,7 @@ st.markdown("""
     .block-container {padding-top: 1rem !important; padding-bottom: 0rem !important;}
     body::after {content: none !important;}
     
-   /* ============================================================ */
+    /* ============================================================ */
     /* 2. CÓDIGO NUCLEAR DE ZOOM (ATACA A TODAS LAS VERSIONES)      */
     /* ============================================================ */
     
@@ -89,13 +85,6 @@ st.markdown("""
         transform: scale(0.9) !important;
     }
     
-    /* Pintar las flechitas de blanco puro */
-    [data-testid="stImageFullScreenButton"] svg {
-        fill: white !important;
-        stroke: white !important;
-        width: 28px !important;
-        height: 28px !important;
-    }
     /* 3. ACORDEÓN */
     .streamlit-expanderHeader {
         background-color: #f0f2f6;
@@ -179,9 +168,6 @@ if 'firmado_ok' not in st.session_state: st.session_state['firmado_ok'] = False
 if 'foto_bio' not in st.session_state: st.session_state['foto_bio'] = None 
 
 # --- FUNCIONES ---
-# ... (arriba están tus variables de sesión y carpetas temporales) ...
-
-# --- FUNCIONES ---   <--- BUSCA ESTA LÍNEA Y PEGA ABAJO 👇
 
 # === NUEVA FUNCIÓN: CORREGIR ROTACIÓN DE FOTO (EXIF) ===
 def corregir_rotacion_imagen(image):
@@ -408,7 +394,7 @@ if st.session_state['dni_validado'] is None:
                     st.error("Error al descargar el documento. Intente nuevamente.")
             else:
                 st.error("❌ Contrato no ubicado (Verifique que su DNI esté correcto en la lista).")
-    # === HASTA AQUÍ TERMINA EL BLOQUE A PEGAR ===
+    
     # FAQ
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
@@ -460,7 +446,7 @@ else:
             st.warning("📸 Toque el botón y seleccione **'Cámara'**:")
             # Usamos file_uploader pero etiquetado para que usen la cámara
             foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
-            # === ESTE ES EL BLOQUE QUE CAMBIA ===
+            
             if foto_input is not None:
                 # 1. Abrimos la imagen con Pillow
                 image = Image.open(foto_input)
@@ -582,11 +568,3 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
-
-
-
-
-
-
-
-
