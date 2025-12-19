@@ -429,117 +429,62 @@ else:
 
 # PANTALLA DE FIRMA (PASOS 1, 2 y 3)
     else:
-        # === MODO CINE V3.0 (CON SLIDER DE ZOOM MANUAL) ===
+        # Importamos la herramienta "Caja de Cristal" aquí mismo para no mover nada arriba
+        import streamlit.components.v1 as components
+
+        # === MODO CINE V4.0 (LA CAJA DE CRISTAL) ===
         if st.session_state['modo_lectura']:
-            # 1. CABECERA: Botón Cerrar y Título
-            c_cerrar, c_titulo = st.columns([1, 4])
-            with c_cerrar:
+            # 1. Barra Superior
+            c_close, c_tit = st.columns([1, 4])
+            with c_close:
                 if st.button("❌ CERRAR", type="secondary", use_container_width=True):
                     st.session_state['modo_lectura'] = False
-                    st.session_state['zoom_nivel'] = 100 # Reset al salir
+                    st.session_state['zoom_nivel'] = 100 
                     st.rerun()
-            with c_titulo:
+            with c_tit:
                 st.markdown(f"<h4 style='text-align: center; margin: 0; padding-top: 5px;'>📄 Página {st.session_state['pagina_actual'] + 1}</h4>", unsafe_allow_html=True)
 
-            st.write("") 
-
-            # 2. CONTROL DE ZOOM (AHORA EN PÍXELES REALES)
-            zoom = st.select_slider(
-                "🔍 **TAMAÑO DE LA LETRA (Mueve a la derecha para agrandar):**",
-                options=[100, 150, 200, 250, 300],
+            # 2. SLIDER DE ZOOM (ESTE SÍ FUNCIONA PORQUE CONTROLA LA CAJA)
+            # El valor es el PORCENTAJE de ancho. 100% = Ancho de pantalla. 200% = Doble de ancho.
+            zoom_val = st.select_slider(
+                "🔍 **ZOOM (Mueve la bolita):**",
+                options=[100, 125, 150, 175, 200, 250, 300],
                 value=st.session_state['zoom_nivel'],
-                format_func=lambda x: "Normal" if x == 100 else f"Grande ({x}%)"
+                format_func=lambda x: "Normal" if x == 100 else f"Zoom x{x/100}"
             )
-            st.session_state['zoom_nivel'] = zoom
+            st.session_state['zoom_nivel'] = zoom_val
 
-            # CALCULO DE ANCHO EN PÍXELES (Fuerza Bruta)
-            # Un celular promedio tiene 350-400px de ancho.
-            # 100% = 100% del ancho del contenedor (se ajusta).
-            # 200% = 800px fijos (el doble de un celular, obliga scroll).
-            ancho_css = "100%" if zoom == 100 else f"{int(zoom * 4)}px"
-
+            # 3. RENDERIZADO AISLADO (SANDBOX)
             try:
                 doc = fitz.open(ruta_pdf_local)
                 total_paginas = len(doc)
                 pagina = doc[st.session_state['pagina_actual']]
                 
-                # Renderizamos con ALTA calidad
+                # Calidad alta para que al hacer zoom se vea nítido
                 pix = pagina.get_pixmap(dpi=200) 
                 img_bytes = pix.tobytes("png")
                 img_base64 = base64.b64encode(img_bytes).decode('utf-8')
                 
-                # HTML CORREGIDO (SIN FLEXBOX, SOLO BLOQUE PURO)
-                st.markdown(
-                    f"""
-                    <div style="
-                        width: 100%;
-                        height: 70vh;
-                        overflow-x: scroll; /* Scroll horizontal OBLIGATORIO */
-                        overflow-y: scroll;
-                        border: 1px solid #ccc;
-                        background-color: #525659;
-                        padding: 10px;
-                        border-radius: 5px;
-                        /* AQUÍ QUITAMOS EL CENTRADO QUE TE MOLESTABA */
-                        display: block; 
-                    ">
-                        <img src="data:image/png;base64,{img_base64}" style="
-                            width: {ancho_css} !important; 
-                            min-width: {ancho_css} !important; /* Esto impide que se encoja */
-                            max-width: none !important; /* Rompe los límites */
-                            height: auto; 
-                            display: block;
-                            margin: 0 auto; /* Centrado si sobra espacio, pero crece si falta */
-                        " />
+                # CÓDIGO HTML PURO (ESTO VIVE DENTRO DE LA CAJA)
+                # Aquí Streamlit NO puede opinar. Si decimos width: 200%, es 200%.
+                html_code = f"""
+                <html>
+                <body style="margin: 0; padding: 0; background-color: #525659; text-align: center;">
+                    <div style="overflow: auto; width: 100vw; height: 70vh; display: flex; justify-content: center;">
+                        <img src="data:image/png;base64,{img_base64}" 
+                             style="width: {zoom_val}%; max-width: none; box-shadow: 0 4px 8px rgba(0,0,0,0.5); margin-top: 10px; margin-bottom: 10px;">
                     </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                </body>
+                </html>
+                """
+                
+                # INYECTAMOS LA CAJA DE CRISTAL (Altura fija de 600px)
+                components.html(html_code, height=600, scrolling=False)
 
             except Exception as e:
-                st.error(f"Error: {e}")
-            # 3. RENDERIZADO CON ANCHO FORZADO
-            try:
-                doc = fitz.open(ruta_pdf_local)
-                total_paginas = len(doc)
-                pagina = doc[st.session_state['pagina_actual']]
-                
-                # Renderizamos con ALTA calidad siempre
-                pix = pagina.get_pixmap(dpi=200) 
-                img_bytes = pix.tobytes("png")
-                img_base64 = base64.b64encode(img_bytes).decode('utf-8')
-                
-                # HTML INYECTADO
-                # La clave aquí es 'width: {zoom}%'. 
-                # Si zoom es 200%, la imagen será el DOBLE de ancha que el celular,
-                # obligando a que aparezca el scroll horizontal (mover con el dedo).
-                st.markdown(
-                    f"""
-                    <div style="
-                        width: 100%;
-                        height: 70vh;
-                        overflow: auto; /* ESTO PERMITE MOVER CON EL DEDO */
-                        border: 1px solid #ccc;
-                        background-color: #525659; /* Fondo gris oscuro tipo Adobe Reader */
-                        padding: 10px;
-                        border-radius: 5px;
-                        text-align: center;
-                    ">
-                        <img src="data:image/png;base64,{img_base64}" style="
-                            width: {zoom}%; 
-                            max-width: none !important; /* Rompe el límite del celular */
-                            height: auto; 
-                            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-                        " />
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                st.error(f"Error cargando visor: {e}")
 
-            except Exception as e:
-                st.error(f"Error: {e}")
-
-            # 4. BOTONES DE NAVEGACIÓN
+            # 4. NAVEGACIÓN
             st.write("")
             c_ant, c_sig = st.columns(2)
             with c_ant:
@@ -696,6 +641,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
