@@ -168,6 +168,8 @@ if 'firmado_ok' not in st.session_state: st.session_state['firmado_ok'] = False
 if 'foto_bio' not in st.session_state: st.session_state['foto_bio'] = None 
 if 'modo_lectura' not in st.session_state: st.session_state['modo_lectura'] = False
 if 'pagina_actual' not in st.session_state: st.session_state['pagina_actual'] = 0
+if 'zoom_nivel' not in st.session_state: st.session_state['zoom_nivel'] = 100
+    
 # --- FUNCIONES ---
 
 # === NUEVA FUNCIÓN: CORREGIR ROTACIÓN DE FOTO (EXIF) ===
@@ -425,82 +427,84 @@ else:
             st.session_state['firmado_ok'] = False
             st.rerun()
 
-    # PANTALLA DE FIRMA (PASOS 1, 2 y 3)
+# PANTALLA DE FIRMA (PASOS 1, 2 y 3)
     else:
-        # === MODO CINE V2.0 (VISOR PRO CON ZOOM) ===
+        # === MODO CINE V3.0 (CON SLIDER DE ZOOM MANUAL) ===
         if st.session_state['modo_lectura']:
-            # 1. Barra Superior Más Limpia (Botón Cerrar más pequeño)
-            col_close, col_pag, col_void = st.columns([2, 3, 1])
-            with col_close:
-                # Usamos type="secondary" para que no sea rojo intenso
-                if st.button("❌ CERRAR VISOR", use_container_width=True):
+            # 1. CABECERA: Botón Cerrar y Título
+            c_cerrar, c_titulo = st.columns([1, 4])
+            with c_cerrar:
+                if st.button("❌ CERRAR", type="secondary", use_container_width=True):
                     st.session_state['modo_lectura'] = False
+                    st.session_state['zoom_nivel'] = 100 # Reset al salir
                     st.rerun()
-            with col_pag:
-                 st.markdown(f"<h3 style='text-align: center; margin: 0;'>📄 Pág. {st.session_state['pagina_actual'] + 1}</h3>", unsafe_allow_html=True)
+            with c_titulo:
+                st.markdown(f"<h4 style='text-align: center; margin: 0; padding-top: 5px;'>📄 Página {st.session_state['pagina_actual'] + 1}</h4>", unsafe_allow_html=True)
 
-            st.write("") # Espacio
+            st.write("") 
 
-            # 2. RENDERIZADO HTML PARA ZOOM NATIVO
+            # 2. CONTROL DE ZOOM (LA SOLUCIÓN DEFINITIVA)
+            # Un slider que va del 100% (ajustado) al 300% (zoom gigante)
+            zoom = st.select_slider(
+                "🔍 **TAMAÑO DE LA LETRA (Desliza para agrandar):**",
+                options=[100, 125, 150, 175, 200, 250, 300],
+                value=st.session_state['zoom_nivel'],
+                format_func=lambda x: f"{x}%" if x > 100 else "Ajustar a Pantalla"
+            )
+            # Guardamos el estado para que no se resetee al cambiar de página
+            st.session_state['zoom_nivel'] = zoom
+
+            # 3. RENDERIZADO CON ANCHO FORZADO
             try:
                 doc = fitz.open(ruta_pdf_local)
                 total_paginas = len(doc)
                 pagina = doc[st.session_state['pagina_actual']]
                 
-                # AUMENTAMOS DPI A 300 (Calidad Impresión)
-                # Esto genera una imagen muy grande y nítida
-                pix = pagina.get_pixmap(dpi=300) 
+                # Renderizamos con ALTA calidad siempre
+                pix = pagina.get_pixmap(dpi=200) 
                 img_bytes = pix.tobytes("png")
-                
-                # Convertimos a Base64 para incrustar en HTML
                 img_base64 = base64.b64encode(img_bytes).decode('utf-8')
                 
-                # INYECTAMOS UN CONTENEDOR HTML CON SCROLL
-                # Esto permite que el navegador use su zoom nativo
+                # HTML INYECTADO
+                # La clave aquí es 'width: {zoom}%'. 
+                # Si zoom es 200%, la imagen será el DOBLE de ancha que el celular,
+                # obligando a que aparezca el scroll horizontal (mover con el dedo).
                 st.markdown(
                     f"""
                     <div style="
                         width: 100%;
-                        height: 75vh; /* Usa el 75% de la altura de la pantalla */
-                        overflow: auto; /* Permite moverse con el dedo si la imagen es grande */
-                        border: 1px solid #ddd;
-                        border-radius: 8px;
-                        background-color: #f4f4f4;
-                        display: flex;
-                        justify-content: center;
-                        align-items: flex-start; /* Alinea arriba */
+                        height: 70vh;
+                        overflow: auto; /* ESTO PERMITE MOVER CON EL DEDO */
+                        border: 1px solid #ccc;
+                        background-color: #525659; /* Fondo gris oscuro tipo Adobe Reader */
+                        padding: 10px;
+                        border-radius: 5px;
+                        text-align: center;
                     ">
                         <img src="data:image/png;base64,{img_base64}" style="
-                            /* CLAVE: NO USAR max-width: 100% */
-                            /* Dejamos que la imagen tenga su tamaño real gigante */
+                            width: {zoom}%; 
+                            max-width: none !important; /* Rompe el límite del celular */
                             height: auto; 
-                            display: block;
-                            margin: auto;
-                            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                            box-shadow: 0 0 10px rgba(0,0,0,0.5);
                         " />
                     </div>
-                    <p style="text-align: center; color: gray; font-size: 14px;">
-                        💡 <i>Usa dos dedos para hacer zoom (pellizcar) y uno para moverte.</i>
-                    </p>
                     """,
                     unsafe_allow_html=True
                 )
 
             except Exception as e:
-                st.error(f"Error cargando la página: {e}")
+                st.error(f"Error: {e}")
 
-            # 3. Barra de Navegación (Botones más discretos)
+            # 4. BOTONES DE NAVEGACIÓN
             st.write("")
-            c_ant, c_void, c_sig = st.columns([2, 1, 2])
+            c_ant, c_sig = st.columns(2)
             with c_ant:
                 if st.session_state['pagina_actual'] > 0:
-                    # Botón secundario (gris)
                     if st.button("⬅️ ANTERIOR", use_container_width=True):
                         st.session_state['pagina_actual'] -= 1
                         st.rerun()
             with c_sig:
                 if st.session_state['pagina_actual'] < total_paginas - 1:
-                    # Botón primario (rojo) pero no tan ancho
                     if st.button("SIGUIENTE ➡️", type="primary", use_container_width=True):
                         st.session_state['pagina_actual'] += 1
                         st.rerun()
@@ -648,5 +652,6 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
