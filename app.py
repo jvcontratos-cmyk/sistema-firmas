@@ -427,38 +427,80 @@ else:
 
     # PANTALLA DE FIRMA (PASOS 1, 2 y 3)
     else:
-        # === MODO CINE (VISOR DE LECTURA) ===
+        # === MODO CINE V2.0 (VISOR PRO CON ZOOM) ===
         if st.session_state['modo_lectura']:
-            # 1. Barra Superior (Botón Cerrar)
-            col_close, col_title = st.columns([1, 4])
+            # 1. Barra Superior Más Limpia (Botón Cerrar más pequeño)
+            col_close, col_pag, col_void = st.columns([2, 3, 1])
             with col_close:
-                if st.button("❌ CERRAR", type="primary", use_container_width=True):
+                # Usamos type="secondary" para que no sea rojo intenso
+                if st.button("❌ CERRAR VISOR", use_container_width=True):
                     st.session_state['modo_lectura'] = False
                     st.rerun()
-            with col_title:
-                st.markdown(f"#### 📄 Página {st.session_state['pagina_actual'] + 1}")
+            with col_pag:
+                 st.markdown(f"<h3 style='text-align: center; margin: 0;'>📄 Pág. {st.session_state['pagina_actual'] + 1}</h3>", unsafe_allow_html=True)
 
-            # 2. Renderizar la Página Actual
+            st.write("") # Espacio
+
+            # 2. RENDERIZADO HTML PARA ZOOM NATIVO
             try:
                 doc = fitz.open(ruta_pdf_local)
                 total_paginas = len(doc)
                 pagina = doc[st.session_state['pagina_actual']]
-                # DPI 250 = Calidad Ultra HD para que se lea perfecto en celular
-                pix = pagina.get_pixmap(dpi=250) 
-                st.image(pix.tobytes("png"), use_container_width=True)
-            except:
-                st.error("Error cargando la página.")
+                
+                # AUMENTAMOS DPI A 300 (Calidad Impresión)
+                # Esto genera una imagen muy grande y nítida
+                pix = pagina.get_pixmap(dpi=300) 
+                img_bytes = pix.tobytes("png")
+                
+                # Convertimos a Base64 para incrustar en HTML
+                img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+                
+                # INYECTAMOS UN CONTENEDOR HTML CON SCROLL
+                # Esto permite que el navegador use su zoom nativo
+                st.markdown(
+                    f"""
+                    <div style="
+                        width: 100%;
+                        height: 75vh; /* Usa el 75% de la altura de la pantalla */
+                        overflow: auto; /* Permite moverse con el dedo si la imagen es grande */
+                        border: 1px solid #ddd;
+                        border-radius: 8px;
+                        background-color: #f4f4f4;
+                        display: flex;
+                        justify-content: center;
+                        align-items: flex-start; /* Alinea arriba */
+                    ">
+                        <img src="data:image/png;base64,{img_base64}" style="
+                            /* CLAVE: NO USAR max-width: 100% */
+                            /* Dejamos que la imagen tenga su tamaño real gigante */
+                            height: auto; 
+                            display: block;
+                            margin: auto;
+                            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                        " />
+                    </div>
+                    <p style="text-align: center; color: gray; font-size: 14px;">
+                        💡 <i>Usa dos dedos para hacer zoom (pellizcar) y uno para moverte.</i>
+                    </p>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-            # 3. Barra de Navegación (Botones Gigantes)
-            st.markdown("---")
-            c_ant, c_sig = st.columns(2)
+            except Exception as e:
+                st.error(f"Error cargando la página: {e}")
+
+            # 3. Barra de Navegación (Botones más discretos)
+            st.write("")
+            c_ant, c_void, c_sig = st.columns([2, 1, 2])
             with c_ant:
                 if st.session_state['pagina_actual'] > 0:
+                    # Botón secundario (gris)
                     if st.button("⬅️ ANTERIOR", use_container_width=True):
                         st.session_state['pagina_actual'] -= 1
                         st.rerun()
             with c_sig:
                 if st.session_state['pagina_actual'] < total_paginas - 1:
+                    # Botón primario (rojo) pero no tan ancho
                     if st.button("SIGUIENTE ➡️", type="primary", use_container_width=True):
                         st.session_state['pagina_actual'] += 1
                         st.rerun()
@@ -606,4 +648,5 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
