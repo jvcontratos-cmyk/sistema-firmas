@@ -364,7 +364,7 @@ if st.session_state['dni_validado'] is None:
 
 # === LÓGICA DE VALIDACIÓN CORREGIDA ===
     if submitted and dni_input:
-        with st.spinner("Conectando con base de datos..."):
+        with st.spinner("Buscando..."):
             # 1. VERIFICAMOS PRIMERO EN EL EXCEL
             estado_sheet = consultar_estado_dni(dni_input)
         
@@ -373,7 +373,7 @@ if st.session_state['dni_validado'] is None:
             st.info(f"ℹ️ El DNI {dni_input} ya registra un contrato firmado.")
             st.markdown("""
             **Si necesita una copia de su contrato** o cree que esto es un error, 
-            por favor **contacte al área de Recursos Humanos**.
+            por favor **contacte al área de Administración de Personal**.
             """)
             # AL NO PONER NADA MÁS AQUÍ, EL CÓDIGO SE DETIENE Y NO DEJA AVANZAR
         
@@ -396,14 +396,14 @@ if st.session_state['dni_validado'] is None:
                 else:
                     st.error("Error al descargar el documento. Intente nuevamente.")
             else:
-                st.error("❌ Contrato no ubicado (Verifique que su DNI esté correcto en la lista).")
+                st.error("❌ Contrato no ubicado (Verifique que su DNI esté correctamente escrito.)")
     
     # FAQ
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
     with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
         st.markdown("En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto. El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos). *Lo verá reflejado en su **boleta de pago** a fin de mes.*")
-    with st.expander("🕒 ¿Por qué el contrato dice 8hrs si trabajo 12hrs?"):
+    with st.expander("🕒 ¿Por qué el contrato dice 8hrs si mi puesto de trabajo es de 12hrs?"):
         st.markdown("La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias. Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**. *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*")
     st.info("📞 **¿Dudas adicionales?** Contacte al área de Administración de Personal.")
 
@@ -429,7 +429,7 @@ else:
 
 # PANTALLA DE FIRMA (PASOS 1, 2 y 3)
     else:
-        # === MODO CINE V5.0 (LA SOLUCIÓN UNIVERSAL - SCROLL NATIVO) ===
+        # === MODO CINE V6.0 (MATRIX: PINCH ZOOM POR JAVASCRIPT) ===
         if st.session_state['modo_lectura']:
             # 1. CABECERA
             c_close, c_tit = st.columns([1, 4])
@@ -440,60 +440,126 @@ else:
             with c_tit:
                 st.markdown(f"<h4 style='text-align: center; margin: 0; padding-top: 5px;'>📄 Página {st.session_state['pagina_actual'] + 1}</h4>", unsafe_allow_html=True)
 
-            # 2. BOTONES DE TAMAÑO (SIMPLES Y EFECTIVOS)
-            # Esto funciona en TODOS los celulares porque es lógica pura, no gestos.
-            st.write("")
-            zoom_option = st.radio("🔍 **ELEGIR TAMAÑO DE LETRA:**", ["Normal (100%)", "Grande (150%)", "Gigante (250%)"], horizontal=True)
-            
-            # Traducimos la opción a porcentaje CSS
-            if "150" in zoom_option: width_css = "150%"
-            elif "250" in zoom_option: width_css = "250%"
-            else: width_css = "100%"
-
-            # 3. RENDERIZADO HTML (Inyección Directa)
+            # 2. RENDERIZADO CON SCRIPT DE ZOOM
             try:
                 doc = fitz.open(ruta_pdf_local)
                 total_paginas = len(doc)
                 pagina = doc[st.session_state['pagina_actual']]
                 
-                # Calidad alta
-                pix = pagina.get_pixmap(dpi=220) 
+                # Calidad SUPER ALTA (para que aguante el zoom sin pixelarse)
+                pix = pagina.get_pixmap(dpi=250) 
                 img_bytes = pix.tobytes("png")
                 img_base64 = base64.b64encode(img_bytes).decode('utf-8')
                 
-                # === EL SECRETO: DIV CON SCROLL ===
-                # Esto obliga al navegador a mostrar barras de desplazamiento si la imagen es grande
+                # === AQUÍ ESTÁ LA MAGIA NEGRA ===
+                # Inyectamos HTML + CSS + JAVASCRIPT en un solo bloque.
+                # El script detecta los dedos y aplica 'transform: scale()'
                 st.markdown(
                     f"""
-                    <div style="
-                        width: 100%;
-                        overflow-x: auto; /* Scroll horizontal automático */
-                        overflow-y: hidden;
-                        -webkit-overflow-scrolling: touch; /* Suavidad para iPhone */
-                        border: 1px solid #ddd;
-                        border-radius: 8px;
-                        margin-top: 10px;
-                        margin-bottom: 10px;
-                        background-color: white;
-                    ">
-                        <img src="data:image/png;base64,{img_base64}" style="
-                            width: {width_css}; 
-                            max-width: none; /* Rompe el límite de la pantalla */
-                            display: block; 
-                            margin: 0 auto;
-                        " />
+                    <style>
+                        #image-container {{
+                            width: 100%;
+                            height: 75vh;
+                            overflow: hidden; /* Ocultamos barras porque usamos dedos */
+                            border: 1px solid #ccc;
+                            background-color: #525659;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            border-radius: 8px;
+                            touch-action: none; /* IMPORTANTE: Evita que el navegador intervenga */
+                        }}
+                        #zoom-img {{
+                            max-width: 100%;
+                            max-height: 100%;
+                            transition: transform 0.1s ease-out; /* Suavidad */
+                            transform-origin: center center;
+                        }}
+                    </style>
+
+                    <div id="image-container">
+                        <img id="zoom-img" src="data:image/png;base64,{img_base64}" />
                     </div>
-                    <div style="text-align: center; color: gray; font-size: 13px; margin-bottom: 10px;">
-                        👆 <i>Si la letra es grande, mueve la hoja hacia los lados con el dedo.</i>
+
+                    <div style="text-align: center; color: gray; font-size: 13px; margin-top: 5px;">
+                        ✌️ <i>¡Ahora sí! Pellizca con dos dedos para hacer Zoom (Android y iPhone).</i>
                     </div>
+
+                    <script>
+                        // EL CEREBRO ARTIFICIAL (Lógica de Pinch Zoom)
+                        const container = document.getElementById("image-container");
+                        const img = document.getElementById("zoom-img");
+                        
+                        let scale = 1;
+                        let pointX = 0;
+                        let pointY = 0;
+                        let startX = 0;
+                        let startY = 0;
+                        let isDragging = false;
+
+                        // Variables para el zoom
+                        let startDist = 0;
+                        let startScale = 1;
+
+                        container.addEventListener("touchstart", function(e) {{
+                            if (e.touches.length === 2) {{
+                                // MODO ZOOM (Dos dedos)
+                                startDist = Math.hypot(
+                                    e.touches[0].pageX - e.touches[1].pageX,
+                                    e.touches[0].pageY - e.touches[1].pageY
+                                );
+                                startScale = scale;
+                            }} else if (e.touches.length === 1) {{
+                                // MODO MOVER (Un dedo)
+                                isDragging = true;
+                                startX = e.touches[0].clientX - pointX;
+                                startY = e.touches[0].clientY - pointY;
+                            }}
+                        }});
+
+                        container.addEventListener("touchmove", function(e) {{
+                            e.preventDefault(); // Bloquea el scroll nativo del navegador
+
+                            if (e.touches.length === 2) {{
+                                // CALCULAMOS NUEVO ZOOM
+                                const dist = Math.hypot(
+                                    e.touches[0].pageX - e.touches[1].pageX,
+                                    e.touches[0].pageY - e.touches[1].pageY
+                                );
+                                scale = startScale * (dist / startDist);
+                                // Limitamos el zoom (Mínimo 1x, Máximo 4x)
+                                if (scale < 1) scale = 1;
+                                if (scale > 4) scale = 4;
+                                
+                            }} else if (e.touches.length === 1 && isDragging && scale > 1) {{
+                                // CALCULAMOS MOVIMIENTO (Solo si hay zoom)
+                                pointX = e.touches[0].clientX - startX;
+                                pointY = e.touches[0].clientY - startY;
+                            }}
+
+                            // APLICAMOS LA TRANSFORMACIÓN
+                            img.style.transform = `translate(${{pointX}}px, ${{pointY}}px) scale(${{scale}})`;
+                        }});
+
+                        container.addEventListener("touchend", function(e) {{
+                            isDragging = false;
+                            // Si soltamos y el zoom es 1, centramos todo de nuevo
+                            if (scale === 1) {{
+                                pointX = 0;
+                                pointY = 0;
+                                img.style.transform = `translate(0px, 0px) scale(1)`;
+                            }}
+                        }});
+                    </script>
                     """,
                     unsafe_allow_html=True
                 )
 
             except Exception as e:
-                st.error(f"Error visualizando: {e}")
+                st.error(f"Error técnico: {e}")
 
-            # 4. NAVEGACIÓN DE PÁGINAS
+            # 3. NAVEGACIÓN
+            st.write("")
             c_ant, c_sig = st.columns(2)
             with c_ant:
                 if st.session_state['pagina_actual'] > 0:
@@ -509,7 +575,7 @@ else:
         # === MODO NORMAL (FORMULARIO) ===
         else:
             st.success(f"Hola, **{nombre_archivo.replace('.pdf','')}**")
-            st.info("👇 **Siga los pasos 1, 2 y 3 para completar su ingreso.**")
+            st.info("👇 **SIGA LOS PASOS 1, 2 Y 3 PARA COMPLETAR SU FIRMA.**")
             
             # --- PASO 1 NUEVO: SOLO EL BOTÓN ACTIVADOR ---
             st.markdown("### 1. Lectura del Contrato")
@@ -524,7 +590,7 @@ else:
         st.subheader("2. Foto de Identidad")
         
         if st.session_state['foto_bio'] is None:
-            st.warning("📸 Toque el botón y seleccione **'Cámara'**:")
+            st.warning("📸 TOQUE EL BOTÓN Y SELECCIONE LA OPCIÓN DE CÁMARA **'Cámara'**:")
             # Usamos file_uploader pero etiquetado para que usen la cámara
             foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
             
@@ -559,7 +625,7 @@ else:
         
         # Candado: Solo deja firmar si ya hay foto
         if st.session_state['foto_bio'] is None:
-            st.error("⚠️ Primero debe tomarse la foto en el paso 2 👆")
+            st.error("⚠️ PRIMERO DEBE TOMARSE LA FOTO EN EL PASO 2 👆")
         else:
             st.caption("Dibuje su firma. Use la **Papelera 🗑️** de la barra para borrar si se equivoca.")
             
@@ -649,6 +715,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
