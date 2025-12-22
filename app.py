@@ -429,63 +429,71 @@ else:
 
 # PANTALLA DE FIRMA (PASOS 1, 2 y 3)
     else:
-        # Importamos la herramienta "Caja de Cristal" aquí mismo para no mover nada arriba
-        import streamlit.components.v1 as components
-
-        # === MODO CINE V4.0 (LA CAJA DE CRISTAL) ===
+        # === MODO CINE V5.0 (LA SOLUCIÓN UNIVERSAL - SCROLL NATIVO) ===
         if st.session_state['modo_lectura']:
-            # 1. Barra Superior
+            # 1. CABECERA
             c_close, c_tit = st.columns([1, 4])
             with c_close:
                 if st.button("❌ CERRAR", type="secondary", use_container_width=True):
                     st.session_state['modo_lectura'] = False
-                    st.session_state['zoom_nivel'] = 100 
                     st.rerun()
             with c_tit:
                 st.markdown(f"<h4 style='text-align: center; margin: 0; padding-top: 5px;'>📄 Página {st.session_state['pagina_actual'] + 1}</h4>", unsafe_allow_html=True)
 
-            # 2. SLIDER DE ZOOM (ESTE SÍ FUNCIONA PORQUE CONTROLA LA CAJA)
-            # El valor es el PORCENTAJE de ancho. 100% = Ancho de pantalla. 200% = Doble de ancho.
-            zoom_val = st.select_slider(
-                "🔍 **ZOOM (Mueve la bolita):**",
-                options=[100, 125, 150, 175, 200, 250, 300],
-                value=st.session_state['zoom_nivel'],
-                format_func=lambda x: "Normal" if x == 100 else f"Zoom x{x/100}"
-            )
-            st.session_state['zoom_nivel'] = zoom_val
+            # 2. BOTONES DE TAMAÑO (SIMPLES Y EFECTIVOS)
+            # Esto funciona en TODOS los celulares porque es lógica pura, no gestos.
+            st.write("")
+            zoom_option = st.radio("🔍 **ELEGIR TAMAÑO DE LETRA:**", ["Normal (100%)", "Grande (150%)", "Gigante (250%)"], horizontal=True)
+            
+            # Traducimos la opción a porcentaje CSS
+            if "150" in zoom_option: width_css = "150%"
+            elif "250" in zoom_option: width_css = "250%"
+            else: width_css = "100%"
 
-            # 3. RENDERIZADO AISLADO (SANDBOX)
+            # 3. RENDERIZADO HTML (Inyección Directa)
             try:
                 doc = fitz.open(ruta_pdf_local)
                 total_paginas = len(doc)
                 pagina = doc[st.session_state['pagina_actual']]
                 
-                # Calidad alta para que al hacer zoom se vea nítido
-                pix = pagina.get_pixmap(dpi=200) 
+                # Calidad alta
+                pix = pagina.get_pixmap(dpi=220) 
                 img_bytes = pix.tobytes("png")
                 img_base64 = base64.b64encode(img_bytes).decode('utf-8')
                 
-                # CÓDIGO HTML PURO (ESTO VIVE DENTRO DE LA CAJA)
-                # Aquí Streamlit NO puede opinar. Si decimos width: 200%, es 200%.
-                html_code = f"""
-                <html>
-                <body style="margin: 0; padding: 0; background-color: #525659; text-align: center;">
-                    <div style="overflow: auto; width: 100vw; height: 70vh; display: flex; justify-content: center;">
-                        <img src="data:image/png;base64,{img_base64}" 
-                             style="width: {zoom_val}%; max-width: none; box-shadow: 0 4px 8px rgba(0,0,0,0.5); margin-top: 10px; margin-bottom: 10px;">
+                # === EL SECRETO: DIV CON SCROLL ===
+                # Esto obliga al navegador a mostrar barras de desplazamiento si la imagen es grande
+                st.markdown(
+                    f"""
+                    <div style="
+                        width: 100%;
+                        overflow-x: auto; /* Scroll horizontal automático */
+                        overflow-y: hidden;
+                        -webkit-overflow-scrolling: touch; /* Suavidad para iPhone */
+                        border: 1px solid #ddd;
+                        border-radius: 8px;
+                        margin-top: 10px;
+                        margin-bottom: 10px;
+                        background-color: white;
+                    ">
+                        <img src="data:image/png;base64,{img_base64}" style="
+                            width: {width_css}; 
+                            max-width: none; /* Rompe el límite de la pantalla */
+                            display: block; 
+                            margin: 0 auto;
+                        " />
                     </div>
-                </body>
-                </html>
-                """
-                
-                # INYECTAMOS LA CAJA DE CRISTAL (Altura fija de 600px)
-                components.html(html_code, height=600, scrolling=False)
+                    <div style="text-align: center; color: gray; font-size: 13px; margin-bottom: 10px;">
+                        👆 <i>Si la letra es grande, mueve la hoja hacia los lados con el dedo.</i>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
             except Exception as e:
-                st.error(f"Error cargando visor: {e}")
+                st.error(f"Error visualizando: {e}")
 
-            # 4. NAVEGACIÓN
-            st.write("")
+            # 4. NAVEGACIÓN DE PÁGINAS
             c_ant, c_sig = st.columns(2)
             with c_ant:
                 if st.session_state['pagina_actual'] > 0:
@@ -641,6 +649,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
