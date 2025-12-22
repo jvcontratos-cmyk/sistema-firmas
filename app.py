@@ -371,20 +371,24 @@ def mostrar_pdf_como_imagenes(ruta_pdf):
             st.image(pix.tobytes("png"), use_container_width=True)
     except: st.error("Error visualizando documento.")
 
-# --- INTERFAZ CENTRAL ---     
-st.title("✍️ Portal de Contratos")
-    if st.session_state['dni_validado'] is None:
-    # === AHORA LA CABECERA VIVE SOLO AQUÍ ===
+# 1. VALIDACIÓN DE ESTADO (Pegado a la izquierda, SIN espacios al inicio)
+if st.session_state['dni_validado'] is None:
+    
+    # === AHORA LA CABECERA VIVE SOLO AQUÍ (DENTRO DEL LOGIN) ===
+    # Observa que esto sí tiene espacios (4 espacios) porque está DENTRO del 'if'
     c_izq, c_centro, c_der = st.columns([1, 2, 1])
     with c_centro:
         if os.path.exists("logo_liderman.png"):
             st.image("logo_liderman.png", use_container_width=True)
         else:
+            # Texto invisible o warning si falta el logo
             st.warning("⚠️ (Falta logo_liderman.png)")
 
+    # Título (Solo aparece en el login)
     st.title("Portal de Contratos")
-        
+    
     st.markdown("Ingrese su documento para buscar su contrato.")
+    
     with st.form("login_form"):
         dni_input = st.text_input("DIGITE SU DNI", max_chars=15)
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
@@ -744,6 +748,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
