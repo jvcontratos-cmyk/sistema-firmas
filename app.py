@@ -372,6 +372,18 @@ def mostrar_pdf_como_imagenes(ruta_pdf):
     except: st.error("Error visualizando documento.")
 
 # --- INTERFAZ CENTRAL ---
+# === CABECERA CORPORATIVA LIDERMAN ===
+# Usamos 3 columnas para centrar el logo: (Aire | Logo | Aire)
+c_izq, c_centro, c_der = st.columns([1, 2, 1])
+
+with c_centro:
+    # Asegúrate de que subiste el archivo 'logo_liderman.png' junto a tu código
+    if os.path.exists("logo_liderman.png"):
+        st.image("logo_liderman.png", use_container_width=True)
+    else:
+        # Esto es solo por si se te olvida subir la imagen, para que no falle
+        st.write("🔴 (Falta subir el archivo logo_liderman.png)")
+        
 st.title("✍️ Portal de Contratos")
 
 if st.session_state['dni_validado'] is None:
@@ -735,6 +747,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
