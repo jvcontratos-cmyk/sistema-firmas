@@ -373,9 +373,6 @@ def mostrar_pdf_como_imagenes(ruta_pdf):
 
 # --- INTERFAZ CENTRAL ---     
 st.title("✍️ Portal de Contratos")
-
-if st.session_state['dni_validado'] is None:
-
     if st.session_state['dni_validado'] is None:
     # === AHORA LA CABECERA VIVE SOLO AQUÍ ===
     c_izq, c_centro, c_der = st.columns([1, 2, 1])
@@ -747,6 +744,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
