@@ -371,8 +371,11 @@ def mostrar_pdf_como_imagenes(ruta_pdf):
             st.image(pix.tobytes("png"), use_container_width=True)
     except: st.error("Error visualizando documento.")
 
-# --- INTERFAZ CENTRAL ---
-# === CABECERA CORPORATIVA LIDERMAN ===
+# --- INTERFAZ CENTRAL ---     
+st.title("✍️ Portal de Contratos")
+
+if st.session_state['dni_validado'] is None:
+    # === CABECERA CORPORATIVA LIDERMAN ===
 # Usamos 3 columnas para centrar el logo: (Aire | Logo | Aire)
 c_izq, c_centro, c_der = st.columns([1, 2, 1])
 
@@ -384,9 +387,6 @@ with c_centro:
         # Esto es solo por si se te olvida subir la imagen, para que no falle
         st.write("🔴 (Falta subir el archivo logo_liderman.png)")
         
-st.title("✍️ Portal de Contratos")
-
-if st.session_state['dni_validado'] is None:
     st.markdown("Ingrese su documento para buscar su contrato.")
     with st.form("login_form"):
         dni_input = st.text_input("DIGITE SU DNI", max_chars=15)
@@ -747,6 +747,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
