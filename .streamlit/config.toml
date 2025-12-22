@@ -1,6 +1,10 @@
 [client]
-toolbarMode = "viewer"
-showErrorDetails = false
+toolbarMode = "viewer"       # Oculta herramientas de dev (bueno para producción)
+showErrorDetails = false     # Si falla, no muestra código feo al usuario
 
-[ui]
-hideTopBar = true
+[theme]
+base = "light"               # <--- ESTO ES LA CLAVE. Fuerza modo claro SIEMPRE.
+primaryColor = "#FF4B4B"     # Rojo Liderman (para botones y selectores)
+backgroundColor = "#FFFFFF"  # Fondo blanco puro
+secondaryBackgroundColor = "#F0F2F6" # Gris suavecito para cajas
+textColor = "#31333F"        # Texto oscuro legible
