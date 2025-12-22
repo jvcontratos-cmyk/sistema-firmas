@@ -174,6 +174,24 @@ if 'zoom_nivel' not in st.session_state: st.session_state['zoom_nivel'] = 100
 
 # === NUEVA FUNCIÓN: CORREGIR ROTACIÓN DE FOTO (EXIF) ===
 def corregir_rotacion_imagen(image):
+    # === FUNCIÓN NUEVA: OPTIMIZAR FOTO (ANTI-CRASH) ===
+def optimizar_imagen(image, max_width=800):
+    """Achica y comprime la imagen para que no explote la memoria."""
+    # 1. Corregir rotación primero
+    image = corregir_rotacion_imagen(image)
+    
+    # 2. Calcular nuevo tamaño manteniendo proporción
+    width_percent = (max_width / float(image.size[0]))
+    new_height = int((float(image.size[1]) * float(width_percent)))
+    
+    # 3. Redimensionar (usando LANCZOS para calidad)
+    image = image.resize((max_width, new_height), Image.Resampling.LANCZOS)
+    
+    # 4. Convertir a RGB (evita errores de formato)
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
+        
+    return image
     """Detecta la orientación del celular y endereza la foto."""
     try:
         for orientation in ExifTags.TAGS.keys():
@@ -715,6 +733,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
