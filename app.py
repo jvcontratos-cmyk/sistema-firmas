@@ -385,7 +385,7 @@ if st.session_state['dni_validado'] is None:
             st.warning("⚠️ (Falta logo_liderman.png)")
 
     # Título (Solo aparece en el login)
-    st.title("Portal de Contratos")
+    st.title("✍️ Portal de Contratos")
     
     st.markdown("Ingrese su documento para buscar su contrato.")
     
@@ -748,6 +748,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
