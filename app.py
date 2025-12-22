@@ -608,25 +608,27 @@ else:
         st.subheader("2. Foto de Identidad")
         
         if st.session_state['foto_bio'] is None:
-            st.warning("📸 TOQUE EL BOTÓN Y SELECCIONE LA OPCIÓN DE CÁMARA **'Cámara'**:")
+            st.warning("📸 TOQUE EL BOTÓN Y SELECCIONE LA OPCIÓN DE **'CÁMARA'**:")
             # Usamos file_uploader pero etiquetado para que usen la cámara
             foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
             
             if foto_input is not None:
-                # 1. Abrimos la imagen con Pillow
-                image = Image.open(foto_input)
-                
-                # 2. ¡AQUÍ OCURRE LA MAGIA! Enderezamos la foto
-                image = corregir_rotacion_imagen(image) 
-                
-                # 3. Convertimos la imagen enderezada de nuevo a bytes para guardarla
-                img_byte_arr = io.BytesIO()
-                # Usamos el formato original o JPEG por defecto
-                image.save(img_byte_arr, format=image.format if image.format else 'JPEG')
-                
-                # 4. Guardamos en sesión y recargamos
-                st.session_state['foto_bio'] = img_byte_arr.getvalue()
-                st.rerun()    
+                # Ponemos un spinner para que el usuario espere sin desesperarse
+                with st.spinner("Procesando foto..."):
+                    # 1. Abrir imagen original (Pesada)
+                    image_raw = Image.open(foto_input)
+                    
+                    # 2. ¡AQUÍ ESTÁ EL CAMBIO! La pasamos por la trituradora
+                    image_opt = optimizar_imagen(image_raw)
+                    
+                    # 3. Guardar la versión ligera
+                    img_byte_arr = io.BytesIO()
+                    # Forzamos JPEG y calidad 85 (bueno y ligero)
+                    image_opt.save(img_byte_arr, format='JPEG', quality=85)
+                    
+                    # 4. Guardar en sesión y recargar
+                    st.session_state['foto_bio'] = img_byte_arr.getvalue()
+                    st.rerun()
         else:
             col_a, col_b = st.columns([1,3])
             with col_a:
@@ -733,6 +735,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
