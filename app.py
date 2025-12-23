@@ -530,23 +530,33 @@ else:
         st.markdown("---")
         st.subheader("2. Foto de Identidad")
         
-        if st.session_state['foto_bio'] is None:
-            st.warning("📸 TOQUE EL BOTÓN Y SELECCIONE LA OPCIÓN DE **'CÁMARA'**:")
+       if st.session_state['foto_bio'] is None:
+                # === LÓGICA HÍBRIDA ===
+                # 1. Preguntamos discretamente si quiere webcam (por defecto NO, para priorizar el botón rojo)
+                usar_webcam = st.checkbox("💻 ¿Estás en PC y no tienes foto? Usar cámara web", value=False)
+                
+                foto_input = None
 
-            foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
-            
-            if foto_input is not None:
-                # Ponemos un spinner para que el usuario espere sin desesperarse
-                with st.spinner("Procesando foto..."):
-                    image_raw = Image.open(foto_input)
-                    
-                    image_opt = optimizar_imagen(image_raw)
-                    
-                    img_byte_arr = io.BytesIO()
-                    image_opt.save(img_byte_arr, format='JPEG', quality=85)
-                    
-                    st.session_state['foto_bio'] = img_byte_arr.getvalue()
-                    st.rerun()
+                # 2. Mostramos la opción elegida
+                if usar_webcam:
+                    # MODO PC: Cámara en vivo
+                    foto_input = st.camera_input("📸 TOMAR FOTO", label_visibility="visible")
+                else:
+                    # MODO CELULAR (Default): El Botón Rojo Bonito
+                    st.warning("📸 TOQUE EL CUADRO ROJO PARA TOMAR LA FOTO:")
+                    foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
+                
+                # 3. PROCESAMIENTO (La Trituradora - Funciona para ambos casos)
+                if foto_input is not None:
+                    with st.spinner("Procesando foto..."):
+                        image_raw = Image.open(foto_input)
+                        image_opt = optimizar_imagen(image_raw) # Pasamos por la trituradora
+                        
+                        img_byte_arr = io.BytesIO()
+                        image_opt.save(img_byte_arr, format='JPEG', quality=85)
+                        
+                        st.session_state['foto_bio'] = img_byte_arr.getvalue()
+                        st.rerun()
         else:
             col_a, col_b = st.columns([1,3])
             with col_a:
@@ -635,4 +645,5 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
