@@ -576,21 +576,15 @@ else:
             st.caption("Dibuje su firma. Use la **Papelera 🗑️** de la barra para borrar si se equivoca.")
             
             with st.form(key="formulario_firma", clear_on_submit=False):
-                
-                canvas_result = st_canvas(
-                    stroke_width=2, 
-                    stroke_color="#000000", 
-                    background_color="#ffffff", 
-                    height=200, 
-                    width=600, 
-                    drawing_mode="freedraw",
-                    display_toolbar=True, 
-                    key=f"canvas_{st.session_state['canvas_key']}"
-                )
-                
-                st.write("") # Espacio visual
-                
-                enviar_firma = st.form_submit_button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True)
+                    # AQUÍ ESTÁ EL CAMBIO: width=400 (Antes era 600)
+                    # Esto centra la firma en PC y ocupa todo el ancho en Celular.
+                    canvas_result = st_canvas(
+                        stroke_width=2, stroke_color="#000000", background_color="#ffffff", 
+                        height=200, width=400, drawing_mode="freedraw",
+                        display_toolbar=True, key=f"canvas_{st.session_state['canvas_key']}"
+                    )
+                    st.write("") 
+                    enviar_firma = st.form_submit_button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True)
 
             if enviar_firma:
                 if canvas_result.image_data is not None:
@@ -645,5 +639,6 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
