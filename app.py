@@ -527,12 +527,13 @@ else:
                 st.session_state['pagina_actual'] = 0
                 st.rerun()
         
-        st.markdown("---")
-        st.subheader("2. Foto de Identidad")
-        
-       if st.session_state['foto_bio'] is None:
-                # === LÓGICA HÍBRIDA ===
-                # 1. Preguntamos discretamente si quiere webcam (por defecto NO, para priorizar el botón rojo)
+      # --- PASO 2: FOTO DE IDENTIDAD (CORREGIDO) ---
+            st.markdown("---")
+            st.subheader("2. Foto de Identidad")
+            
+            if st.session_state['foto_bio'] is None:
+                # === LÓGICA HÍBRIDA (PC vs CELULAR) ===
+                # 1. Preguntamos discretamente si quiere webcam
                 usar_webcam = st.checkbox("💻 ¿Estás en PC y no tienes foto? Usar cámara web", value=False)
                 
                 foto_input = None
@@ -546,16 +547,25 @@ else:
                     st.warning("📸 TOQUE EL CUADRO ROJO PARA TOMAR LA FOTO:")
                     foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
                 
-                # 3. PROCESAMIENTO (La Trituradora - Funciona para ambos casos)
+                # 3. PROCESAMIENTO (La Trituradora)
                 if foto_input is not None:
                     with st.spinner("Procesando foto..."):
                         image_raw = Image.open(foto_input)
-                        image_opt = optimizar_imagen(image_raw) # Pasamos por la trituradora
+                        image_opt = optimizar_imagen(image_raw) # Trituradora
                         
                         img_byte_arr = io.BytesIO()
                         image_opt.save(img_byte_arr, format='JPEG', quality=85)
                         
                         st.session_state['foto_bio'] = img_byte_arr.getvalue()
+                        st.rerun()    
+            else:
+                col_a, col_b = st.columns([1,3])
+                with col_a:
+                    st.image(st.session_state['foto_bio'], width=100)
+                with col_b:
+                    st.success("✅ Foto guardada")
+                    if st.button("🔄 Cambiar Foto"):
+                        st.session_state['foto_bio'] = None
                         st.rerun()
         else:
             col_a, col_b = st.columns([1,3])
@@ -639,6 +649,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
