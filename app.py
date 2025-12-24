@@ -252,8 +252,8 @@ def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes
     pdf_writer = PdfWriter()
     total_paginas = len(pdf_original.pages)
     
-    X_FIRMA, Y_FIRMA = 150, 450
-    W_FIRMA, H_FIRMA = 100, 100 
+    X_FIRMA, Y_FIRMA = 130, 430
+    W_FIRMA, H_FIRMA = 130, 130 
     
     X_FOTO, Y_FOTO = 290, 380
     W_FOTO, H_FOTO = 200, 150 
@@ -561,6 +561,7 @@ else:
             if st.button("⬅️ Cancelar"):
                 st.session_state['dni_validado'] = None
                 st.rerun()
+
 
 
 
