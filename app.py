@@ -255,8 +255,8 @@ def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes
     # --- COORDENADAS CORREGIDAS (PARA QUE NO CHOQUEN) ---
     # La firma empieza en X=100. Si le damos ancho 180, termina en 280.
     # La foto empieza en 290. ¡Tienen 10px de separación!
-    X_FIRMA, Y_FIRMA = 100, 370
-    W_FIRMA, H_FIRMA = 180, 120   # <--- ESTE ES EL CAMBIO CLAVE
+    X_FIRMA, Y_FIRMA = 85, 370
+    W_FIRMA, H_FIRMA = 155, 120   # <--- ESTE ES EL CAMBIO CLAVE
     
     X_FOTO, Y_FOTO = 290, 380
     W_FOTO, H_FOTO = 200, 150 
@@ -564,6 +564,7 @@ else:
             if st.button("⬅️ Cancelar"):
                 st.session_state['dni_validado'] = None
                 st.rerun()
+
 
 
 
