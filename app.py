@@ -165,6 +165,21 @@ def optimizar_imagen(image, max_width=800):
     if image.mode != 'RGB': image = image.convert('RGB')
     return image
 
+def recortar_espacio_vacio(image):
+    try:
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+        
+        # Detecta dónde hay tinta (no transparente)
+        alpha = image.split()[-1]
+        bbox = alpha.getbbox() # Obtiene los límites de la tinta
+        
+        if bbox:
+            return image.crop(bbox) # Recorta exacto
+        return image
+    except:
+        return image
+
 def consultar_estado_dni(dni):
     try:
         sh = client_sheets.open_by_key(SHEET_ID).sheet1
@@ -508,7 +523,7 @@ else:
                 with st.form(key="formulario_firma", clear_on_submit=False):
                     canvas_result = st_canvas(
                         stroke_width=2, stroke_color="#000000", background_color="#ffffff", 
-                        height=200, width=400, drawing_mode="freedraw",
+                        height=200, width=340, drawing_mode="freedraw", # <--- CAMBIAR A 340 AQUÍ
                         display_toolbar=True, key=f"canvas_{st.session_state['canvas_key']}"
                     )
                     st.write("") 
@@ -538,6 +553,11 @@ else:
                                     if es_blanco: st.warning("⚠️ El recuadro parece vacío.")
                                     else:
                                         img.putdata(newData)
+                                        
+                                        # --- PEGAR ESTA LÍNEA AQUÍ: ---
+                                        img = recortar_espacio_vacio(img)
+                                        # ------------------------------
+                                        
                                         img.save(ruta_firma, "PNG")
                                         estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
                                         estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
@@ -556,3 +576,4 @@ else:
             if st.button("⬅️ Cancelar"):
                 st.session_state['dni_validado'] = None
                 st.rerun()
+
