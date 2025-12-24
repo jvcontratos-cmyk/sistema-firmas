@@ -253,7 +253,7 @@ def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes
     total_paginas = len(pdf_original.pages)
     
     X_FIRMA, Y_FIRMA = 72, 370
-    W_FIRMA, H_FIRMA = 190, 135   # <--- ESTE ES EL CAMBIO CLAVE
+    W_FIRMA, H_FIRMA = 100, 100 
     
     X_FOTO, Y_FOTO = 290, 380
     W_FOTO, H_FOTO = 200, 150 
@@ -561,6 +561,7 @@ else:
             if st.button("⬅️ Cancelar"):
                 st.session_state['dni_validado'] = None
                 st.rerun()
+
 
 
 
