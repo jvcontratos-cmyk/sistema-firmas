@@ -24,7 +24,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS PERSONALIZADO ---
+# --- CSS PERSONALIZADO (TEXTO PLANO PARA EVITAR ERRORES) ---
 st.markdown("""
     <style>
     header {visibility: hidden !important;}
@@ -35,7 +35,7 @@ st.markdown("""
     .block-container {padding-top: 1rem !important; padding-bottom: 0rem !important;}
     body::after {content: none !important;}
     
-    /* ESTILO PARA PANTALLA COMPLETA NATIVA DE STREAMLIT */
+    /* PANTALLA COMPLETA */
     [data-testid="stImageFullScreenButton"],
     [data-testid="StyledFullScreenButton"],
     button[title="View fullscreen"] {
@@ -53,7 +53,7 @@ st.markdown("""
         box-shadow: 2px 2px 10px rgba(0,0,0,0.5) !important;
         z-index: 999999 !important; 
     }
-
+    
     [data-testid="stImageFullScreenButton"] svg,
     [data-testid="StyledFullScreenButton"] svg,
     button[title="View fullscreen"] svg {
@@ -63,26 +63,19 @@ st.markdown("""
         height: 30px !important;
     }
     
-    [data-testid="stImage"] > div {
-        opacity: 1 !important;
-    }
+    [data-testid="stImage"] > div { opacity: 1 !important; }
 
-    [data-testid="stImageFullScreenButton"]:active {
-        transform: scale(0.9) !important;
-    }
-    
+    /* ACORDEÓN */
     .streamlit-expanderHeader {
         background-color: #f0f2f6;
         border-radius: 10px;
         font-weight: bold;
     }
     
-    /* ESTILO CUADRO ROJO LIDERMAN */
+    /* CUADRO ROJO LIDERMAN */
     [data-testid='stFileUploaderDropzone'] span, 
     [data-testid='stFileUploaderDropzone'] small,
-    [data-testid='stFileUploaderDropzone'] button {
-         display: none !important;
-    }
+    [data-testid='stFileUploaderDropzone'] button { display: none !important; }
 
     [data-testid='stFileUploaderDropzone'] {
         min-height: 120px !important;
@@ -158,14 +151,10 @@ def corregir_rotacion_imagen(image):
         exif = image._getexif()
         if exif is not None:
             orientation = exif.get(orientation)
-            if orientation == 3:
-                image = image.rotate(180, expand=True)
-            elif orientation == 6:
-                image = image.rotate(270, expand=True)
-            elif orientation == 8:
-                image = image.rotate(90, expand=True)
-    except (AttributeError, KeyError, IndexError):
-        pass
+            if orientation == 3: image = image.rotate(180, expand=True)
+            elif orientation == 6: image = image.rotate(270, expand=True)
+            elif orientation == 8: image = image.rotate(90, expand=True)
+    except: pass
     return image
 
 def optimizar_imagen(image, max_width=800):
@@ -173,8 +162,7 @@ def optimizar_imagen(image, max_width=800):
     width_percent = (max_width / float(image.size[0]))
     new_height = int((float(image.size[1]) * float(width_percent)))
     image = image.resize((max_width, new_height), Image.Resampling.LANCZOS)
-    if image.mode != 'RGB':
-        image = image.convert('RGB')
+    if image.mode != 'RGB': image = image.convert('RGB')
     return image
 
 def consultar_estado_dni(dni):
@@ -209,11 +197,9 @@ def buscar_archivo_drive(dni):
         query = f"'{DRIVE_FOLDER_PENDING_ID}' in parents and name contains '{dni}' and mimeType = 'application/pdf' and trashed = false"
         results = service_drive.files().list(q=query, fields="files(id, name)").execute()
         items = results.get('files', [])
-        if items:
-            return items[0] 
+        if items: return items[0] 
         return None
-    except Exception as e:
-        return None
+    except: return None
 
 def descargar_archivo_drive(file_id, nombre_destino):
     try:
@@ -221,8 +207,7 @@ def descargar_archivo_drive(file_id, nombre_destino):
         fh = io.FileIO(nombre_destino, 'wb')
         downloader = MediaIoBaseDownload(fh, request)
         done = False
-        while done is False:
-            status, done = downloader.next_chunk()
+        while done is False: status, done = downloader.next_chunk()
         return True
     except: return False
 
@@ -266,22 +251,17 @@ def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes
     pdf_original = PdfReader(pdf_path)
     pdf_writer = PdfWriter()
     total_paginas = len(pdf_original.pages)
-    
     X_FIRMA, Y_FIRMA = 100, 370
     W_FIRMA, H_FIRMA = 230, 150
-    
     X_FOTO, Y_FOTO = 290, 380
     W_FOTO, H_FOTO = 230, 150 
-    
     X_FECHA, Y_FECHA = 150, 308 
 
     for i in range(total_paginas):
         pagina = pdf_original.pages[i]
-        
         if i == total_paginas - 1: 
             packet = io.BytesIO()
             c = canvas.Canvas(packet, pagesize=letter)
-            
             try:
                 c.drawImage(imagen_firma_path, X_FIRMA, Y_FIRMA, width=W_FIRMA, height=H_FIRMA, mask='auto', preserveAspectRatio=True)
             except: pass
@@ -295,14 +275,11 @@ def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes
             hora_actual = (datetime.utcnow() - timedelta(hours=5)).strftime("%d/%m/%Y %H:%M:%S")
             c.setFont("Helvetica-Bold", 10)
             c.drawString(X_FECHA, Y_FECHA, f"{hora_actual}")
-            
             c.save()
             packet.seek(0)
             sello = PdfReader(packet)
             pagina.merge_page(sello.pages[0])
-            
         pdf_writer.add_page(pagina)
-    
     with open(output_path, "wb") as f: pdf_writer.write(f)
 
 # --- INTERFAZ CENTRAL ---
@@ -317,7 +294,6 @@ if st.session_state['dni_validado'] is None:
             st.warning("⚠️ (Falta logo_liderman.png)")
 
     st.title("✍️ Portal de Contratos")
-    
     st.markdown("Ingrese su documento para buscar su contrato.")
     
     with st.form("login_form"):
@@ -330,11 +306,7 @@ if st.session_state['dni_validado'] is None:
         
         if estado_sheet == "FIRMADO":
             st.info(f"ℹ️ El DNI {dni_input} ya registra un contrato firmado.")
-            st.markdown("""
-            **Si necesita una copia de su contrato** o cree que esto es un error, 
-            por favor **contacte al área de Administración de Personal**.
-            """)
-        
+            st.markdown("""**Si necesita una copia de su contrato**, contacte al área de Administración de Personal.""")
         else:
             with st.spinner("Buscando contrato en la nube..."):
                 archivo_drive = buscar_archivo_drive(dni_input)
@@ -342,7 +314,6 @@ if st.session_state['dni_validado'] is None:
             if archivo_drive:
                 ruta_local = os.path.join(CARPETA_TEMP, archivo_drive['name'])
                 descargo_ok = descargar_archivo_drive(archivo_drive['id'], ruta_local)
-                
                 if descargo_ok:
                     st.session_state['dni_validado'] = dni_input
                     st.session_state['archivo_id'] = archivo_drive['id'] 
@@ -350,22 +321,17 @@ if st.session_state['dni_validado'] is None:
                     st.session_state['firmado_ok'] = False
                     st.session_state['foto_bio'] = None
                     st.rerun()
-                else:
-                    st.error("Error al descargar el documento. Intente nuevamente.")
-            else:
-                st.error("❌ Contrato no ubicado (Verifique que su DNI esté correctamente escrito.)")
+                else: st.error("Error al descargar el documento.")
+            else: st.error("❌ Contrato no ubicado.")
     
-    # FAQ LOGIN
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
     with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
-        st.markdown("En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto. El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos). *Lo verá reflejado en su **boleta de pago** a fin de mes.*")
-    with st.expander("🕒 ¿Por qué el contrato dice 8hrs si mi puesto de trabajo es de 12hrs?"):
-        st.markdown("La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias. Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**. *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*")
-    st.info("📞 **¿Dudas adicionales?** Contacte al área de Administración de Personal.")
+        st.markdown("En el contrato de trabajo se estipula únicamente la **Remuneración Básica**. El **Sueldo Bruto** (básico + bonos) se verá en su **boleta de pago**.")
+    st.info("📞 **¿Dudas?** Contacte al área de Administración de Personal.")
 
 else:
-    # 2. APP PRINCIPAL (DESPUÉS DEL LOGIN)
+    # 2. APP PRINCIPAL
     nombre_archivo = st.session_state['archivo_nombre']
     ruta_pdf_local = os.path.join(CARPETA_TEMP, nombre_archivo)
     
@@ -385,9 +351,8 @@ else:
             st.rerun()
 
     else:
-        # PANTALLA DE PROCESOS (LECTURA, FOTO, FIRMA)
         if st.session_state['modo_lectura']:
-            # VISOR PANTALLA COMPLETA CON ZOOM JS
+            # --- MODO LECTURA SEGURO (SIN F-STRINGS) ---
             c_close, c_tit = st.columns([1, 4])
             with c_close:
                 if st.button("❌ CERRAR", type="secondary", use_container_width=True):
@@ -400,13 +365,194 @@ else:
                 doc = fitz.open(ruta_pdf_local)
                 total_paginas = len(doc)
                 pagina = doc[st.session_state['pagina_actual']]
-
                 pix = pagina.get_pixmap(dpi=250) 
                 img_bytes = pix.tobytes("png")
                 img_base64 = base64.b64encode(img_bytes).decode('utf-8')
                 
-                st.markdown(
-                    f"""
-                    <style>
-                        #image-container {{
-                            width: 100%;
+                # HTML PLANO PARA EVITAR ERROR DE SINTAXIS
+                html_template = """
+                <style>
+                    #image-container {
+                        width: 100%;
+                        height: 75vh;
+                        overflow: hidden; 
+                        border: 1px solid #ccc;
+                        background-color: #525659;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 8px;
+                        touch-action: none; 
+                    }
+                    #zoom-img {
+                        max-width: 100%;
+                        max-height: 100%;
+                        transition: transform 0.1s ease-out;
+                        transform-origin: center center;
+                    }
+                </style>
+                <div id="image-container">
+                    <img id="zoom-img" src="data:image/png;base64,PLACEHOLDER_BASE64" />
+                </div>
+                <div style="text-align: center; color: gray; font-size: 13px; margin-top: 5px;">
+                    ✌️ <i>¡Haga Zoom con los dedos!</i>
+                </div>
+                <script>
+                    const container = document.getElementById("image-container");
+                    const img = document.getElementById("zoom-img");
+                    let scale = 1, pointX = 0, pointY = 0, startX = 0, startY = 0, isDragging = false;
+                    let startDist = 0, startScale = 1;
+
+                    container.addEventListener("touchstart", function(e) {
+                        if (e.touches.length === 2) {
+                            startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                            startScale = scale;
+                        } else if (e.touches.length === 1) {
+                            isDragging = true;
+                            startX = e.touches[0].clientX - pointX;
+                            startY = e.touches[0].clientY - pointY;
+                        }
+                    });
+
+                    container.addEventListener("touchmove", function(e) {
+                        e.preventDefault(); 
+                        if (e.touches.length === 2) {
+                            const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                            scale = startScale * (dist / startDist);
+                            if (scale < 1) scale = 1; if (scale > 4) scale = 4;
+                        } else if (e.touches.length === 1 && isDragging && scale > 1) {
+                            pointX = e.touches[0].clientX - startX;
+                            pointY = e.touches[0].clientY - startY;
+                        }
+                        img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+                    });
+
+                    container.addEventListener("touchend", function(e) {
+                        isDragging = false;
+                        if (scale === 1) {
+                            pointX = 0; pointY = 0;
+                            img.style.transform = `translate(0px, 0px) scale(1)`;
+                        }
+                    });
+                </script>
+                """
+                # REEMPLAZO SEGURO DE LA VARIABLE
+                html_final = html_template.replace("PLACEHOLDER_BASE64", img_base64)
+                st.markdown(html_final, unsafe_allow_html=True)
+
+            except Exception as e: st.error(f"Error técnico: {e}")
+
+            st.write("")
+            c_ant, c_sig = st.columns(2)
+            with c_ant:
+                if st.session_state['pagina_actual'] > 0:
+                    if st.button("⬅️ ANTERIOR", use_container_width=True):
+                        st.session_state['pagina_actual'] -= 1
+                        st.rerun()
+            with c_sig:
+                if st.session_state['pagina_actual'] < total_paginas - 1:
+                    if st.button("SIGUIENTE ➡️", type="primary", use_container_width=True):
+                        st.session_state['pagina_actual'] += 1
+                        st.rerun()
+        
+        else:
+            # FORMULARIO PASO A PASO
+            st.success(f"Hola, **{nombre_archivo.replace('.pdf','')}**")
+            st.info("👇 **SIGA LOS PASOS 1, 2 Y 3 PARA COMPLETAR SU FIRMA.**")
+            
+            # PASO 1
+            st.markdown("### 1. Lectura del Contrato")
+            if st.button("📖 TOCAR AQUÍ PARA LEER EL CONTRATO (PANTALLA COMPLETA)", type="primary", use_container_width=True):
+                st.session_state['modo_lectura'] = True
+                st.session_state['pagina_actual'] = 0
+                st.rerun()
+        
+            # PASO 2: FOTO HÍBRIDA
+            st.markdown("---")
+            st.subheader("2. Foto de Identidad")
+            
+            if st.session_state['foto_bio'] is None:
+                usar_webcam = st.checkbox("💻 ¿Estás en PC y no tienes foto? Usar cámara web", value=False)
+                foto_input = None
+                if usar_webcam:
+                    foto_input = st.camera_input("📸 TOMAR FOTO", label_visibility="visible")
+                else:
+                    st.warning("📸 TOQUE EL CUADRO ROJO PARA TOMAR LA FOTO:")
+                    foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
+                
+                if foto_input is not None:
+                    with st.spinner("Procesando foto..."):
+                        image_raw = Image.open(foto_input)
+                        image_opt = optimizar_imagen(image_raw)
+                        img_byte_arr = io.BytesIO()
+                        image_opt.save(img_byte_arr, format='JPEG', quality=85)
+                        st.session_state['foto_bio'] = img_byte_arr.getvalue()
+                        st.rerun()    
+            else:
+                col_a, col_b = st.columns([1,3])
+                with col_a: st.image(st.session_state['foto_bio'], width=100)
+                with col_b:
+                    st.success("✅ Foto guardada")
+                    if st.button("🔄 Cambiar Foto"):
+                        st.session_state['foto_bio'] = None
+                        st.rerun()
+
+            # PASO 3: FIRMA (WIDTH 400PX)
+            st.markdown("---")
+            st.subheader("3. Firma y Conformidad")
+            
+            if st.session_state['foto_bio'] is None:
+                st.error("⚠️ PRIMERO DEBE TOMARSE LA FOTO EN EL PASO 2 👆")
+            else:
+                st.caption("Dibuje su firma. Use la **Papelera 🗑️** para borrar.")
+                with st.form(key="formulario_firma", clear_on_submit=False):
+                    canvas_result = st_canvas(
+                        stroke_width=2, stroke_color="#000000", background_color="#ffffff", 
+                        height=200, width=400, drawing_mode="freedraw",
+                        display_toolbar=True, key=f"canvas_{st.session_state['canvas_key']}"
+                    )
+                    st.write("") 
+                    enviar_firma = st.form_submit_button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True)
+
+                if enviar_firma:
+                    if canvas_result.image_data is not None:
+                        img_data = canvas_result.image_data.astype('uint8')
+                        if img_data[:, :, 3].sum() == 0:
+                            st.warning("⚠️ El recuadro está vacío. Por favor firme.")
+                        else:
+                            ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
+                            ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
+                            
+                            with st.spinner("⏳ Guardando contrato..."):
+                                try:
+                                    img = Image.fromarray(img_data, 'RGBA')
+                                    data = img.getdata()
+                                    newData = []
+                                    es_blanco = True 
+                                    for item in data:
+                                        if item[0] < 200: es_blanco = False 
+                                        if item[0] > 230 and item[1] > 230 and item[2] > 230:
+                                            newData.append((255, 255, 255, 0))
+                                        else: newData.append(item)
+                                    
+                                    if es_blanco: st.warning("⚠️ El recuadro parece vacío.")
+                                    else:
+                                        img.putdata(newData)
+                                        img.save(ruta_firma, "PNG")
+                                        estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
+                                        estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
+                                        enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
+                                        if registrar_firma_sheet(st.session_state['dni_validado']):
+                                            st.session_state['firmado_ok'] = True
+                                            borrar_archivo_drive(st.session_state['archivo_id'])
+                                            st.balloons()
+                                            st.rerun()
+                                        else: st.error("⚠️ Error de conexión con Excel.")
+                                except Exception as e: st.error(f"Error técnico: {e}")
+                                finally:
+                                    if os.path.exists(ruta_firma): os.remove(ruta_firma)
+                    else: st.warning("⚠️ Falta su firma.")
+
+            if st.button("⬅️ Cancelar"):
+                st.session_state['dni_validado'] = None
+                st.rerun()
