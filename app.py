@@ -251,10 +251,16 @@ def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes
     pdf_original = PdfReader(pdf_path)
     pdf_writer = PdfWriter()
     total_paginas = len(pdf_original.pages)
+    
+    # --- COORDENADAS CORREGIDAS (PARA QUE NO CHOQUEN) ---
+    # La firma empieza en X=100. Si le damos ancho 180, termina en 280.
+    # La foto empieza en 290. ¡Tienen 10px de separación!
     X_FIRMA, Y_FIRMA = 100, 370
-    W_FIRMA, H_FIRMA = 230, 150
+    W_FIRMA, H_FIRMA = 180, 120   # <--- ESTE ES EL CAMBIO CLAVE
+    
     X_FOTO, Y_FOTO = 290, 380
-    W_FOTO, H_FOTO = 230, 150 
+    W_FOTO, H_FOTO = 200, 150 
+    
     X_FECHA, Y_FECHA = 150, 308 
 
     for i in range(total_paginas):
@@ -263,13 +269,15 @@ def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes
             packet = io.BytesIO()
             c = canvas.Canvas(packet, pagesize=letter)
             try:
-                c.drawImage(imagen_firma_path, X_FIRMA, Y_FIRMA, width=W_FIRMA, height=H_FIRMA, mask='auto', preserveAspectRatio=True)
+                # anchor='c' centra la firma en su caja.
+                # preserveAspectRatio=True evita que se deforme/estire.
+                c.drawImage(imagen_firma_path, X_FIRMA, Y_FIRMA, width=W_FIRMA, height=H_FIRMA, mask='auto', preserveAspectRatio=True, anchor='c')
             except: pass
             
             if imagen_foto_bytes:
                 try:
                     image_bio = ImageReader(io.BytesIO(imagen_foto_bytes))
-                    c.drawImage(image_bio, X_FOTO, Y_FOTO, width=W_FOTO, height=H_FOTO, preserveAspectRatio=True)
+                    c.drawImage(image_bio, X_FOTO, Y_FOTO, width=W_FOTO, height=H_FOTO, preserveAspectRatio=True, anchor='c')
                 except: pass
             
             hora_actual = (datetime.utcnow() - timedelta(hours=5)).strftime("%d/%m/%Y %H:%M:%S")
@@ -556,5 +564,6 @@ else:
             if st.button("⬅️ Cancelar"):
                 st.session_state['dni_validado'] = None
                 st.rerun()
+
 
 
