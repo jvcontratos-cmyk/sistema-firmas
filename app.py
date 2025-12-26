@@ -443,43 +443,75 @@ else:
         except Exception as e:
             st.error(f"Error cargando visor: {e}")
 
-        # --- BARRA DE NAVEGACIÓN ESTILO "TOOLBAR" ---
-        st.write("") # Un pequeño espacio antes
-        
-        # Usamos columnas: [Botón Ant] [ Texto Centro ] [Botón Sig]
-        # La proporción [1, 3, 1] hace que los botones sean chicos y el texto tenga espacio
-        c_nav_ant, c_nav_txt, c_nav_sig = st.columns([1, 3, 1], gap="small")
-        
-        with c_nav_ant:
-            if st.session_state['pagina_actual'] > 0:
-                # Usamos solo flecha para ahorrar espacio en móvil
-                if st.button("⬅️", use_container_width=True, help="Página Anterior"):
-                    st.session_state['pagina_actual'] -= 1
-                    st.rerun()
-                    
-        with c_nav_txt:
-            # Texto centrado y bonito
-            st.markdown(
-                f"""
-                <div style="
-                    text-align: center;
-                    padding-top: 8px; /* Alineación vertical con los botones */
-                    font-weight: bold;
-                    color: #555;
-                    font-size: 14px;
-                ">
-                    Pág. {st.session_state['pagina_actual'] + 1} de {total_paginas}
-                </div>
-                """, 
-                unsafe_allow_html=True
-            )
+        # --- BARRA DE NAVEGACIÓN ELEGANTE (CSS FLEXBOX) ---
+        st.write("") # Espacio separador
+
+        # 1. CSS ESPECÍFICO PARA ESTA BARRA (Para que quede compacta y alineada)
+        st.markdown("""
+            <style>
+            /* Contenedor flexible para alinear todo al centro */
+            .nav-container {
+                display: flex;
+                align-items: center; /* Centrado vertical perfecto */
+                justify-content: center; /* Centrado horizontal */
+                gap: 15px; /* Espacio entre botones y texto */
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
+            /* Estilo del texto central */
+            .nav-text {
+                font-weight: bold;
+                color: #555;
+                font-size: 14px;
+                min-width: 100px; /* Para que no baile el texto */
+                text-align: center;
+            }
+            /* HACK para hacer los botones de Streamlit más compactos en esta sección */
+            div[data-testid="stHorizontalBlock"] button {
+                 min-height: 0px !important;
+                 padding: 0.4rem 0.8rem !important;
+                 line-height: 1 !important;
+                 height: auto !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
+        # 2. LA ESTRUCTURA (Usamos columnas para inyectar los botones de Python)
+        # Usamos un contenedor para aplicar el estilo flex
+        with st.container():
+            # Creamos 3 columnas muy pegaditas
+            c_nav_ant, c_nav_txt, c_nav_sig = st.columns([1, 2, 1], gap="small")
             
-        with c_nav_sig:
-            if st.session_state['pagina_actual'] < total_paginas - 1:
-                # Usamos solo flecha para ahorrar espacio
-                if st.button("➡️", type="primary", use_container_width=True, help="Página Siguiente"):
-                    st.session_state['pagina_actual'] += 1
-                    st.rerun()
+            with c_nav_ant:
+                # Alineamos el botón a la derecha de su columna
+                st.markdown("<div style='text-align: right;'>", unsafe_allow_html=True)
+                if st.session_state['pagina_actual'] > 0:
+                    # Usamos un símbolo más fino (‹) en lugar de emoji
+                    if st.button("‹ Anterior", use_container_width=False):
+                        st.session_state['pagina_actual'] -= 1
+                        st.rerun()
+                # Espacio vacío si no hay página anterior para mantener la estructura
+                else: st.write("") 
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            with c_nav_txt:
+                # Texto central perfectamente alineado por el CSS .nav-container
+                st.markdown(f"""
+                    <div style="text-align: center; font-weight: bold; color: #444; padding-top: 5px;">
+                        Página {st.session_state['pagina_actual'] + 1} de {total_paginas}
+                    </div>
+                    """, unsafe_allow_html=True)
+            
+            with c_nav_sig:
+                # Alineamos el botón a la izquierda de su columna
+                st.markdown("<div style='text-align: left;'>", unsafe_allow_html=True)
+                if st.session_state['pagina_actual'] < total_paginas - 1:
+                    # Ambos botones son tipo estándar (grises) para equilibrio
+                    if st.button("Siguiente ›", use_container_width=False):
+                        st.session_state['pagina_actual'] += 1
+                        st.rerun()
+                else: st.write("")
+                st.markdown("</div>", unsafe_allow_html=True)
         
             # PASO 2: FOTO HÍBRIDA
             st.markdown("---")
@@ -570,6 +602,7 @@ else:
             if st.button("⬅️ Cancelar"):
                 st.session_state['dni_validado'] = None
                 st.rerun()
+
 
 
 
