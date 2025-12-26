@@ -463,100 +463,55 @@ else:
             st.session_state['pagina_actual'] += 1
             st.rerun()
 
-        # 2. LA MÁSCARA VISUAL (LO QUE VE EL USUARIO)
-        # Usamos HTML puro. Esto NUNCA se va a apilar verticalmente.
-        # Inyectamos Javascript para que al tocar las flechas, el sistema haga "click" en los botones ocultos de arriba.
-        
-        # Definimos si los botones visuales deben verse activos o desactivados (gris)
+        # 2. MÁSCARA VISUAL + SCRIPT AGRESIVO (CORREGIDO)
         color_atras = "#FF4B4B" if st.session_state['pagina_actual'] > 0 else "#ccc"
         cursor_atras = "pointer" if st.session_state['pagina_actual'] > 0 else "default"
-        
         color_sig = "#FF4B4B" if st.session_state['pagina_actual'] < total_paginas - 1 else "#ccc"
         cursor_sig = "pointer" if st.session_state['pagina_actual'] < total_paginas - 1 else "default"
 
         html_nav_bar = f"""
         <style>
-            .nav-container-pro {{
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 15px;
-                padding: 10px;
-                background: transparent;
-                width: 100%;
-                user-select: none; /* Evita que seleccionen el texto al tocar rápido */
-            }}
-            .nav-btn-pro {{
-                font-size: 28px;
-                font-weight: bold;
-                padding: 0 15px;
-                transition: transform 0.1s;
-                line-height: 1;
-            }}
-            .nav-btn-pro:active {{
-                transform: scale(0.8); /* Efecto rebote */
-            }}
-            .nav-text-capsule {{
-                background-color: #f0f2f6;
-                padding: 8px 20px;
-                border-radius: 20px;
-                font-family: sans-serif;
-                font-weight: 600;
-                color: #444;
-                font-size: 14px;
-                min-width: 120px;
-                text-align: center;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            }}
+            .nav-container-pro {{ display: flex; align-items: center; justify-content: center; gap: 15px; padding: 10px; width: 100%; user-select: none; }}
+            .nav-btn-pro {{ font-size: 28px; font-weight: bold; padding: 0 15px; transition: transform 0.1s; line-height: 1; }}
+            .nav-btn-pro:active {{ transform: scale(0.8); }}
+            .nav-text-capsule {{ background-color: #f0f2f6; padding: 8px 20px; border-radius: 20px; font-family: sans-serif; font-weight: 600; color: #444; font-size: 14px; min-width: 120px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
         </style>
-
+        
         <div class="nav-container-pro">
-            <div class="nav-btn-pro" id="btn-visual-prev" 
-                 style="color: {color_atras}; cursor: {cursor_atras};">
-                 ❮
-            </div>
-
-            <div class="nav-text-capsule">
-                Pág. {st.session_state['pagina_actual'] + 1} / {total_paginas}
-            </div>
-
-            <div class="nav-btn-pro" id="btn-visual-next" 
-                 style="color: {color_sig}; cursor: {cursor_sig};">
-                 ❯
-            </div>
+            <div class="nav-btn-pro" id="btn-visual-prev" style="color: {color_atras}; cursor: {cursor_atras};">❮</div>
+            <div class="nav-text-capsule">Pág. {st.session_state['pagina_actual'] + 1} / {total_paginas}</div>
+            <div class="nav-btn-pro" id="btn-visual-next" style="color: {color_sig}; cursor: {cursor_sig};">❯</div>
         </div>
 
         <script>
-            // 1. Buscamos y OCULTAMOS los botones feos de Python
-            const buttons = window.parent.document.getElementsByTagName('button');
-            let btnPyPrev = null;
-            let btnPyNext = null;
-
-            for (let btn of buttons) {{
-                if (btn.innerText === "⚡ANT") {{
-                    btnPyPrev = btn;
-                    btn.style.display = "none"; 
-                }}
-                if (btn.innerText === "⚡SIG") {{
-                    btnPyNext = btn;
-                    btn.style.display = "none"; 
-                }}
+            // CORRECCIÓN: Usamos .includes() para ignorar espacios vacíos que pone Streamlit
+            function hideStreamlitButtons() {{
+                const buttons = window.parent.document.querySelectorAll('button');
+                buttons.forEach(btn => {{
+                    if (btn.innerText.includes("⚡ANT") || btn.innerText.includes("⚡SIG")) {{
+                        btn.style.display = "none";
+                        btn.style.visibility = "hidden";
+                    }}
+                }});
             }}
+            
+            // Ejecutamos varias veces para asegurar que se borren apenas carguen
+            hideStreamlitButtons();
+            setInterval(hideStreamlitButtons, 50);
 
-            // 2. Conectamos los botones bonitos a los ocultos
-            const visualPrev = document.getElementById('btn-visual-prev');
-            const visualNext = document.getElementById('btn-visual-next');
-
-            visualPrev.onclick = function() {{
-                if (btnPyPrev) btnPyPrev.click(); 
-            }};
-
-            visualNext.onclick = function() {{
-                if (btnPyNext) btnPyNext.click(); 
-            }};
+            // LOGICA DEL CLIC (También corregida con includes)
+            const buttons = window.parent.document.querySelectorAll('button');
+            let btnPyPrev = null, btnPyNext = null;
+            
+            buttons.forEach(btn => {{
+                if (btn.innerText.includes("⚡ANT")) btnPyPrev = btn;
+                if (btn.innerText.includes("⚡SIG")) btnPyNext = btn;
+            }});
+            
+            document.getElementById('btn-visual-prev').onclick = () => {{ if(btnPyPrev) btnPyPrev.click(); }};
+            document.getElementById('btn-visual-next').onclick = () => {{ if(btnPyNext) btnPyNext.click(); }};
         </script>
         """
-        
         st.components.v1.html(html_nav_bar, height=70)
 
         # PASO 2: FOTO HÍBRIDA
@@ -648,3 +603,4 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
