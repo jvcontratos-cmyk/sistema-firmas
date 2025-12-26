@@ -86,7 +86,7 @@ st.markdown("""
     }
 
     [data-testid='stFileUploaderDropzone']::after {
-        content: "📷 TOCAR AQUÍ PARA FOTO"; 
+        content: "📷 TOCAR AQUÍ"; 
         font-size: 18px !important;
         color: #555555 !important;
         font-weight: bold !important;
@@ -358,11 +358,11 @@ else:
     # === PANTALLA DE PROCESO (LECTURA + FOTO + FIRMA) ===
     else:
         st.success(f"Hola, **{nombre_archivo.replace('.pdf','')}**")
-        st.info("👇 **SIGA LOS PASOS PARA COMPLETAR SU FIRMA.**")
+        st.info("👇 **SIGA LOS PASOS 1, 2 Y 3 PARA COMPLETAR SU FIRMA.**")
         
         # --- PASO 1: LECTURA ULTRA PRO (CON VIEWER.JS) ---
         st.markdown("### 1. Lectura del Contrato")
-        st.caption("Toque la imagen para leer en pantalla completa (Zoom activado).")
+        st.caption("*TOQUE LA IMAGEN PARA LEER EN PANTALLA COMPLETA.*.")
 
         # 1. Preparamos la imagen de la página actual
         try:
@@ -486,12 +486,12 @@ else:
             st.subheader("2. Foto de Identidad")
             
             if st.session_state['foto_bio'] is None:
-                usar_webcam = st.checkbox("💻 ¿Estás en PC y no tienes foto? Usar cámara web", value=False)
+                usar_webcam = st.checkbox("💻 ¿*ESTÁS USANDO COMPUTADORA/LAPTOPT? USA ESTE BOTÓN PARA TOMARTE LA FOTO", value=False)
                 foto_input = None
                 if usar_webcam:
                     foto_input = st.camera_input("📸 TOMAR FOTO", label_visibility="visible")
                 else:
-                    st.warning("📸 TOQUE EL CUADRO ROJO PARA TOMAR LA FOTO:")
+                    st.warning("📸 *TOQUE EL CUADRO PARA TOMARSE LA FOTO*:")
                     foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
                 
                 if foto_input is not None:
@@ -570,6 +570,7 @@ else:
             if st.button("⬅️ Cancelar"):
                 st.session_state['dni_validado'] = None
                 st.rerun()
+
 
 
 
