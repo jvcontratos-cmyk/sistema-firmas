@@ -360,85 +360,151 @@ else:
         st.success(f"Hola, **{nombre_archivo.replace('.pdf','')}**")
         st.info("👇 **SIGA LOS PASOS 1, 2 Y 3 PARA COMPLETAR SU FIRMA.**")
         
-        # --- PASO 1: LECTURA ULTRA PRO (CON VIEWER.JS) ---
+        # --- PASO 1: LECTURA ULTRA PRO + NAVEGACIÓN FUSIONADA ---
         st.markdown("### 1. Lectura del Contrato")
-        st.caption("**TOQUE LA IMAGEN PARA LEER EN PANTALLA COMPLETA Y PODER HACER ZOOM CON LOS DEDOS**.")
+        st.caption("**TOQUE LA IMAGEN PARA LEER EN PANTALLA COMPLETA Y HACER ZOOM CON LOS DEDOS**.")
 
-        # 1. Preparamos la imagen de la página actual
+        # 1. Definimos variables visuales antes (Colores de flechas)
+        color_atras = "#FF4B4B" if st.session_state['pagina_actual'] > 0 else "#ccc"
+        cursor_atras = "pointer" if st.session_state['pagina_actual'] > 0 else "default"
+        color_sig = "#FF4B4B" if st.session_state['pagina_actual'] < total_paginas - 1 else "#ccc"
+        cursor_sig = "pointer" if st.session_state['pagina_actual'] < total_paginas - 1 else "default"
+
         try:
+            # Preparación de la imagen
             doc = fitz.open(ruta_pdf_local)
             total_paginas = len(doc)
             pagina = doc[st.session_state['pagina_actual']]
-            # Calidad ALTA (300 DPI) para que al hacer zoom se vea nítido
             pix = pagina.get_pixmap(dpi=300) 
             img_bytes = pix.tobytes("png")
             img_base64 = base64.b64encode(img_bytes).decode('utf-8')
             
-            # 2. INYECCIÓN DE CÓDIGO NUCLEAR (HTML + JS + CSS EXTERNO)
-            # Esto carga la librería Viewer.js desde internet sin instalar nada
-            componente_visualizador = f"""
-            <link href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" rel="stylesheet">
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
+            # --- CÓDIGO HTML FUSIONADO (IMAGEN + BARRA) ---
+            # Al estar juntos, NO hay espacio blanco rebelde en medio.
+            html_fusionado = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <link href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" rel="stylesheet">
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
+                <style>
+                    body {{ margin: 0; padding: 0; font-family: sans-serif; }}
+                    
+                    /* CONTENEDOR DE LA IMAGEN */
+                    .contrato-container {{
+                        text-align: center;
+                        border: 1px solid #ddd;
+                        border-radius: 8px;
+                        padding: 5px;
+                        background: white;
+                        cursor: zoom-in;
+                        margin-bottom: 0px; /* <--- CERO espacio abajo */
+                    }}
+                    #imagen-contrato {{
+                        max-width: 100%;
+                        height: auto; /* Ajuste automático */
+                        max-height: 450px; /* Altura máxima para que no sea gigante */
+                        display: block;
+                        margin: 0 auto;
+                        object-fit: contain;
+                    }}
+                    
+                    /* CONTENEDOR DE LA BARRA (Integrado) */
+                    .nav-container-pro {{
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 15px;
+                        padding: 8px 0;
+                        background: transparent;
+                        width: 100%;
+                        user-select: none;
+                        margin-top: 5px; /* <--- AQUÍ CONTROLAS LA SEPARACIÓN CON LA FOTO */
+                    }}
+                    .nav-btn-pro {{
+                        font-size: 28px;
+                        font-weight: bold;
+                        padding: 0 15px;
+                        transition: transform 0.1s;
+                        line-height: 1;
+                    }}
+                    .nav-btn-pro:active {{ transform: scale(0.8); }}
+                    .nav-text-capsule {{
+                        background-color: #f0f2f6;
+                        padding: 8px 20px;
+                        border-radius: 20px;
+                        font-weight: 600;
+                        color: #444;
+                        font-size: 14px;
+                        min-width: 120px;
+                        text-align: center;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                    }}
+                    /* Ocultar elementos extra de Viewer.js */
+                    .viewer-title {{ display: none; }}
+                </style>
+            </head>
+            <body>
+                <div class="contrato-container">
+                    <img id="imagen-contrato" src="data:image/png;base64,{img_base64}" alt="Página">
+                    <div style="margin-top:2px; color:#999; font-size:11px;">👆 <i>Toque para zoom</i></div>
+                </div>
 
-            <style>
-                .contrato-container {{
-                    text-align: center;
-                    margin-bottom: 10px;
-                    border: 1px solid #ddd;
-                    border-radius: 8px;
-                    padding: 5px;
-                    background: white;
-                    cursor: zoom-in; /* Manito de lupa */
-                }}
-                #imagen-contrato {{
-                    max-width: 100%;
-                    height: auto;
-                    display: block;
-                    margin: 0 auto;
-                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                }}
-                /* Ocultar botones feos de la librería si queremos */
-                .viewer-title {{ display: none; }}
-            </style>
+                <div class="nav-container-pro">
+                    <div class="nav-btn-pro" id="btn-visual-prev" style="color: {color_atras}; cursor: {cursor_atras};">❮</div>
+                    <div class="nav-text-capsule">Pág. {st.session_state['pagina_actual'] + 1} / {total_paginas}</div>
+                    <div class="nav-btn-pro" id="btn-visual-next" style="color: {color_sig}; cursor: {cursor_sig};">❯</div>
+                </div>
 
-            <div class="contrato-container">
-                <img id="imagen-contrato" src="data:image/png;base64,{img_base64}" alt="Contrato Página {st.session_state['pagina_actual'] + 1}">
-                <div style="margin-top:5px; color:#555; font-size:12px;">👆 <i>Toque la hoja para ampliar y hacer zoom con los dedos</i> 🔍</div>
-            </div>
+                <script>
+                    // INICIAR VIEWER
+                    var img = document.getElementById('imagen-contrato');
+                    new Viewer(img, {{
+                        toolbar: {{ zoomIn:1, zoomOut:1, oneToOne:1, reset:1, rotateLeft:0, rotateRight:0, flipHorizontal:0, flipVertical:0 }},
+                        navbar:0, title:0, tooltip:0, movable:1, zoomable:1, rotatable:0, scalable:0, inline:false, transition:0, backdrop:'rgba(0,0,0,0.9)'
+                    }});
 
-            <script>
-                // ESPERAMOS A QUE CARGUE LA IMAGEN
-                var img = document.getElementById('imagen-contrato');
-                
-                // INICIAMOS EL VISOR POTENTE
-                // Esto crea una capa por encima de Streamlit
-                var viewer = new Viewer(img, {{
-                    toolbar: {{
-                        zoomIn: 1,
-                        zoomOut: 1,
-                        oneToOne: 1,
-                        reset: 1,
-                        rotateLeft: 0,
-                        rotateRight: 0,
-                        flipHorizontal: 0,
-                        flipVertical: 0,
-                    }},
-                    navbar: false,
-                    title: false,
-                    tooltip: false,
-                    movable: true,
-                    zoomable: true,
-                    rotatable: false,
-                    scalable: false,
-                    inline: false, // ESTO ES CLAVE: MODO MODAL (PANTALLA COMPLETA REAL)
-                    transition: false, // Más rápido en celulares lentos
-                    backdrop: 'rgba(0,0,0,0.9)' // Fondo negro oscuro
-                }});
-            </script>
+                    // CONECTAR CON PYTHON
+                    function clickPythonButton(keyword) {{
+                        const buttons = window.parent.document.querySelectorAll('button');
+                        buttons.forEach(btn => {{
+                            if (btn.innerText.includes(keyword)) btn.click();
+                        }});
+                    }}
+                    document.getElementById('btn-visual-prev').onclick = () => clickPythonButton("⚡ANT");
+                    document.getElementById('btn-visual-next').onclick = () => clickPythonButton("⚡SIG");
+
+                    // OCULTAR BOTONES FEOS
+                    setInterval(() => {{
+                        const buttons = window.parent.document.querySelectorAll('button');
+                        buttons.forEach(btn => {{
+                            if (btn.innerText.includes("⚡ANT") || btn.innerText.includes("⚡SIG")) {{
+                                btn.style.display = "none";
+                            }}
+                        }});
+                    }}, 100);
+                </script>
+            </body>
+            </html>
             """
             
-            # Renderizamos la bomba HTML
-            st.components.v1.html(componente_visualizador, height=500, scrolling=False)
+            # Renderizamos todo en UN SOLO bloque alto (600px) para que quepa todo sin scroll
+            st.components.v1.html(html_fusionado, height=600, scrolling=False)
+
+        except Exception as e:
+            st.error(f"Error cargando visor: {e}")
+
+        # 3. LOGICA OCULTA (AL FINAL, PARA QUE EL ESPACIO EN BLANCO QUEDE ABAJO DEL TODO)
+        c_hidden_1, c_hidden_2 = st.columns(2)
+        with c_hidden_1: click_atras = st.button("⚡ANT", key="nav_atras_hidden")
+        with c_hidden_2: click_siguiente = st.button("⚡SIG", key="nav_sig_hidden")
+
+        if click_atras and st.session_state['pagina_actual'] > 0:
+            st.session_state['pagina_actual'] -= 1
+            st.rerun()
+        if click_siguiente and st.session_state['pagina_actual'] < total_paginas - 1:
+            st.session_state['pagina_actual'] += 1
+            st.rerun()
 
         except Exception as e:
             st.error(f"Error cargando visor: {e}")
@@ -625,6 +691,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
