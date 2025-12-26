@@ -443,91 +443,123 @@ else:
         except Exception as e:
             st.error(f"Error cargando visor: {e}")
 
-        # --- BARRA DE NAVEGACIÓN "GRID SYSTEM" (REALMENTE HORIZONTAL) ---
+        # --- BARRA DE NAVEGACIÓN "EL TITIRITERO" (HTML + JS BRIDGE) ---
         st.write("") 
 
-        # ESTO ES MAGIA: Creamos una "Cuadrícula Forzada"
-        # grid-template-columns: 1fr 3fr 1fr; -> Significa: Lado, Centro Ancho, Lado
-        # Esto ignora por completo la regla de "ponerse vertical" del celular.
-        st.markdown("""
-            <style>
-            /* 1. Contenedor de la botonera */
-            div[data-testid="stHorizontalBlock"] {
-                display: grid !important;
-                grid-template-columns: 15% 70% 15% !important; /* Mágica proporción */
-                gap: 5px !important;
-                align-items: center !important;
-            }
-            
-            /* 2. Forzamos a las columnas a no tener margen extraño */
-            div[data-testid="column"] {
-                width: 100% !important;
-                flex: none !important;
-                min-width: 0 !important;
-                padding: 0 !important;
-            }
+        # 1. LOGICA OCULTA (LOS HILOS DEL TÍTERE)
+        # Creamos botones de Streamlit reales pero con etiquetas únicas para encontrarlos
+        # Los envolvemos en columnas vacías para que no molesten visualmente mientras carga
+        c_hidden_1, c_hidden_2 = st.columns(2)
+        with c_hidden_1:
+            click_atras = st.button("⚡ANT", key="nav_atras_hidden")
+        with c_hidden_2:
+            click_siguiente = st.button("⚡SIG", key="nav_sig_hidden")
 
-            /* 3. ESTILO TIPO APP PARA LOS BOTONES (QUITAMOS EL BORDE GRIS FEO) */
-            div[data-testid="stHorizontalBlock"] button {
-                border: none !important;
-                background: transparent !important;
-                color: #FF4B4B !important; /* Rojo Streamlit o el que quieras */
-                font-size: 24px !important; /* Ícono grande */
-                padding: 0px !important;
-                height: 50px !important;
-                width: 100% !important;
-                box-shadow: none !important;
-            }
-            div[data-testid="stHorizontalBlock"] button:hover {
-                background: #f0f2f6 !important; /* Un gris suavecito al tocar */
-                color: #ff2b2b !important;
-            }
-            div[data-testid="stHorizontalBlock"] button:active {
-                transform: scale(0.9); /* Efecto de rebote al clickear */
-            }
-            </style>
-            """, unsafe_allow_html=True)
+        # Lógica de navegación (Python puro)
+        if click_atras and st.session_state['pagina_actual'] > 0:
+            st.session_state['pagina_actual'] -= 1
+            st.rerun()
+        if click_siguiente and st.session_state['pagina_actual'] < total_paginas - 1:
+            st.session_state['pagina_actual'] += 1
+            st.rerun()
 
-        # ESTRUCTURA PYTHON (SIMPLE)
-        # Usamos contenedores vacíos, el CSS Grid se encarga de acomodarlos
-        c_atras, c_texto, c_siguiente = st.columns(3) # El número da igual, el CSS manda
+        # 2. LA MÁSCARA VISUAL (LO QUE VE EL USUARIO)
+        # Usamos HTML puro. Esto NUNCA se va a apilar verticalmente.
+        # Inyectamos Javascript para que al tocar las flechas, el sistema haga "click" en los botones ocultos de arriba.
+        
+        # Definimos si los botones visuales deben verse activos o desactivados (gris)
+        color_atras = "#FF4B4B" if st.session_state['pagina_actual'] > 0 else "#ccc"
+        cursor_atras = "pointer" if st.session_state['pagina_actual'] > 0 else "default"
+        
+        color_sig = "#FF4B4B" if st.session_state['pagina_actual'] < total_paginas - 1 else "#ccc"
+        cursor_sig = "pointer" if st.session_state['pagina_actual'] < total_paginas - 1 else "default"
 
-        # --- BOTÓN IZQUIERDA (ICONO GRANDE) ---
-        with c_atras:
-            if st.session_state['pagina_actual'] > 0:
-                # Usamos un ícono sólido de FontAwesome o similar
-                if st.button("◀", key="btn_ant"):
-                    st.session_state['pagina_actual'] -= 1
-                    st.rerun()
-
-        # --- TEXTO CENTRO (ESTILIZADO) ---
-        with c_texto:
-            # HTML para control total del texto central
-            st.markdown(f"""
-            <div style="
-                text-align: center; 
-                font-family: sans-serif;
-                font-weight: 600; 
-                color: #444; 
-                font-size: 14px; 
+        html_nav_bar = f"""
+        <style>
+            .nav-container-pro {{
                 display: flex;
-                justify-content: center;
                 align-items: center;
-                height: 50px; /* Misma altura que botones */
-                background-color: #f9f9f9; /* Fondo sutil estilo 'cápsula' */
-                border-radius: 25px;
-                margin: 0 5px;
-            ">
-                Página {st.session_state['pagina_actual'] + 1} / {total_paginas}
-            </div>
-            """, unsafe_allow_html=True)
+                justify-content: center;
+                gap: 15px;
+                padding: 10px;
+                background: transparent;
+                width: 100%;
+                user-select: none; /* Evita que seleccionen el texto al tocar rápido */
+            }}
+            .nav-btn-pro {{
+                font-size: 28px;
+                font-weight: bold;
+                padding: 0 15px;
+                transition: transform 0.1s;
+                line-height: 1;
+            }}
+            .nav-btn-pro:active {{
+                transform: scale(0.8); /* Efecto rebote */
+            }}
+            .nav-text-capsule {{
+                background-color: #f0f2f6;
+                padding: 8px 20px;
+                border-radius: 20px;
+                font-family: sans-serif;
+                font-weight: 600;
+                color: #444;
+                font-size: 14px;
+                min-width: 120px;
+                text-align: center;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }}
+        </style>
 
-        # --- BOTÓN DERECHA (ICONO GRANDE) ---
-        with c_siguiente:
-            if st.session_state['pagina_actual'] < total_paginas - 1:
-                if st.button("▶", key="btn_sig"):
-                    st.session_state['pagina_actual'] += 1
-                    st.rerun()
+        <div class="nav-container-pro">
+            <div class="nav-btn-pro" id="btn-visual-prev" 
+                 style="color: {color_atras}; cursor: {cursor_atras};">
+                 ❮
+            </div>
+
+            <div class="nav-text-capsule">
+                Pág. {st.session_state['pagina_actual'] + 1} / {total_paginas}
+            </div>
+
+            <div class="nav-btn-pro" id="btn-visual-next" 
+                 style="color: {color_sig}; cursor: {cursor_sig};">
+                 ❯
+            </div>
+        </div>
+
+        <script>
+            // 1. Buscamos y OCULTAMOS los botones feos de Python
+            // Buscamos por el texto que les pusimos: "⚡ANT" y "⚡SIG"
+            const buttons = window.parent.document.getElementsByTagName('button');
+            let btnPyPrev = null;
+            let btnPyNext = null;
+
+            for (let btn of buttons) {{
+                if (btn.innerText === "⚡ANT") {{
+                    btnPyPrev = btn;
+                    btn.style.display = "none"; // ¡DESAPARECE!
+                }}
+                if (btn.innerText === "⚡SIG") {{
+                    btnPyNext = btn;
+                    btn.style.display = "none"; // ¡DESAPARECE!
+                }}
+            }}
+
+            // 2. Conectamos los botones bonitos a los ocultos
+            const visualPrev = document.getElementById('btn-visual-prev');
+            const visualNext = document.getElementById('btn-visual-next');
+
+            visualPrev.onclick = function() {{
+                if (btnPyPrev) btnPyPrev.click(); // Dispara el evento real
+            }};
+
+            visualNext.onclick = function() {{
+                if (btnPyNext) btnPyNext.click(); // Dispara el evento real
+            }};
+        </script>
+        """
+        
+        # Renderizamos la magia
+        st.components.v1.html(html_nav_bar, height=70)
         
             # PASO 2: FOTO HÍBRIDA
             st.markdown("---")
@@ -618,6 +650,7 @@ else:
             if st.button("⬅️ Cancelar"):
                 st.session_state['dni_validado'] = None
                 st.rerun()
+
 
 
 
