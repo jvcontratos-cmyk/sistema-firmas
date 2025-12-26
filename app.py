@@ -24,7 +24,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS PERSONALIZADO (TEXTO PLANO PARA EVITAR ERRORES) ---
+# --- CSS PERSONALIZADO ---
 st.markdown("""
     <style>
     header {visibility: hidden !important;}
@@ -335,8 +335,8 @@ if st.session_state['dni_validado'] is None:
         st.markdown("En el contrato de trabajo se estipula únicamente la **Remuneración Básica**. El **Sueldo Bruto** (básico + bonos) se verá en su **boleta de pago**.")
     st.info("📞 **¿Dudas?** Contacte al área de Administración de Personal.")
 
-    # --- INTERFAZ CENTRAL (PARTE INFERIOR) ---
 else:
+    # 2. APP PRINCIPAL
     nombre_archivo = st.session_state['archivo_nombre']
     ruta_pdf_local = os.path.join(CARPETA_TEMP, nombre_archivo)
     
@@ -443,211 +443,208 @@ else:
         except Exception as e:
             st.error(f"Error cargando visor: {e}")
 
-            # --- BARRA DE NAVEGACIÓN "EL TITIRITERO" (HTML + JS BRIDGE) ---
-            st.write("") 
-    
-            # 1. LOGICA OCULTA (LOS HILOS DEL TÍTERE)
-            # Creamos botones de Streamlit reales pero con etiquetas únicas para encontrarlos
-            # Los envolvemos en columnas vacías para que no molesten visualmente mientras carga
-            c_hidden_1, c_hidden_2 = st.columns(2)
-            with c_hidden_1:
-                click_atras = st.button("⚡ANT", key="nav_atras_hidden")
-            with c_hidden_2:
-                click_siguiente = st.button("⚡SIG", key="nav_sig_hidden")
-    
-            # Lógica de navegación (Python puro)
-            if click_atras and st.session_state['pagina_actual'] > 0:
-                st.session_state['pagina_actual'] -= 1
-                st.rerun()
-            if click_siguiente and st.session_state['pagina_actual'] < total_paginas - 1:
-                st.session_state['pagina_actual'] += 1
-                st.rerun()
-    
-            # 2. LA MÁSCARA VISUAL (LO QUE VE EL USUARIO)
-            # Usamos HTML puro. Esto NUNCA se va a apilar verticalmente.
-            # Inyectamos Javascript para que al tocar las flechas, el sistema haga "click" en los botones ocultos de arriba.
-            
-            # Definimos si los botones visuales deben verse activos o desactivados (gris)
-            color_atras = "#FF4B4B" if st.session_state['pagina_actual'] > 0 else "#ccc"
-            cursor_atras = "pointer" if st.session_state['pagina_actual'] > 0 else "default"
-            
-            color_sig = "#FF4B4B" if st.session_state['pagina_actual'] < total_paginas - 1 else "#ccc"
-            cursor_sig = "pointer" if st.session_state['pagina_actual'] < total_paginas - 1 else "default"
-    
-            html_nav_bar = f"""
-            <style>
-                .nav-container-pro {{
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 15px;
-                    padding: 10px;
-                    background: transparent;
-                    width: 100%;
-                    user-select: none; /* Evita que seleccionen el texto al tocar rápido */
-                }}
-                .nav-btn-pro {{
-                    font-size: 28px;
-                    font-weight: bold;
-                    padding: 0 15px;
-                    transition: transform 0.1s;
-                    line-height: 1;
-                }}
-                .nav-btn-pro:active {{
-                    transform: scale(0.8); /* Efecto rebote */
-                }}
-                .nav-text-capsule {{
-                    background-color: #f0f2f6;
-                    padding: 8px 20px;
-                    border-radius: 20px;
-                    font-family: sans-serif;
-                    font-weight: 600;
-                    color: #444;
-                    font-size: 14px;
-                    min-width: 120px;
-                    text-align: center;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                }}
-            </style>
-    
-            <div class="nav-container-pro">
-                <div class="nav-btn-pro" id="btn-visual-prev" 
-                     style="color: {color_atras}; cursor: {cursor_atras};">
-                     ❮
-                </div>
-    
-                <div class="nav-text-capsule">
-                    Pág. {st.session_state['pagina_actual'] + 1} / {total_paginas}
-                </div>
-    
-                <div class="nav-btn-pro" id="btn-visual-next" 
-                     style="color: {color_sig}; cursor: {cursor_sig};">
-                     ❯
-                </div>
+        # --- BARRA DE NAVEGACIÓN "EL TITIRITERO" (HTML + JS BRIDGE) ---
+        st.write("") 
+
+        # 1. LOGICA OCULTA (LOS HILOS DEL TÍTERE)
+        # Creamos botones de Streamlit reales pero con etiquetas únicas para encontrarlos
+        # Los envolvemos en columnas vacías para que no molesten visualmente mientras carga
+        c_hidden_1, c_hidden_2 = st.columns(2)
+        with c_hidden_1:
+            click_atras = st.button("⚡ANT", key="nav_atras_hidden")
+        with c_hidden_2:
+            click_siguiente = st.button("⚡SIG", key="nav_sig_hidden")
+
+        # Lógica de navegación (Python puro)
+        if click_atras and st.session_state['pagina_actual'] > 0:
+            st.session_state['pagina_actual'] -= 1
+            st.rerun()
+        if click_siguiente and st.session_state['pagina_actual'] < total_paginas - 1:
+            st.session_state['pagina_actual'] += 1
+            st.rerun()
+
+        # 2. LA MÁSCARA VISUAL (LO QUE VE EL USUARIO)
+        # Usamos HTML puro. Esto NUNCA se va a apilar verticalmente.
+        # Inyectamos Javascript para que al tocar las flechas, el sistema haga "click" en los botones ocultos de arriba.
+        
+        # Definimos si los botones visuales deben verse activos o desactivados (gris)
+        color_atras = "#FF4B4B" if st.session_state['pagina_actual'] > 0 else "#ccc"
+        cursor_atras = "pointer" if st.session_state['pagina_actual'] > 0 else "default"
+        
+        color_sig = "#FF4B4B" if st.session_state['pagina_actual'] < total_paginas - 1 else "#ccc"
+        cursor_sig = "pointer" if st.session_state['pagina_actual'] < total_paginas - 1 else "default"
+
+        html_nav_bar = f"""
+        <style>
+            .nav-container-pro {{
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 15px;
+                padding: 10px;
+                background: transparent;
+                width: 100%;
+                user-select: none; /* Evita que seleccionen el texto al tocar rápido */
+            }}
+            .nav-btn-pro {{
+                font-size: 28px;
+                font-weight: bold;
+                padding: 0 15px;
+                transition: transform 0.1s;
+                line-height: 1;
+            }}
+            .nav-btn-pro:active {{
+                transform: scale(0.8); /* Efecto rebote */
+            }}
+            .nav-text-capsule {{
+                background-color: #f0f2f6;
+                padding: 8px 20px;
+                border-radius: 20px;
+                font-family: sans-serif;
+                font-weight: 600;
+                color: #444;
+                font-size: 14px;
+                min-width: 120px;
+                text-align: center;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }}
+        </style>
+
+        <div class="nav-container-pro">
+            <div class="nav-btn-pro" id="btn-visual-prev" 
+                 style="color: {color_atras}; cursor: {cursor_atras};">
+                 ❮
             </div>
-    
-            <script>
-                // 1. Buscamos y OCULTAMOS los botones feos de Python
-                // Buscamos por el texto que les pusimos: "⚡ANT" y "⚡SIG"
-                const buttons = window.parent.document.getElementsByTagName('button');
-                let btnPyPrev = null;
-                let btnPyNext = null;
-    
-                for (let btn of buttons) {{
-                    if (btn.innerText === "⚡ANT") {{
-                        btnPyPrev = btn;
-                        btn.style.display = "none"; // ¡DESAPARECE!
-                    }}
-                    if (btn.innerText === "⚡SIG") {{
-                        btnPyNext = btn;
-                        btn.style.display = "none"; // ¡DESAPARECE!
-                    }}
+
+            <div class="nav-text-capsule">
+                Pág. {st.session_state['pagina_actual'] + 1} / {total_paginas}
+            </div>
+
+            <div class="nav-btn-pro" id="btn-visual-next" 
+                 style="color: {color_sig}; cursor: {cursor_sig};">
+                 ❯
+            </div>
+        </div>
+
+        <script>
+            // 1. Buscamos y OCULTAMOS los botones feos de Python
+            const buttons = window.parent.document.getElementsByTagName('button');
+            let btnPyPrev = null;
+            let btnPyNext = null;
+
+            for (let btn of buttons) {{
+                if (btn.innerText === "⚡ANT") {{
+                    btnPyPrev = btn;
+                    btn.style.display = "none"; 
                 }}
-    
-                // 2. Conectamos los botones bonitos a los ocultos
-                const visualPrev = document.getElementById('btn-visual-prev');
-                const visualNext = document.getElementById('btn-visual-next');
-    
-                visualPrev.onclick = function() {{
-                    if (btnPyPrev) btnPyPrev.click(); // Dispara el evento real
-                }};
-    
-                visualNext.onclick = function() {{
-                    if (btnPyNext) btnPyNext.click(); // Dispara el evento real
-                }};
-            </script>
-            """
+                if (btn.innerText === "⚡SIG") {{
+                    btnPyNext = btn;
+                    btn.style.display = "none"; 
+                }}
+            }}
+
+            // 2. Conectamos los botones bonitos a los ocultos
+            const visualPrev = document.getElementById('btn-visual-prev');
+            const visualNext = document.getElementById('btn-visual-next');
+
+            visualPrev.onclick = function() {{
+                if (btnPyPrev) btnPyPrev.click(); 
+            }};
+
+            visualNext.onclick = function() {{
+                if (btnPyNext) btnPyNext.click(); 
+            }};
+        </script>
+        """
         
-            # Renderizamos la magia
-            st.components.v1.html(html_nav_bar, height=70)
+        st.components.v1.html(html_nav_bar, height=70)
+
+        # PASO 2: FOTO HÍBRIDA
+        st.markdown("---")
+        st.subheader("2. Foto de Identidad")
         
-            # PASO 2: FOTO HÍBRIDA
-            st.markdown("---")
-            st.subheader("2. Foto de Identidad")
-            
-            if st.session_state['foto_bio'] is None:
-                usar_webcam = st.checkbox("💻 ¿**ESTÁS USANDO COMPUTADORA/LAPTOP? USA ESTE BOTÓN PARA TOMARTE LA FOTO**", value=False)
-                foto_input = None
-                if usar_webcam:
-                    foto_input = st.camera_input("📸 TOMAR FOTO", label_visibility="visible")
-                else:
-                    st.warning("📸 **SI ESTÁS USANDO CELULAR, TOQUE EL CUADRO DE ABAJO PARA TOMARSE LA FOTO**:")
-                    foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
-                
-                if foto_input is not None:
-                    with st.spinner("Procesando foto..."):
-                        image_raw = Image.open(foto_input)
-                        image_opt = optimizar_imagen(image_raw)
-                        img_byte_arr = io.BytesIO()
-                        image_opt.save(img_byte_arr, format='JPEG', quality=85)
-                        st.session_state['foto_bio'] = img_byte_arr.getvalue()
-                        st.rerun()    
+        if st.session_state['foto_bio'] is None:
+            usar_webcam = st.checkbox("💻 ¿Estás en PC y no tienes foto? Usar cámara web", value=False)
+            foto_input = None
+            if usar_webcam:
+                foto_input = st.camera_input("📸 TOMAR FOTO", label_visibility="visible")
             else:
-                col_a, col_b = st.columns([1,3])
-                with col_a: st.image(st.session_state['foto_bio'], width=100)
-                with col_b:
-                    st.success("✅ Foto guardada")
-                    if st.button("🔄 Cambiar Foto"):
-                        st.session_state['foto_bio'] = None
-                        st.rerun()
-
-            # PASO 3: FIRMA (WIDTH 400PX)
-            st.markdown("---")
-            st.subheader("3. Firma y Conformidad")
+                st.warning("📸 TOQUE EL CUADRO ROJO PARA TOMAR LA FOTO:")
+                foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
             
-            if st.session_state['foto_bio'] is None:
-                st.error("⚠️ PRIMERO DEBE TOMARSE LA FOTO EN EL PASO 2 👆")
-            else:
-                st.caption("Dibuje su firma. Use la **Papelera 🗑️** para borrar.")
-                with st.form(key="formulario_firma", clear_on_submit=False):
-                    canvas_result = st_canvas(
-                        stroke_width=2, stroke_color="#000000", background_color="#ffffff", 
-                        height=200, width=340, drawing_mode="freedraw", # <--- CAMBIAR A 340 AQUÍ
-                        display_toolbar=True, key=f"canvas_{st.session_state['canvas_key']}"
-                    )
-                    st.write("") 
-                    enviar_firma = st.form_submit_button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True)
+            if foto_input is not None:
+                with st.spinner("Procesando foto..."):
+                    image_raw = Image.open(foto_input)
+                    image_opt = optimizar_imagen(image_raw)
+                    img_byte_arr = io.BytesIO()
+                    image_opt.save(img_byte_arr, format='JPEG', quality=85)
+                    st.session_state['foto_bio'] = img_byte_arr.getvalue()
+                    st.rerun()    
+        else:
+            col_a, col_b = st.columns([1,3])
+            with col_a: st.image(st.session_state['foto_bio'], width=100)
+            with col_b:
+                st.success("✅ Foto guardada")
+                if st.button("🔄 Cambiar Foto"):
+                    st.session_state['foto_bio'] = None
+                    st.rerun()
 
-                if enviar_firma:
-                    if canvas_result.image_data is not None:
-                        img_data = canvas_result.image_data.astype('uint8')
-                        if img_data[:, :, 3].sum() == 0:
-                            st.warning("⚠️ El recuadro está vacío. Por favor firme.")
-                        else:
-                            ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
-                            ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
-                            
-                            with st.spinner("⏳ Guardando contrato..."):
-                                try:
-                                    img = Image.fromarray(img_data, 'RGBA')
-                                    data = img.getdata()
-                                    newData = []
-                                    es_blanco = True 
-                                    for item in data:
-                                        if item[0] < 200: es_blanco = False 
-                                        if item[0] > 230 and item[1] > 230 and item[2] > 230:
-                                            newData.append((255, 255, 255, 0))
-                                        else: newData.append(item)
-                                    
-                                    if es_blanco: st.warning("⚠️ El recuadro parece vacío.")
-                                    else:
-                                        img.putdata(newData)
-                                        img.save(ruta_firma, "PNG")
-                                        estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
-                                        estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
-                                        enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
-                                        if registrar_firma_sheet(st.session_state['dni_validado']):
-                                            st.session_state['firmado_ok'] = True
-                                            borrar_archivo_drive(st.session_state['archivo_id'])
-                                            st.balloons()
-                                            st.rerun()
-                                        else: st.error("⚠️ Error de conexión con Excel.")
-                                except Exception as e: st.error(f"Error técnico: {e}")
-                                finally:
-                                    if os.path.exists(ruta_firma): os.remove(ruta_firma)
-                    else: st.warning("⚠️ Falta su firma.")
+        # PASO 3: FIRMA
+        st.markdown("---")
+        st.subheader("3. Firma y Conformidad")
+        
+        if st.session_state['foto_bio'] is None:
+            st.error("⚠️ PRIMERO DEBE TOMARSE LA FOTO EN EL PASO 2 👆")
+        else:
+            st.caption("Dibuje su firma. Use la **Papelera 🗑️** para borrar.")
+            with st.form(key="formulario_firma", clear_on_submit=False):
+                canvas_result = st_canvas(
+                    stroke_width=2, stroke_color="#000000", background_color="#ffffff", 
+                    height=200, width=340, drawing_mode="freedraw", 
+                    display_toolbar=True, key=f"canvas_{st.session_state['canvas_key']}"
+                )
+                st.write("") 
+                enviar_firma = st.form_submit_button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True)
 
-            if st.button("⬅️ Cancelar"):
-                st.session_state['dni_validado'] = None
-                st.rerun()
+            if enviar_firma:
+                if canvas_result.image_data is not None:
+                    img_data = canvas_result.image_data.astype('uint8')
+                    if img_data[:, :, 3].sum() == 0:
+                        st.warning("⚠️ El recuadro está vacío. Por favor firme.")
+                    else:
+                        ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
+                        ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
+                        
+                        with st.spinner("⏳ Guardando contrato..."):
+                            try:
+                                img = Image.fromarray(img_data, 'RGBA')
+                                data = img.getdata()
+                                newData = []
+                                es_blanco = True 
+                                for item in data:
+                                    if item[0] < 200: es_blanco = False 
+                                    if item[0] > 230 and item[1] > 230 and item[2] > 230:
+                                        newData.append((255, 255, 255, 0))
+                                    else: newData.append(item)
+                                
+                                if es_blanco: st.warning("⚠️ El recuadro parece vacío.")
+                                else:
+                                    img.putdata(newData)
+                                    img.save(ruta_firma, "PNG")
+                                    estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
+                                    estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
+                                    enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
+                                    if registrar_firma_sheet(st.session_state['dni_validado']):
+                                        st.session_state['firmado_ok'] = True
+                                        borrar_archivo_drive(st.session_state['archivo_id'])
+                                        st.balloons()
+                                        st.rerun()
+                                    else: st.error("⚠️ Error de conexión con Excel.")
+                            except Exception as e: st.error(f"Error técnico: {e}")
+                            finally:
+                                if os.path.exists(ruta_firma): os.remove(ruta_firma)
+                else: st.warning("⚠️ Falta su firma.")
 
+        if st.button("⬅️ Cancelar"):
+            st.session_state['dni_validado'] = None
+            st.rerun()
