@@ -558,8 +558,8 @@ else:
             </script>
             """
         
-        # Renderizamos la magia
-        st.components.v1.html(html_nav_bar, height=70)
+            # Renderizamos la magia
+            st.components.v1.html(html_nav_bar, height=70)
         
             # PASO 2: FOTO HÍBRIDA
             st.markdown("---")
@@ -650,25 +650,4 @@ else:
             if st.button("⬅️ Cancelar"):
                 st.session_state['dni_validado'] = None
                 st.rerun()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
