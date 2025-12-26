@@ -479,6 +479,7 @@ else:
                 width: 100%; 
                 user-select: none; 
                 margin-top: -30px; /* <--- EL TRUCO: Sube la barra hacia la imagen */
+                z-index: 999;
             }}
             .nav-btn-pro {{ 
                 font-size: 28px; 
@@ -624,6 +625,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
