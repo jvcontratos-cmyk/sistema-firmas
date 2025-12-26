@@ -443,66 +443,91 @@ else:
         except Exception as e:
             st.error(f"Error cargando visor: {e}")
 
-        # --- BOTONES DE PAGINACIÓN (FORZADO HORIZONTAL) ---
+        # --- BARRA DE NAVEGACIÓN "GRID SYSTEM" (REALMENTE HORIZONTAL) ---
         st.write("") 
-        
-        # 1. CSS PARA FORZAR QUE NO SE APILE EN CELULAR
+
+        # ESTO ES MAGIA: Creamos una "Cuadrícula Forzada"
+        # grid-template-columns: 1fr 3fr 1fr; -> Significa: Lado, Centro Ancho, Lado
+        # Esto ignora por completo la regla de "ponerse vertical" del celular.
         st.markdown("""
             <style>
-            /* Obliga a los botones dentro de columnas a alinearse al centro */
+            /* 1. Contenedor de la botonera */
             div[data-testid="stHorizontalBlock"] {
+                display: grid !important;
+                grid-template-columns: 15% 70% 15% !important; /* Mágica proporción */
+                gap: 5px !important;
                 align-items: center !important;
             }
-            /* REDUCE el margen entre columnas para ganar espacio */
+            
+            /* 2. Forzamos a las columnas a no tener margen extraño */
             div[data-testid="column"] {
-                padding: 0 5px !important; 
-                min-width: 0 !important; /* Permite que la columna sea muy angosta */
+                width: 100% !important;
+                flex: none !important;
+                min-width: 0 !important;
+                padding: 0 !important;
             }
-            /* Hace los botones más compactos */
+
+            /* 3. ESTILO TIPO APP PARA LOS BOTONES (QUITAMOS EL BORDE GRIS FEO) */
             div[data-testid="stHorizontalBlock"] button {
-                padding: 0px 10px !important;
-                height: 38px !important;
-                line-height: 1 !important;
+                border: none !important;
+                background: transparent !important;
+                color: #FF4B4B !important; /* Rojo Streamlit o el que quieras */
+                font-size: 24px !important; /* Ícono grande */
+                padding: 0px !important;
+                height: 50px !important;
+                width: 100% !important;
+                box-shadow: none !important;
+            }
+            div[data-testid="stHorizontalBlock"] button:hover {
+                background: #f0f2f6 !important; /* Un gris suavecito al tocar */
+                color: #ff2b2b !important;
+            }
+            div[data-testid="stHorizontalBlock"] button:active {
+                transform: scale(0.9); /* Efecto de rebote al clickear */
             }
             </style>
             """, unsafe_allow_html=True)
 
-        # 2. DEFINICIÓN DE COLUMNAS (Ancho [1, 2, 1] es clave)
-        # Usamos un contenedor para aislar un poco el estilo
-        with st.container():
-            col_atras, col_texto, col_sig = st.columns([1, 2, 1])
+        # ESTRUCTURA PYTHON (SIMPLE)
+        # Usamos contenedores vacíos, el CSS Grid se encarga de acomodarlos
+        c_atras, c_texto, c_siguiente = st.columns(3) # El número da igual, el CSS manda
 
-            # --- BOTÓN ATRÁS (Izquierda) ---
-            with col_atras:
-                if st.session_state['pagina_actual'] > 0:
-                    # Usamos ícono en vez de texto largo para que quepa en el celular
-                    if st.button("⬅", use_container_width=True, key="btn_ant"):
-                        st.session_state['pagina_actual'] -= 1
-                        st.rerun()
+        # --- BOTÓN IZQUIERDA (ICONO GRANDE) ---
+        with c_atras:
+            if st.session_state['pagina_actual'] > 0:
+                # Usamos un ícono sólido de FontAwesome o similar
+                if st.button("◀", key="btn_ant"):
+                    st.session_state['pagina_actual'] -= 1
+                    st.rerun()
 
-            # --- TEXTO CENTRAL ---
-            with col_texto:
-                # Texto centrado vertical y horizontalmente
-                st.markdown(f"""
-                <div style="
-                    text-align: center; 
-                    font-weight: bold; 
-                    color: #444; 
-                    font-size: 15px; 
-                    line-height: 38px; /* Misma altura que el botón */
-                    white-space: nowrap; /* Evita que el texto se parta en dos líneas */
-                ">
-                    Pág. {st.session_state['pagina_actual'] + 1} / {total_paginas}
-                </div>
-                """, unsafe_allow_html=True)
+        # --- TEXTO CENTRO (ESTILIZADO) ---
+        with c_texto:
+            # HTML para control total del texto central
+            st.markdown(f"""
+            <div style="
+                text-align: center; 
+                font-family: sans-serif;
+                font-weight: 600; 
+                color: #444; 
+                font-size: 14px; 
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 50px; /* Misma altura que botones */
+                background-color: #f9f9f9; /* Fondo sutil estilo 'cápsula' */
+                border-radius: 25px;
+                margin: 0 5px;
+            ">
+                Página {st.session_state['pagina_actual'] + 1} / {total_paginas}
+            </div>
+            """, unsafe_allow_html=True)
 
-            # --- BOTÓN SIGUIENTE (Derecha) ---
-            with col_sig:
-                if st.session_state['pagina_actual'] < total_paginas - 1:
-                    # Usamos ícono compacto
-                    if st.button("➡", use_container_width=True, type="primary", key="btn_sig"):
-                        st.session_state['pagina_actual'] += 1
-                        st.rerun()
+        # --- BOTÓN DERECHA (ICONO GRANDE) ---
+        with c_siguiente:
+            if st.session_state['pagina_actual'] < total_paginas - 1:
+                if st.button("▶", key="btn_sig"):
+                    st.session_state['pagina_actual'] += 1
+                    st.rerun()
         
             # PASO 2: FOTO HÍBRIDA
             st.markdown("---")
@@ -593,6 +618,7 @@ else:
             if st.button("⬅️ Cancelar"):
                 st.session_state['dni_validado'] = None
                 st.rerun()
+
 
 
 
