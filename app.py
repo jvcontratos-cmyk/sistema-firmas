@@ -360,27 +360,32 @@ else:
         st.success(f"Hola, **{nombre_archivo.replace('.pdf','')}**")
         st.info("👇 **SIGA LOS PASOS 1, 2 Y 3 PARA COMPLETAR SU FIRMA.**")
         
-        # --- PASO 1: LECTURA ULTRA PRO + NAVEGACIÓN FUSIONADA ---
+        # --- PASO 1: LECTURA ULTRA PRO (ZERO FLASH - MODO NETFLIX) ---
         st.markdown("### 1. Lectura del Contrato")
         st.caption("**TOQUE LA IMAGEN PARA LEER EN PANTALLA COMPLETA Y HACER ZOOM CON LOS DEDOS**.")
 
         try:
-            # 1. PRIMERO ABRIMOS EL PDF (Para saber cuántas páginas son)
+            # 1. CARGA MASIVA: Preparamos TODAS las páginas de una vez
+            # Esto elimina el parpadeo porque el navegador ya tendrá todas las fotos listas.
             doc = fitz.open(ruta_pdf_local)
-            total_paginas = len(doc) # <--- Ahora sí existe esta variable
-            pagina = doc[st.session_state['pagina_actual']]
-            pix = pagina.get_pixmap(dpi=300) 
-            img_bytes = pix.tobytes("png")
-            img_base64 = base64.b64encode(img_bytes).decode('utf-8')
-
-            # 2. AHORA SÍ DEFINIMOS LOS COLORES (Porque ya sabemos total_paginas)
-            color_atras = "#FF4B4B" if st.session_state['pagina_actual'] > 0 else "#ccc"
-            cursor_atras = "pointer" if st.session_state['pagina_actual'] > 0 else "default"
-            color_sig = "#FF4B4B" if st.session_state['pagina_actual'] < total_paginas - 1 else "#ccc"
-            cursor_sig = "pointer" if st.session_state['pagina_actual'] < total_paginas - 1 else "default"
+            total_paginas = len(doc)
             
-            # --- CÓDIGO HTML FUSIONADO (IMAGEN + BARRA) ---
-            html_fusionado = f"""
+            # Creamos una lista de Javascript con todas las imágenes codificadas
+            lista_imagenes_js = []
+            for i in range(total_paginas):
+                pagina = doc[i]
+                # DPI 200 es suficiente para pantalla y carga rápido. 300 puede ser pesado si son muchas hojas.
+                pix = pagina.get_pixmap(dpi=200) 
+                img_bytes = pix.tobytes("png")
+                b64 = base64.b64encode(img_bytes).decode('utf-8')
+                lista_imagenes_js.append(f"'data:image/png;base64,{b64}'")
+            
+            # Convertimos la lista de Python a un String de Array Javascript: ['data...', 'data...']
+            js_array_string = "[" + ",".join(lista_imagenes_js) + "]"
+
+            # --- CÓDIGO HTML + JS (EL MOTOR FERRARI) ---
+            # Ya no hay botones Python ocultos. Todo ocurre en el navegador del cliente.
+            html_zero_flash = f"""
             <!DOCTYPE html>
             <html>
             <head>
@@ -388,6 +393,7 @@ else:
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
                 <style>
                     body {{ margin: 0; padding: 0; font-family: sans-serif; }}
+                    
                     .contrato-container {{
                         text-align: center;
                         border: 1px solid #ddd;
@@ -395,7 +401,6 @@ else:
                         padding: 5px;
                         background: white;
                         cursor: zoom-in;
-                        margin-bottom: 0px;
                     }}
                     #imagen-contrato {{
                         max-width: 100%;
@@ -405,13 +410,14 @@ else:
                         margin: 0 auto;
                         object-fit: contain;
                     }}
+                    
+                    /* BARRA DE NAVEGACIÓN PEGADA Y ESTILIZADA */
                     .nav-container-pro {{
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         gap: 15px;
-                        padding: 8px 0;
-                        background: transparent;
+                        padding: 5px;
                         width: 100%;
                         user-select: none;
                         margin-top: 5px; 
@@ -420,10 +426,17 @@ else:
                         font-size: 28px;
                         font-weight: bold;
                         padding: 0 15px;
+                        cursor: pointer;
                         transition: transform 0.1s;
                         line-height: 1;
+                        color: #FF4B4B; /* Rojo Streamlit por defecto */
                     }}
-                    .nav-btn-pro:active {{ transform: scale(0.8); }}
+                    .nav-btn-pro.disabled {{
+                        color: #ccc;
+                        cursor: default;
+                    }}
+                    .nav-btn-pro:active:not(.disabled) {{ transform: scale(0.8); }}
+                    
                     .nav-text-capsule {{
                         background-color: #f0f2f6;
                         padding: 8px 20px;
@@ -440,62 +453,92 @@ else:
             </head>
             <body>
                 <div class="contrato-container">
-                    <img id="imagen-contrato" src="data:image/png;base64,{img_base64}" alt="Página">
+                    <img id="imagen-contrato" src="" alt="Contrato">
                     <div style="margin-top:2px; color:#999; font-size:11px;">👆 <i>Toque para zoom</i></div>
                 </div>
 
                 <div class="nav-container-pro">
-                    <div class="nav-btn-pro" id="btn-visual-prev" style="color: {color_atras}; cursor: {cursor_atras};">❮</div>
-                    <div class="nav-text-capsule">Pág. {st.session_state['pagina_actual'] + 1} / {total_paginas}</div>
-                    <div class="nav-btn-pro" id="btn-visual-next" style="color: {color_sig}; cursor: {cursor_sig};">❯</div>
+                    <div class="nav-btn-pro" id="btn-prev" onclick="cambiarPagina(-1)">❮</div>
+                    <div class="nav-text-capsule" id="contador-paginas">Cargando...</div>
+                    <div class="nav-btn-pro" id="btn-next" onclick="cambiarPagina(1)">❯</div>
                 </div>
 
                 <script>
-                    var img = document.getElementById('imagen-contrato');
-                    new Viewer(img, {{
-                        toolbar: {{ zoomIn:1, zoomOut:1, oneToOne:1, reset:1, rotateLeft:0, rotateRight:0, flipHorizontal:0, flipVertical:0 }},
-                        navbar:0, title:0, tooltip:0, movable:1, zoomable:1, rotatable:0, scalable:0, inline:false, transition:0, backdrop:'rgba(0,0,0,0.9)'
-                    }});
+                    // 1. RECIBIMOS TODAS LAS IMÁGENES DESDE PYTHON
+                    const paginas = {js_array_string};
+                    let indiceActual = 0;
+                    const total = paginas.length;
+                    
+                    const imgElement = document.getElementById('imagen-contrato');
+                    const txtContador = document.getElementById('contador-paginas');
+                    const btnPrev = document.getElementById('btn-prev');
+                    const btnNext = document.getElementById('btn-next');
+                    let viewer = null;
 
-                    function clickPythonButton(keyword) {{
-                        const buttons = window.parent.document.querySelectorAll('button');
-                        buttons.forEach(btn => {{
-                            if (btn.innerText.includes(keyword)) btn.click();
-                        }});
+                    // 2. FUNCIÓN PARA ACTUALIZAR LA VISTA (INSTANTÁNEA)
+                    function actualizarVista() {{
+                        // Cambiamos la fuente de la imagen (Magia sin parpadeo)
+                        imgElement.src = paginas[indiceActual];
+                        
+                        // Actualizamos texto
+                        txtContador.innerText = `Pág. ${{indiceActual + 1}} / ${{total}}`;
+                        
+                        // Actualizamos colores de botones (Gris si es el final)
+                        if (indiceActual === 0) {{
+                            btnPrev.classList.add('disabled');
+                        }} else {{
+                            btnPrev.classList.remove('disabled');
+                        }}
+                        
+                        if (indiceActual === total - 1) {{
+                            btnNext.classList.add('disabled');
+                        }} else {{
+                            btnNext.classList.remove('disabled');
+                        }}
+
+                        // Si el visor de zoom está abierto, hay que actualizarlo también
+                        if (viewer) {{
+                            viewer.update();
+                        }}
                     }}
-                    document.getElementById('btn-visual-prev').onclick = () => clickPythonButton("⚡ANT");
-                    document.getElementById('btn-visual-next').onclick = () => clickPythonButton("⚡SIG");
 
-                    setInterval(() => {{
-                        const buttons = window.parent.document.querySelectorAll('button');
-                        buttons.forEach(btn => {{
-                            if (btn.innerText.includes("⚡ANT") || btn.innerText.includes("⚡SIG")) {{
-                                btn.style.display = "none";
-                            }}
-                        }});
-                    }}, 100);
+                    // 3. FUNCIÓN DE NAVEGACIÓN
+                    window.cambiarPagina = function(direccion) {{
+                        const nuevoIndice = indiceActual + direccion;
+                        if (nuevoIndice >= 0 && nuevoIndice < total) {{
+                            indiceActual = nuevoIndice;
+                            actualizarVista();
+                        }}
+                    }};
+
+                    // 4. INICIALIZAR AL CARGAR
+                    // Cargamos la página 0 al inicio
+                    actualizarVista();
+
+                    // Iniciamos el Zoom Potente
+                    viewer = new Viewer(imgElement, {{
+                        toolbar: {{ zoomIn:1, zoomOut:1, oneToOne:1, reset:1, rotateLeft:0, rotateRight:0, flipHorizontal:0, flipVertical:0 }},
+                        navbar: 0, 
+                        title: 0, 
+                        tooltip: 0, 
+                        movable: 1, 
+                        zoomable: 1, 
+                        rotatable: 0, 
+                        scalable: 0, 
+                        inline: false, 
+                        transition: 0, 
+                        backdrop: 'rgba(0,0,0,0.9)' 
+                    }});
                 </script>
             </body>
             </html>
             """
             
-            st.components.v1.html(html_fusionado, height=600, scrolling=False)
+            # Renderizamos todo (Altura 600px para que quepa bien)
+            st.components.v1.html(html_zero_flash, height=600, scrolling=False)
 
         except Exception as e:
             st.error(f"Error cargando visor: {e}")
-
-        # 3. LOGICA OCULTA (AL FINAL)
-        c_hidden_1, c_hidden_2 = st.columns(2)
-        with c_hidden_1: click_atras = st.button("⚡ANT", key="nav_atras_hidden")
-        with c_hidden_2: click_siguiente = st.button("⚡SIG", key="nav_sig_hidden")
-
-        if click_atras and st.session_state['pagina_actual'] > 0:
-            st.session_state['pagina_actual'] -= 1
-            st.rerun()
-        if click_siguiente and st.session_state['pagina_actual'] < total_paginas - 1:
-            st.session_state['pagina_actual'] += 1
-            st.rerun()
-
         # PASO 2: FOTO HÍBRIDA
         st.markdown("---")
         st.subheader("2. Foto de Identidad")
@@ -585,5 +628,6 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
