@@ -355,122 +355,128 @@ else:
             st.session_state['firmado_ok'] = False
             st.rerun()
 
-    else:
-        if st.session_state['modo_lectura']:
-            # --- MODO LECTURA SEGURO (SIN F-STRINGS) ---
-            c_close, c_tit = st.columns([1, 4])
-            with c_close:
-                if st.button("❌ CERRAR", type="secondary", use_container_width=True):
-                    st.session_state['modo_lectura'] = False
-                    st.rerun()
-            with c_tit:
-                st.markdown(f"<h4 style='text-align: center; margin: 0; padding-top: 5px;'>📄 Página {st.session_state['pagina_actual'] + 1}</h4>", unsafe_allow_html=True)
-
-            try:
-                doc = fitz.open(ruta_pdf_local)
-                total_paginas = len(doc)
-                pagina = doc[st.session_state['pagina_actual']]
-                pix = pagina.get_pixmap(dpi=250) 
-                img_bytes = pix.tobytes("png")
-                img_base64 = base64.b64encode(img_bytes).decode('utf-8')
-                
-                # HTML PLANO PARA EVITAR ERROR DE SINTAXIS
-                html_template = """
-                <style>
-                    #image-container {
-                        width: 100%;
-                        height: 75vh;
-                        overflow: hidden; 
-                        border: 1px solid #ccc;
-                        background-color: #525659;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        border-radius: 8px;
-                        touch-action: none; 
-                    }
-                    #zoom-img {
-                        max-width: 100%;
-                        max-height: 100%;
-                        transition: transform 0.1s ease-out;
-                        transform-origin: center center;
-                    }
-                </style>
-                <div id="image-container">
-                    <img id="zoom-img" src="data:image/png;base64,PLACEHOLDER_BASE64" />
-                </div>
-                <div style="text-align: center; color: gray; font-size: 13px; margin-top: 5px;">
-                    ✌️ <i>¡Haga Zoom con los dedos!</i>
-                </div>
-                <script>
-                    const container = document.getElementById("image-container");
-                    const img = document.getElementById("zoom-img");
-                    let scale = 1, pointX = 0, pointY = 0, startX = 0, startY = 0, isDragging = false;
-                    let startDist = 0, startScale = 1;
-
-                    container.addEventListener("touchstart", function(e) {
-                        if (e.touches.length === 2) {
-                            startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                            startScale = scale;
-                        } else if (e.touches.length === 1) {
-                            isDragging = true;
-                            startX = e.touches[0].clientX - pointX;
-                            startY = e.touches[0].clientY - pointY;
-                        }
-                    });
-
-                    container.addEventListener("touchmove", function(e) {
-                        e.preventDefault(); 
-                        if (e.touches.length === 2) {
-                            const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                            scale = startScale * (dist / startDist);
-                            if (scale < 1) scale = 1; if (scale > 4) scale = 4;
-                        } else if (e.touches.length === 1 && isDragging && scale > 1) {
-                            pointX = e.touches[0].clientX - startX;
-                            pointY = e.touches[0].clientY - startY;
-                        }
-                        img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
-                    });
-
-                    container.addEventListener("touchend", function(e) {
-                        isDragging = false;
-                        if (scale === 1) {
-                            pointX = 0; pointY = 0;
-                            img.style.transform = `translate(0px, 0px) scale(1)`;
-                        }
-                    });
-                </script>
-                """
-                # REEMPLAZO SEGURO DE LA VARIABLE
-                html_final = html_template.replace("PLACEHOLDER_BASE64", img_base64)
-                st.markdown(html_final, unsafe_allow_html=True)
-
-            except Exception as e: st.error(f"Error técnico: {e}")
-
-            st.write("")
-            c_ant, c_sig = st.columns(2)
-            with c_ant:
-                if st.session_state['pagina_actual'] > 0:
-                    if st.button("⬅️ ANTERIOR", use_container_width=True):
-                        st.session_state['pagina_actual'] -= 1
-                        st.rerun()
-            with c_sig:
-                if st.session_state['pagina_actual'] < total_paginas - 1:
-                    if st.button("SIGUIENTE ➡️", type="primary", use_container_width=True):
-                        st.session_state['pagina_actual'] += 1
-                        st.rerun()
+    # --- INTERFAZ CENTRAL (PARTE INFERIOR) ---
+else:
+    nombre_archivo = st.session_state['archivo_nombre']
+    ruta_pdf_local = os.path.join(CARPETA_TEMP, nombre_archivo)
+    
+    # === PANTALLA DE ÉXITO (YA FIRMADO) ===
+    if st.session_state['firmado_ok']:
+        st.success("✅ ¡Firma y Biometría registradas!")
+        st.info("Contrato guardado exitosamente.")
+        ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
+        if os.path.exists(ruta_salida_firmado):
+            with open(ruta_salida_firmado, "rb") as f:
+                st.download_button("📥 DESCARGAR CONTRATO FIRMADO", f, file_name=f"FIRMADO_{nombre_archivo}", mime="application/pdf", type="primary")
         
-        else:
-            # FORMULARIO PASO A PASO
-            st.success(f"Hola, **{nombre_archivo.replace('.pdf','')}**")
-            st.info("👇 **SIGA LOS PASOS 1, 2 Y 3 PARA COMPLETAR SU FIRMA.**")
+        st.markdown("---")
+        if st.button("🏠 SALIR"):
+            st.session_state['dni_validado'] = None
+            st.session_state['firmado_ok'] = False
+            st.rerun()
+
+    # === PANTALLA DE PROCESO (LECTURA + FOTO + FIRMA) ===
+    else:
+        st.success(f"Hola, **{nombre_archivo.replace('.pdf','')}**")
+        st.info("👇 **SIGA LOS PASOS PARA COMPLETAR SU FIRMA.**")
+        
+        # --- PASO 1: LECTURA ULTRA PRO (CON VIEWER.JS) ---
+        st.markdown("### 1. Lectura del Contrato")
+        st.caption("Toque la imagen para leer en pantalla completa (Zoom activado).")
+
+        # 1. Preparamos la imagen de la página actual
+        try:
+            doc = fitz.open(ruta_pdf_local)
+            total_paginas = len(doc)
+            pagina = doc[st.session_state['pagina_actual']]
+            # Calidad ALTA (300 DPI) para que al hacer zoom se vea nítido
+            pix = pagina.get_pixmap(dpi=300) 
+            img_bytes = pix.tobytes("png")
+            img_base64 = base64.b64encode(img_bytes).decode('utf-8')
             
-            # PASO 1
-            st.markdown("### 1. Lectura del Contrato")
-            if st.button("📖 TOCAR AQUÍ PARA LEER EL CONTRATO (PANTALLA COMPLETA)", type="primary", use_container_width=True):
-                st.session_state['modo_lectura'] = True
-                st.session_state['pagina_actual'] = 0
-                st.rerun()
+            # 2. INYECCIÓN DE CÓDIGO NUCLEAR (HTML + JS + CSS EXTERNO)
+            # Esto carga la librería Viewer.js desde internet sin instalar nada
+            componente_visualizador = f"""
+            <link href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" rel="stylesheet">
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
+
+            <style>
+                .contrato-container {{
+                    text-align: center;
+                    margin-bottom: 10px;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    padding: 5px;
+                    background: white;
+                    cursor: zoom-in; /* Manito de lupa */
+                }}
+                #imagen-contrato {{
+                    max-width: 100%;
+                    height: auto;
+                    display: block;
+                    margin: 0 auto;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                }}
+                /* Ocultar botones feos de la librería si queremos */
+                .viewer-title {{ display: none; }}
+            </style>
+
+            <div class="contrato-container">
+                <img id="imagen-contrato" src="data:image/png;base64,{img_base64}" alt="Contrato Página {st.session_state['pagina_actual'] + 1}">
+                <div style="margin-top:5px; color:#555; font-size:12px;">👆 <i>Toque la hoja para ampliar y hacer zoom con los dedos</i> 🔍</div>
+            </div>
+
+            <script>
+                // ESPERAMOS A QUE CARGUE LA IMAGEN
+                var img = document.getElementById('imagen-contrato');
+                
+                // INICIAMOS EL VISOR POTENTE
+                // Esto crea una capa por encima de Streamlit
+                var viewer = new Viewer(img, {{
+                    toolbar: {{
+                        zoomIn: 1,
+                        zoomOut: 1,
+                        oneToOne: 1,
+                        reset: 1,
+                        rotateLeft: 0,
+                        rotateRight: 0,
+                        flipHorizontal: 0,
+                        flipVertical: 0,
+                    }},
+                    navbar: false,
+                    title: false,
+                    tooltip: false,
+                    movable: true,
+                    zoomable: true,
+                    rotatable: false,
+                    scalable: false,
+                    inline: false, // ESTO ES CLAVE: MODO MODAL (PANTALLA COMPLETA REAL)
+                    transition: false, // Más rápido en celulares lentos
+                    backdrop: 'rgba(0,0,0,0.9)' // Fondo negro oscuro
+                }});
+            </script>
+            """
+            
+            # Renderizamos la bomba HTML
+            st.components.v1.html(componente_visualizador, height=500, scrolling=False)
+
+        except Exception as e:
+            st.error(f"Error cargando visor: {e}")
+
+        # BOTONES DE PAGINACIÓN (EXTERNOS AL VISOR)
+        c_ant, c_pag, c_sig = st.columns([1, 2, 1])
+        with c_ant:
+            if st.session_state['pagina_actual'] > 0:
+                if st.button("⬅️ Ant.", use_container_width=True):
+                    st.session_state['pagina_actual'] -= 1
+                    st.rerun()
+        with c_pag:
+            st.markdown(f"<p style='text-align:center; margin-top: 5px;'>Pág. {st.session_state['pagina_actual'] + 1} de {total_paginas}</p>", unsafe_allow_html=True)
+        with c_sig:
+            if st.session_state['pagina_actual'] < total_paginas - 1:
+                if st.button("Sig. ➡️", type="primary", use_container_width=True):
+                    st.session_state['pagina_actual'] += 1
+                    st.rerun()
         
             # PASO 2: FOTO HÍBRIDA
             st.markdown("---")
@@ -561,6 +567,7 @@ else:
             if st.button("⬅️ Cancelar"):
                 st.session_state['dni_validado'] = None
                 st.rerun()
+
 
 
 
