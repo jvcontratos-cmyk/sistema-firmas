@@ -620,8 +620,7 @@ else:
                 enviar_firma = st.form_submit_button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True)
 
             if enviar_firma:
-                # === 🛡️ INICIO PANTALLA DE CARGA TOTAL ===
-                # Esto inyecta una capa que bloquea TODA la pantalla al instante
+            
                 st.markdown("""
                 <style>
                     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -704,6 +703,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
