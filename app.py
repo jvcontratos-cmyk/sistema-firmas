@@ -506,102 +506,6 @@ else:
             st.session_state['pagina_actual'] += 1
             st.rerun()
 
-        except Exception as e:
-            st.error(f"Error cargando visor: {e}")
-
-        # --- BARRA DE NAVEGACIÓN "EL TITIRITERO" (HTML + JS BRIDGE) ---
-
-        # 1. LOGICA OCULTA (LOS HILOS DEL TÍTERE)
-        # Creamos botones de Streamlit reales pero con etiquetas únicas para encontrarlos
-        # Los envolvemos en columnas vacías para que no molesten visualmente mientras carga
-        c_hidden_1, c_hidden_2 = st.columns(2)
-        with c_hidden_1:
-            click_atras = st.button("⚡ANT", key="nav_atras_hidden")
-        with c_hidden_2:
-            click_siguiente = st.button("⚡SIG", key="nav_sig_hidden")
-
-        # Lógica de navegación (Python puro)
-        if click_atras and st.session_state['pagina_actual'] > 0:
-            st.session_state['pagina_actual'] -= 1
-            st.rerun()
-        if click_siguiente and st.session_state['pagina_actual'] < total_paginas - 1:
-            st.session_state['pagina_actual'] += 1
-            st.rerun()
-
-        # 2. MÁSCARA VISUAL + SCRIPT AGRESIVO (CORREGIDO)
-        color_atras = "#FF4B4B" if st.session_state['pagina_actual'] > 0 else "#ccc"
-        cursor_atras = "pointer" if st.session_state['pagina_actual'] > 0 else "default"
-        color_sig = "#FF4B4B" if st.session_state['pagina_actual'] < total_paginas - 1 else "#ccc"
-        cursor_sig = "pointer" if st.session_state['pagina_actual'] < total_paginas - 1 else "default"
-
-        html_nav_bar = f"""
-        <style>
-            .nav-container-pro {{ 
-                display: flex; 
-                align-items: center; 
-                justify-content: center; 
-                gap: 15px; 
-                padding: 5px; /* Reduje el padding para que sea más delgado */
-                width: 100%; 
-                user-select: none; 
-                margin-top: -30px; /* <--- EL TRUCO: Sube la barra hacia la imagen */
-                z-index: 999;
-            }}
-            .nav-btn-pro {{ 
-                font-size: 28px; 
-                font-weight: bold; 
-                padding: 0 15px; 
-                transition: transform 0.1s; 
-                line-height: 1; 
-            }}
-            .nav-btn-pro:active {{ transform: scale(0.8); }}
-            .nav-text-capsule {{ 
-                background-color: #f0f2f6; 
-                padding: 8px 20px; 
-                border-radius: 20px; 
-                font-family: sans-serif; 
-                font-weight: 600; 
-                color: #444; 
-                font-size: 14px; 
-                min-width: 120px; 
-                text-align: center; 
-                box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
-            }}
-        </style>
-        <div class="nav-container-pro">
-            <div class="nav-btn-pro" id="btn-visual-prev" style="color: {color_atras}; cursor: {cursor_atras};">❮</div>
-            <div class="nav-text-capsule">Pág. {st.session_state['pagina_actual'] + 1} / {total_paginas}</div>
-            <div class="nav-btn-pro" id="btn-visual-next" style="color: {color_sig}; cursor: {cursor_sig};">❯</div>
-        </div>
-        <script>
-            // FUNCIÓN DE OCULTACIÓN (Mantenemos la que funciona)
-            function hideStreamlitButtons() {{
-                const buttons = window.parent.document.querySelectorAll('button');
-                buttons.forEach(btn => {{
-                    if (btn.innerText.includes("⚡ANT") || btn.innerText.includes("⚡SIG")) {{
-                        btn.style.display = "none";
-                        btn.style.visibility = "hidden";
-                    }}
-                }});
-            }}
-            hideStreamlitButtons();
-            setInterval(hideStreamlitButtons, 50);
-
-            // LOGICA DEL CLIC
-            const buttons = window.parent.document.querySelectorAll('button');
-            let btnPyPrev = null, btnPyNext = null;
-            buttons.forEach(btn => {{
-                if (btn.innerText.includes("⚡ANT")) btnPyPrev = btn;
-                if (btn.innerText.includes("⚡SIG")) btnPyNext = btn;
-            }});
-            document.getElementById('btn-visual-prev').onclick = () => {{ if(btnPyPrev) btnPyPrev.click(); }};
-            document.getElementById('btn-visual-next').onclick = () => {{ if(btnPyNext) btnPyNext.click(); }};
-        </script>
-        """
-        
-        # Renderizamos
-        st.components.v1.html(html_nav_bar, height=60) # Bajé la altura a 60 para pegar más lo de abajo
-
         # PASO 2: FOTO HÍBRIDA
         st.markdown("---")
         st.subheader("2. Foto de Identidad")
@@ -691,6 +595,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
