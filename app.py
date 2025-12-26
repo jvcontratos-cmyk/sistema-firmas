@@ -478,7 +478,7 @@ else:
                 padding: 5px; /* Reduje el padding para que sea más delgado */
                 width: 100%; 
                 user-select: none; 
-                margin-top: -50px; /* <--- EL TRUCO: Sube la barra hacia la imagen */
+                margin-top: -30px; /* <--- EL TRUCO: Sube la barra hacia la imagen */
             }}
             .nav-btn-pro {{ 
                 font-size: 28px; 
@@ -624,6 +624,7 @@ else:
         if st.button("⬅️ Cancelar"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
