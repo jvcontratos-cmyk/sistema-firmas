@@ -335,26 +335,6 @@ if st.session_state['dni_validado'] is None:
         st.markdown("En el contrato de trabajo se estipula únicamente la **Remuneración Básica**. El **Sueldo Bruto** (básico + bonos) se verá en su **boleta de pago**.")
     st.info("📞 **¿Dudas?** Contacte al área de Administración de Personal.")
 
-else:
-    # 2. APP PRINCIPAL
-    nombre_archivo = st.session_state['archivo_nombre']
-    ruta_pdf_local = os.path.join(CARPETA_TEMP, nombre_archivo)
-    
-    if st.session_state['firmado_ok']:
-        st.success("✅ ¡Firma y Biometría registradas!")
-        st.info("Contrato guardado exitosamente.")
-        
-        ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
-        if os.path.exists(ruta_salida_firmado):
-            with open(ruta_salida_firmado, "rb") as f:
-                st.download_button("📥 DESCARGAR CONTRATO", f, file_name=f"FIRMADO_{nombre_archivo}", mime="application/pdf", type="primary")
-        
-        st.markdown("---")
-        if st.button("🏠 SALIR"):
-            st.session_state['dni_validado'] = None
-            st.session_state['firmado_ok'] = False
-            st.rerun()
-
     # --- INTERFAZ CENTRAL (PARTE INFERIOR) ---
 else:
     nombre_archivo = st.session_state['archivo_nombre']
@@ -567,6 +547,7 @@ else:
             if st.button("⬅️ Cancelar"):
                 st.session_state['dni_validado'] = None
                 st.rerun()
+
 
 
 
