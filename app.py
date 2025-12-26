@@ -620,6 +620,49 @@ else:
                 enviar_firma = st.form_submit_button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True)
 
             if enviar_firma:
+                # === 🛡️ INICIO PANTALLA DE CARGA TOTAL ===
+                # Esto inyecta una capa que bloquea TODA la pantalla al instante
+                st.markdown("""
+                <style>
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+                <div style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(255, 255, 255, 0.85); /* Fondo blanco semitransparente */
+                    backdrop-filter: blur(8px); /* Efecto vidrio esmerilado PRO */
+                    z-index: 999999; /* Por encima de todo */
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <div style="
+                        border: 10px solid #f3f3f3; 
+                        border-top: 10px solid #FF4B4B; /* Rojo Streamlit */
+                        border-radius: 50%; 
+                        width: 80px; 
+                        height: 80px; 
+                        animation: spin 1s linear infinite;
+                        margin-bottom: 20px;
+                    "></div>
+                    
+                    <div style="font-size: 24px; font-weight: bold; color: #333; font-family: sans-serif;">
+                        PROCESANDO DOCUMENTO...
+                    </div>
+                    <div style="font-size: 16px; color: #666; margin-top: 10px; font-family: sans-serif;">
+                        Por favor espere, no cierre la ventana.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                # === 🛡️ FIN PANTALLA DE CARGA ===
+
+                if canvas_result.image_data is not None:
+                    # ... (Aquí sigue tu código normal de img_data = ...)
+            
                 if canvas_result.image_data is not None:
                     img_data = canvas_result.image_data.astype('uint8')
                     if img_data[:, :, 3].sum() == 0:
@@ -661,6 +704,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
