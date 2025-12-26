@@ -86,7 +86,7 @@ st.markdown("""
     }
 
     [data-testid='stFileUploaderDropzone']::after {
-        content: "📷 TOCAR AQUÍ"; 
+        content: "📷 TOCAR AQUÍ PARA ABRIR LA CÁMARA (CELULAR)"; 
         font-size: 18px !important;
         color: #555555 !important;
         font-weight: bold !important;
@@ -299,21 +299,21 @@ if st.session_state['dni_validado'] is None:
             st.warning("⚠️ (Falta logo_liderman.png)")
 
     st.title("✍️ Portal de Contratos")
-    st.markdown("Ingrese su documento para buscar su contrato.")
+    st.markdown("**INGRESE SU NÚMERO DE DOCUMENTO PARA BUSCAR SU CONTRATO.**")
     
     with st.form("login_form"):
-        dni_input = st.text_input("DIGITE SU DNI", max_chars=15)
+        dni_input = st.text_input("**DIGITE SU DNI**", max_chars=15)
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
     if submitted and dni_input:
-        with st.spinner("Buscando..."):
+        with st.spinner("**BUSCANDO...**"):
             estado_sheet = consultar_estado_dni(dni_input)
         
         if estado_sheet == "FIRMADO":
-            st.info(f"ℹ️ El DNI {dni_input} ya registra un contrato firmado.")
-            st.markdown("""**Si necesita una copia de su contrato**, contacte al área de Administración de Personal.""")
+            st.info(f"ℹ️ **EL DNI {dni_input} YA REGISTRA UN CONTRATO FIRMADO.**")
+            st.markdown("""**SI NECESITA UNA COPIA DE SU CONTRATO, O CREE QUE ESTO ES UN ERROR, POR FAVOR CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**""")
         else:
-            with st.spinner("Buscando contrato en la nube..."):
+            with st.spinner("**BUSCANDO CONTRATO...**"):
                 archivo_drive = buscar_archivo_drive(dni_input)
             
             if archivo_drive:
@@ -326,14 +326,16 @@ if st.session_state['dni_validado'] is None:
                     st.session_state['firmado_ok'] = False
                     st.session_state['foto_bio'] = None
                     st.rerun()
-                else: st.error("Error al descargar el documento.")
-            else: st.error("❌ Contrato no ubicado.")
+                else: st.error("**ERROR AL ENCONTRAR EL DOCUMENTO. INTENTE NUEVAMENTE.**")
+            else: st.error("**❌ CONTRATO NO UBICADO (VERIFIQUE QUE SU DNI ESTÉ CORRECTAMENTE ESCRITO), SI ESTÁ TODO CORRECTO, CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**")
     
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
     with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
-        st.markdown("En el contrato de trabajo se estipula únicamente la **Remuneración Básica**. El **Sueldo Bruto** (básico + bonos) se verá en su **boleta de pago**.")
-    st.info("📞 **¿Dudas?** Contacte al área de Administración de Personal.")
+        st.markdown("En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto. El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos). *Lo verá reflejado en su **boleta de pago** a fin de mes.*")
+    with st.expander("🕒 ¿Por qué el contrato dice 8hrs si mi puesto de trabajo es de 12hrs?"):
+        st.markdown("La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias. Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**. *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*")
+    st.info("📞 **¿Dudas adicionales?** Contacte al área de Administración de Personal.")
 
 else:
     # 2. APP PRINCIPAL
@@ -342,12 +344,12 @@ else:
     
     # === PANTALLA DE ÉXITO (YA FIRMADO) ===
     if st.session_state['firmado_ok']:
-        st.success("✅ ¡Firma y Biometría registradas!")
+        st.success("**✅ ¡FIRMA Y BIOMETRÍA REGISTRADAS!**")
         st.info("Contrato guardado exitosamente.")
         ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
         if os.path.exists(ruta_salida_firmado):
             with open(ruta_salida_firmado, "rb") as f:
-                st.download_button("📥 DESCARGAR CONTRATO FIRMADO", f, file_name=f"FIRMADO_{nombre_archivo}", mime="application/pdf", type="primary")
+                st.download_button("**📥 DESCARGAR CONTRATO FIRMADO**", f, file_name=f"FIRMADO_{nombre_archivo}", mime="application/pdf", type="primary")
         
         st.markdown("---")
         if st.button("🏠 SALIR"):
@@ -454,7 +456,7 @@ else:
             <body>
                 <div class="contrato-container">
                     <img id="imagen-contrato" src="" alt="Contrato">
-                    <div style="margin-top:2px; color:#999; font-size:11px;">👆 <i>Toque para zoom</i></div>
+                    <div style="margin-top:2px; color:#999; font-size:11px;">👆 <i>**RECUERDE HACER ZOOM CON LOS DEDOS**</i></div>
                 </div>
 
                 <div class="nav-container-pro">
@@ -544,12 +546,12 @@ else:
         st.subheader("2. Foto de Identidad")
         
         if st.session_state['foto_bio'] is None:
-            usar_webcam = st.checkbox("💻 ¿Estás en PC y no tienes foto? Usar cámara web", value=False)
+            usar_webcam = st.checkbox("💻 **¿ESTÁS EN COMPUTADORA / LAPTOP? CLICK AQUÍ PARA USAR LA CÁMARA WEB**", value=False)
             foto_input = None
             if usar_webcam:
                 foto_input = st.camera_input("📸 TOMAR FOTO", label_visibility="visible")
             else:
-                st.warning("📸 TOQUE EL CUADRO ROJO PARA TOMAR LA FOTO:")
+                st.warning("📸 **SI ESTÁS EN CELULAR, TOCA EL RECUADRO DE ABAJO PARA ABRIR LA CÁMARA:**")
                 foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
             
             if foto_input is not None:
@@ -576,7 +578,7 @@ else:
         if st.session_state['foto_bio'] is None:
             st.error("⚠️ PRIMERO DEBE TOMARSE LA FOTO EN EL PASO 2 👆")
         else:
-            st.caption("Dibuje su firma. Use la **Papelera 🗑️** para borrar.")
+            st.caption("**DIBUJE SU FIRMA. EN CASO FALLÓ, USE LA PAPELERA 🗑️ PARA BORRAR**")
             with st.form(key="formulario_firma", clear_on_submit=False):
                 canvas_result = st_canvas(
                     stroke_width=2, stroke_color="#000000", background_color="#ffffff", 
@@ -590,12 +592,12 @@ else:
                 if canvas_result.image_data is not None:
                     img_data = canvas_result.image_data.astype('uint8')
                     if img_data[:, :, 3].sum() == 0:
-                        st.warning("⚠️ El recuadro está vacío. Por favor firme.")
+                        st.warning("**⚠️ EL RECUADRO ESTÁ VACIO. POR FAVOR FIRME**")
                     else:
                         ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
                         ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
                         
-                        with st.spinner("⏳ Guardando contrato..."):
+                        with st.spinner("**⏳ GUARDANDO CONTRATO..."):
                             try:
                                 img = Image.fromarray(img_data, 'RGBA')
                                 data = img.getdata()
@@ -607,7 +609,7 @@ else:
                                         newData.append((255, 255, 255, 0))
                                     else: newData.append(item)
                                 
-                                if es_blanco: st.warning("⚠️ El recuadro parece vacío.")
+                                if es_blanco: st.warning("**⚠️ EL RECUADRO PARECE VACIO.**")
                                 else:
                                     img.putdata(newData)
                                     img.save(ruta_firma, "PNG")
@@ -625,9 +627,10 @@ else:
                                 if os.path.exists(ruta_firma): os.remove(ruta_firma)
                 else: st.warning("⚠️ Falta su firma.")
 
-        if st.button("⬅️ Cancelar"):
+        if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
