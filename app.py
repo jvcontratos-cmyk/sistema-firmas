@@ -443,18 +443,41 @@ else:
         except Exception as e:
             st.error(f"Error cargando visor: {e}")
 
-        # BOTONES DE PAGINACIÓN (EXTERNOS AL VISOR)
-        c_ant, c_pag, c_sig = st.columns([1, 2, 1])
-        with c_ant:
+        # --- BARRA DE NAVEGACIÓN ESTILO "TOOLBAR" ---
+        st.write("") # Un pequeño espacio antes
+        
+        # Usamos columnas: [Botón Ant] [ Texto Centro ] [Botón Sig]
+        # La proporción [1, 3, 1] hace que los botones sean chicos y el texto tenga espacio
+        c_nav_ant, c_nav_txt, c_nav_sig = st.columns([1, 3, 1], gap="small")
+        
+        with c_nav_ant:
             if st.session_state['pagina_actual'] > 0:
-                if st.button("⬅️ Ant.", use_container_width=True):
+                # Usamos solo flecha para ahorrar espacio en móvil
+                if st.button("⬅️", use_container_width=True, help="Página Anterior"):
                     st.session_state['pagina_actual'] -= 1
                     st.rerun()
-        with c_pag:
-            st.markdown(f"<p style='text-align:center; margin-top: 5px;'>Pág. {st.session_state['pagina_actual'] + 1} de {total_paginas}</p>", unsafe_allow_html=True)
-        with c_sig:
+                    
+        with c_nav_txt:
+            # Texto centrado y bonito
+            st.markdown(
+                f"""
+                <div style="
+                    text-align: center;
+                    padding-top: 8px; /* Alineación vertical con los botones */
+                    font-weight: bold;
+                    color: #555;
+                    font-size: 14px;
+                ">
+                    Pág. {st.session_state['pagina_actual'] + 1} de {total_paginas}
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
+            
+        with c_nav_sig:
             if st.session_state['pagina_actual'] < total_paginas - 1:
-                if st.button("Sig. ➡️", type="primary", use_container_width=True):
+                # Usamos solo flecha para ahorrar espacio
+                if st.button("➡️", type="primary", use_container_width=True, help="Página Siguiente"):
                     st.session_state['pagina_actual'] += 1
                     st.rerun()
         
@@ -547,6 +570,7 @@ else:
             if st.button("⬅️ Cancelar"):
                 st.session_state['dni_validado'] = None
                 st.rerun()
+
 
 
 
