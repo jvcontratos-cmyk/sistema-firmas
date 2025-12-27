@@ -722,75 +722,99 @@ else:
                 enviar_firma = st.form_submit_button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True)
 
             if enviar_firma:
-                # --- MODO DIAGNÓSTICO SIN BLOQUEO DE PANTALLA ---
-                st.info("🔄 INICIANDO PROCESO DE FIRMA... (NO CIERRES)")
-                
-                if canvas_result.image_data is not None:
-                    st.write("✅ 1. Firma detectada.")
-                    ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
-                    ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
-                    
-                    # Guardar imagen firma
-                    img_data = canvas_result.image_data.astype('uint8')
-                    img = Image.fromarray(img_data, 'RGBA')
-                    img.save(ruta_firma, "PNG")
-                    st.write("✅ 2. Imagen de firma guardada.")
-                    
-                    try:
-                        # Estampado
-                        st.write("⏳ 3. Estampando firmas en el PDF...")
-                        tipo_actual = st.session_state['tipo_contrato']
-                        estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado, tipo_actual)
-                        estampar_firma_y_foto_pagina_final(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
-                        st.write("✅ 4. PDF generado correctamente.")
-                        
-                        # Subida a Drive
-                        sede_actual = st.session_state['sede_usuario']
-                        id_carpeta_destino = RUTAS_DRIVE[sede_actual]["FIRMADOS"]
-                        
-                        st.write(f"🚀 5. INTENTANDO SUBIR A GOOGLE DRIVE... (ID: {id_carpeta_destino})")
-                        st.write("⚠️ Si se queda pegado aquí, el problema es el Script de Google.")
-                        
-                        # --- AQUÍ ES DONDE PROBABLEMENTE SE CUELGA ---
-                        subida_ok = enviar_a_drive_script(ruta_salida_firmado, nombre_archivo, id_carpeta_destino)
-                        # ---------------------------------------------
+                # === 🛡️ INICIO PANTALLA DE CARGA TOTAL (ELEGANTE) ===
+                st.markdown("""
+<style>
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
+<div style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+">
+    <div style="
+        border: 10px solid #f3f3f3; 
+        border-top: 10px solid #FF4B4B; 
+        border-radius: 50%; 
+        width: 80px; 
+        height: 80px; 
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+    "></div>
+    <div style="font-size: 24px; font-weight: bold; color: #333; font-family: sans-serif;">
+        PROCESANDO DOCUMENTO...
+    </div>
+    <div style="font-size: 16px; color: #666; margin-top: 10px; font-family: sans-serif;">
+        Por favor espere, no cierre la ventana.
+    </div>
+</div>
+""", unsafe_allow_html=True)
+                # === 🛡️ FIN PANTALLA DE CARGA ===
 
-                        if subida_ok:
-                            st.write("✅ 6. ¡Subida exitosa a Drive!")
-                            st.write("⏳ 7. Actualizando Excel...")
+                if canvas_result.image_data is not None:
+                    img_data = canvas_result.image_data.astype('uint8')
+                    if img_data[:, :, 3].sum() == 0:
+                        st.warning("**⚠️ EL RECUADRO ESTÁ VACIO. POR FAVOR FIRME**")
+                    else:
+                        ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
+                        ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
+                        
+                        try:
+                            # 1. Guardar la imagen de la firma temporalmente
+                            img = Image.fromarray(img_data, 'RGBA')
+                            data = img.getdata()
+                            newData = []
+                            es_blanco = True 
+                            for item in data:
+                                if item[0] < 200: es_blanco = False 
+                                if item[0] > 230 and item[1] > 230 and item[2] > 230:
+                                    newData.append((255, 255, 255, 0))
+                                else: newData.append(item)
                             
-                            if registrar_firma_sheet(st.session_state['dni_validado'], sede_actual):
-                                st.success("✅ TODO LISTO. FINALIZANDO...")
-                                st.session_state['firmado_ok'] = True
-                                borrar_archivo_drive(st.session_state['archivo_id'])
-                                st.balloons()
-                                st.rerun()
+                            if es_blanco: 
+                                st.warning("**⚠️ EL RECUADRO PARECE VACIO.**")
                             else:
-                                st.error("❌ Falló el registro en Excel.")
-                        else:
-                            st.error("❌ FALLÓ LA SUBIDA A DRIVE. El 'Robot' no respondió.")
-                            
-                    except Exception as e:
-                        st.error(f"❌ ERROR TÉCNICO: {e}")
-                else:
-                    st.warning("⚠️ El recuadro de firma está vacío.")
+                                img.putdata(newData)
+                                img.save(ruta_firma, "PNG")
+                                
+                                # 2. Estampamos usando el TIPO detectado (CORRECCIÓN APLICADA AQUÍ)
+                                tipo_actual = st.session_state['tipo_contrato']
+                                
+                                # Estampa firmas intermedias (según coordenadas maestras)
+                                estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado, tipo_actual)
+                                
+                                # Estampa la última página (Foto + Fecha + Firma final)
+                                # AQUÍ ESTABA EL ERROR: Ahora usamos el nombre correcto 'pagina9'
+                                estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
+                                
+                                # 3. Multisede: Enviar a la carpeta correcta
+                                sede_actual = st.session_state['sede_usuario'] # Recuperamos si es LIMA o PROVINCIA
+                                id_carpeta_destino = RUTAS_DRIVE[sede_actual]["FIRMADOS"] # Buscamos el ID destino
+                                
+                                # Enviamos al Script de Google (que ya actualizaste a V2)
+                                enviar_a_drive_script(ruta_salida_firmado, nombre_archivo, id_carpeta_destino)
+                                
+                                # 4. Registramos en la hoja específica del Excel
+                                if registrar_firma_sheet(st.session_state['dni_validado'], sede_actual):
+                                    st.session_state['firmado_ok'] = True
+                                    borrar_archivo_drive(st.session_state['archivo_id']) # Borra de PENDIENTES
+                                    st.balloons()
+                                    st.rerun()
+                                else: st.error("⚠️ Error de conexión con Excel.")
+                        except Exception as e: st.error(f"Error técnico: {e}")
+                        finally:
+                            if os.path.exists(ruta_firma): os.remove(ruta_firma)
+                else: st.warning("⚠️ Falta su firma.")
                 
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
