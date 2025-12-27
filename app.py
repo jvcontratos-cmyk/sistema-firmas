@@ -247,25 +247,46 @@ def consultar_estado_dni_multisede(dni):
 
     return None, None, None # No encontrado
 
-def registrar_firma_sheet(dni, sede):
-    """Registra la firma en la hoja correcta (Lima o Provincia)"""
+def registrar_firma_sheet(dni, sede, nombre_archivo_pdf, link_firma, link_foto):
+    """Registra la firma, foto, nombre y links en las columnas F e I"""
     try:
         wb = client_sheets.open_by_key(SHEET_ID)
-        sh = wb.worksheet(sede) # Abrimos la hoja de la sede detectada
+        sh = wb.worksheet(sede)
         
         dnis_en_excel = sh.col_values(1)
         dni_buscado = str(dni).strip()
         
+        # Extraemos el NOMBRE LIMPIO del archivo PDF
+        # Ejemplo: "76610716 - JUAN PEREZ.pdf" -> "JUAN PEREZ"
+        nombre_trabajador = nombre_archivo_pdf.replace(dni_buscado, "").replace(".pdf", "").replace("-", "").strip()
+
         for i, valor_celda in enumerate(dnis_en_excel):
             if str(valor_celda).strip() == dni_buscado:
                 fila = i + 1 
                 hora_peru = datetime.utcnow() - timedelta(hours=5)
-                fecha_fmt = hora_peru.strftime("%Y-%m-%d %H:%M:%S")
-                sh.update_cell(fila, 2, "FIRMADO")
-                sh.update_cell(fila, 3, fecha_fmt)
+                fecha_fmt = hora_peru.strftime("%d/%m/%Y %H:%M:%S")
+                
+                # --- AQUÍ ES DONDE OCURRE LA MAGIA DE COLUMNAS ---
+                sh.update_cell(fila, 2, "FIRMADO")        # Col B: Estado
+                sh.update_cell(fila, 3, fecha_fmt)        # Col C: Fecha
+                
+                # Col E (5): Nombre del Trabajador (Auto-rellenado)
+                sh.update_cell(fila, 5, nombre_trabajador) 
+                
+                # Col F (6): LINK DE LA FIRMA
+                # Usamos fórmula IMAGE para que se vea la foto en la celda
+                celda_firma = f'=IMAGE("{link_firma}")'
+                sh.update_cell(fila, 6, celda_firma)      
+                
+                # Col I (9): LINK DE LA FOTO (SELFIE)
+                celda_foto = f'=IMAGE("{link_foto}")'
+                sh.update_cell(fila, 9, celda_foto)       
+                
                 return True
         return False
-    except: return False
+    except Exception as e:
+        st.error(f"Error Excel: {e}")
+        return False
 
 def buscar_archivo_drive(dni, folder_id):
     """Busca el PDF en la carpeta específica que le digamos (dinámica)"""
@@ -310,6 +331,22 @@ def enviar_a_drive_script(ruta_archivo, nombre_archivo, folder_destino_id):
         requests.post(WEB_APP_URL, json=payload)
         return True
     except: return False
+
+def enviar_a_drive_script_retorna_url(ruta_archivo, nombre_archivo, folder_destino_id):
+    """Sube archivo y RETORNA el JSON con el Link (fileUrl)"""
+    try:
+        with open(ruta_archivo, "rb") as f:
+            contenido_base64 = base64.b64encode(f.read()).decode('utf-8')
+        
+        payload = {
+            "file": contenido_base64, 
+            "filename": nombre_archivo, 
+            "folderId": folder_destino_id 
+        }
+        # AQUI ESTÁ LA MAGIA: Guardamos la respuesta en 'response'
+        response = requests.post(WEB_APP_URL, json=payload)
+        return response.json() # Retorna el diccionario con 'fileUrl'
+    except: return None
 
 def estampar_firma(pdf_path, imagen_firma, output_path, tipo_contrato="Normal"): # <--- ESTA ES LA NUEVA
     # Esta función ahora es INTELIGENTE. Busca las coordenadas según el tipo.
@@ -801,28 +838,68 @@ else:
                                 # AQUÍ ESTABA EL ERROR: Ahora usamos el nombre correcto 'pagina9'
                                 estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
                                 
-                                # 3. Multisede: Enviar a la carpeta correcta
-                                sede_actual = st.session_state['sede_usuario'] # Recuperamos si es LIMA o PROVINCIA
-                                id_carpeta_destino = RUTAS_DRIVE[sede_actual]["FIRMADOS"] # Buscamos el ID destino
+                                # ---------------------------------------------------------
+                                # 🚀 INICIO DEL PASO 3: SUBIDA TRIPLE Y REGISTRO
+                                # ---------------------------------------------------------
                                 
-                                # Enviamos al Script de Google (que ya actualizaste a V2)
-                                enviar_a_drive_script(ruta_salida_firmado, nombre_archivo, id_carpeta_destino)
+                                # 1. PREPARAMOS EL DESTINO
+                                sede_actual = st.session_state['sede_usuario']
+                                id_carpeta_destino = RUTAS_DRIVE[sede_actual]["FIRMADOS"]
                                 
-                                # 4. Registramos en la hoja específica del Excel
-                                if registrar_firma_sheet(st.session_state['dni_validado'], sede_actual):
-                                    st.session_state['firmado_ok'] = True
-                                    borrar_archivo_drive(st.session_state['archivo_id']) # Borra de PENDIENTES
-                                    st.balloons()
-                                    st.rerun()
-                                else: st.error("⚠️ Error de conexión con Excel.")
-                        except Exception as e: st.error(f"Error técnico: {e}")
-                        finally:
-                            if os.path.exists(ruta_firma): os.remove(ruta_firma)
-                else: st.warning("⚠️ Falta su firma.")
+                                st.write(f"🚀 Subiendo evidencias a la nube ({sede_actual})...")
+
+                                # 2. SUBIMOS EL PDF FIRMADO (Y esperamos el Link)
+                                resp_pdf = enviar_a_drive_script_retorna_url(ruta_salida_firmado, nombre_archivo, id_carpeta_destino)
+                                
+                                # 3. SUBIMOS LA IMAGEN DE LA FIRMA (PNG)
+                                nombre_firma_png = f"FIRMA_{st.session_state['dni_validado']}.png"
+                                resp_firma = enviar_a_drive_script_retorna_url(ruta_firma, nombre_firma_png, id_carpeta_destino)
+                                
+                                # 4. SUBIMOS LA FOTO SELFIE (JPG)
+                                # Primero la guardamos en un archivo temporal para poder subirla
+                                ruta_foto_temp = os.path.join(CARPETA_TEMP, "FOTO_TEMP.jpg")
+                                with open(ruta_foto_temp, "wb") as f_foto:
+                                    f_foto.write(st.session_state['foto_bio'])
+                                
+                                nombre_foto_jpg = f"FOTO_{st.session_state['dni_validado']}.jpg"
+                                resp_foto = enviar_a_drive_script_retorna_url(ruta_foto_temp, nombre_foto_jpg, id_carpeta_destino)
+
+                                # 5. VERIFICAMOS QUE TODO HAYA SUBIDO BIEN
+                                if resp_pdf and resp_firma and resp_foto:
+                                    st.write("✅ Archivos en la nube. Registrando en Excel...")
+                                    
+                                    # Extraemos los LINKS que nos devolvió el Robot
+                                    link_firma_url = resp_firma.get("fileUrl", "")
+                                    link_foto_url = resp_foto.get("fileUrl", "")
+                                    
+                                    # 6. REGISTRAMOS EN EXCEL (Con los nuevos datos: DNI, Sede, NombrePDF, LinkFirma, LinkFoto)
+                                    registro_ok = registrar_firma_sheet(
+                                        st.session_state['dni_validado'], 
+                                        sede_actual,
+                                        st.session_state['archivo_nombre'], 
+                                        link_firma_url,                     
+                                        link_foto_url                       
+                                    )
+                                    
+                                    if registro_ok:
+                                        st.success("✅ ¡TODO LISTO! FIRMA REGISTRADA.")
+                                        st.session_state['firmado_ok'] = True
+                                        borrar_archivo_drive(st.session_state['archivo_id']) # Borra de pendientes
+                                        st.balloons()
+                                        st.rerun()
+                                    else:
+                                        st.error("❌ Se subieron los archivos, pero FALLÓ el registro en Excel.")
+                                else:
+                                    st.error("❌ Error al subir uno de los archivos a Drive. Intente de nuevo.")
+                                    # Debug para que sepas qué falló si pasa algo
+                                    if not resp_pdf: st.warning("Falló subida del PDF")
+                                    if not resp_firma: st.warning("Falló subida de la Firma")
+                                    if not resp_foto: st.warning("Falló subida de la Foto")
                 
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
