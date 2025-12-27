@@ -126,11 +126,11 @@ SHEET_ID = "1OmzmHkZsKjJlPw2V2prVlv_LbcS8RzmdLPP1eL6EGNE"
 
 # Diccionario de rutas según la sede (nombre de la pestaña en Excel)
 RUTAS_DRIVE = {
-    "Lima": {
+    "LIMA": {
         "PENDIENTES": "1ghXH11Lazi3kHKTaQ4F-zTd-6pjuPI84",
         "FIRMADOS": "1NlM81Vo2NuWCxyFD-xfpAFMbywvdVJoL"
     },
-    "Provincia": {
+    "PROVINCIA": {
         "PENDIENTES": "19p6rbh1UN-ToXKyvzGaE6DUCgukhFM3C",
         "FIRMADOS": "1a3A_zFBdjhnrrX3g975dWJV-94xsDpkD"
     }
@@ -138,11 +138,11 @@ RUTAS_DRIVE = {
 
 # Diccionario de rutas según la sede (YA ESTABA)
 RUTAS_DRIVE = {
-    "Lima": {
+    "LIMA": {
         "PENDIENTES": "1ghXH11Lazi3kHKTaQ4F-zTd-6pjuPI84",
         "FIRMADOS": "1NlM81Vo2NuWCxyFD-xfpAFMbywvdVJoL"
     },
-    "Provincia": {
+    "PROVINCIA": {
         "PENDIENTES": "19p6rbh1UN-ToXKyvzGaE6DUCgukhFM3C",
         "FIRMADOS": "1a3A_zFBdjhnrrX3g975dWJV-94xsDpkD"
     }
@@ -220,23 +220,23 @@ def consultar_estado_dni_multisede(dni):
         
         # 1. Buscar en LIMA
         try:
-            sh_lima = wb.worksheet("Lima")
+            sh_lima = wb.worksheet("LIMA")
             dnis_lima = sh_lima.col_values(1)
             for i, valor in enumerate(dnis_lima):
                 if str(valor).strip() == dni_buscado:
                     # Retornamos: (Sede, Estado, TIPO - Columna 4)
                     tipo = sh_lima.cell(i + 1, 4).value or "Normal" # Si está vacío, asume Normal
-                    return "Lima", sh_lima.cell(i + 1, 2).value, tipo
+                    return "LIMA", sh_lima.cell(i + 1, 2).value, tipo
         except: pass 
         
         # 2. Buscar en PROVINCIA
         try:
-            sh_prov = wb.worksheet("Provincia")
+            sh_prov = wb.worksheet("PROVINCIA")
             dnis_prov = sh_prov.col_values(1)
             for i, valor in enumerate(dnis_prov):
                 if str(valor).strip() == dni_buscado:
                     tipo = sh_prov.cell(i + 1, 4).value or "Normal"
-                    return "Provincia", sh_prov.cell(i + 1, 2).value, tipo
+                    return "PROVINCIA", sh_prov.cell(i + 1, 2).value, tipo
         except: pass
     except: pass
 
@@ -812,6 +812,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
