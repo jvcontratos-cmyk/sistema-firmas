@@ -395,25 +395,24 @@ if st.session_state['dni_validado'] is None:
 
     if submitted and dni_input:
         with st.spinner("**BUSCANDO EN BASE DE DATOS...**"):
-            # AQUI OCURRE LA MAGIA MULTISEDE + TIPO
-            # Ahora recibimos 3 cosas:
+            # Magia Multisede (Ahora devuelve MAYÚSCULAS)
             sede_encontrada, estado_sheet, tipo_encontrado = consultar_estado_dni_multisede(dni_input)
         
         if sede_encontrada:
-            # Guardamos la sede y el TIPO en sesión
             st.session_state['sede_usuario'] = sede_encontrada
-            st.session_state['tipo_contrato'] = tipo_encontrado # <--- IMPORTANTE GUARDARLO
+            st.session_state['tipo_contrato'] = tipo_encontrado
             
             if estado_sheet == "FIRMADO":
-                st.info(f"ℹ️ **EL DNI {dni_input} ({sede_encontrada.upper()}) YA REGISTRA UN CONTRATO FIRMADO.**")
-                st.markdown("""**SI NECESITA UNA COPIA DE SU CONTRATO, O CREE QUE ESTO ES UN ERROR, POR FAVOR CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**""")
+                st.info(f"ℹ️ **EL DNI {dni_input} ({sede_encontrada}) YA REGISTRA UN CONTRATO FIRMADO.**")
+                st.markdown("""**SI NECESITA UNA COPIA, CONTACTE A ADMINISTRACIÓN.**""")
             else:
-                with st.spinner(f"**BUSCANDO CONTRATO EN {sede_encontrada.upper()}...**"):
-                    # Buscamos en la carpeta correcta según la sede
+                with st.spinner(f"**BUSCANDO CONTRATO EN {sede_encontrada}...**"):
+                    # Buscamos usando la llave en MAYÚSCULAS
                     id_carpeta_busqueda = RUTAS_DRIVE[sede_encontrada]["PENDIENTES"]
                     archivo_drive = buscar_archivo_drive(dni_input, id_carpeta_busqueda)
                 
                 if archivo_drive:
+                    # ... (Esta parte de descarga queda igual)
                     ruta_local = os.path.join(CARPETA_TEMP, archivo_drive['name'])
                     descargo_ok = descargar_archivo_drive(archivo_drive['id'], ruta_local)
                     if descargo_ok:
@@ -423,8 +422,18 @@ if st.session_state['dni_validado'] is None:
                         st.session_state['firmado_ok'] = False
                         st.session_state['foto_bio'] = None
                         st.rerun()
-                    else: st.error("**ERROR AL ENCONTRAR EL DOCUMENTO. INTENTE NUEVAMENTE.**")
-                else: st.error(f"**❌ CONTRATO NO UBICADO (VERIFIQUE QUE SU DNI ESTÉ CORRECTAMENTE ESCRITO), SI ESTÁ TODO CORRECTO, CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**")
+                    else: st.error("**ERROR AL DESCARGAR EL DOCUMENTO.**")
+                else: 
+                    # 🔴 DIAGNÓSTICO GORILA (SOLO SALE SI FALLA) 🔴
+                    st.error(f"**❌ CONTRATO NO UBICADO EN {sede_encontrada}.**")
+                    st.warning("⚠️ **REPORTE TÉCNICO PARA EL ADMINISTRADOR:**")
+                    st.code(f"""
+                    1. Sede Detectada: {sede_encontrada}
+                    2. Carpeta ID usada: {id_carpeta_busqueda}
+                    3. Buscando archivo que contenga: '{dni_input}'
+                    4. Estado del Robot: ¿Tiene acceso de EDITOR a esa carpeta ID?
+                    """)
+                    st.info("Verifique que el archivo en Drive tenga el DNI en el nombre y que el Robot esté invitado a la carpeta.")
         else:
             st.error("**❌ CONTRATO NO UBICADO (VERIFIQUE QUE SU DNI ESTÉ CORRECTAMENTE ESCRITO), SI ESTÁ TODO CORRECTO, CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**")
     
@@ -812,6 +821,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
