@@ -168,7 +168,7 @@ COORDENADAS_MAESTRAS = {
         7: [(350, 345), (95, 200)], 
         
         # --- PÁGINAS 9 Y 10 (NO LAS TOCAMOS AÚN) ---
-        9: [(300, 150)],             
+        9: [(300, 160)],             
         10: [(375, 150)]             
     },
     # Espacios futuros
@@ -823,6 +823,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
