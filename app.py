@@ -417,38 +417,6 @@ def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes
         pdf_writer.add_page(pagina)
     with open(output_path, "wb") as f: pdf_writer.write(f)
 
-def importar_dnis_desde_drive(sede):
-    """Escanea Drive y llena el Excel con DNI y Nombres automáticamente"""
-    try:
-        wb = client_sheets.open_by_key(SHEET_ID)
-        sh = wb.worksheet(sede)
-        id_carpeta = RUTAS_DRIVE[sede]["PENDIENTES"]
-        dnis_existentes = sh.col_values(1)
-        
-        query = f"'{id_carpeta}' in parents and mimeType = 'application/pdf' and trashed = false"
-        results = service_drive.files().list(q=query, fields="files(id, name)").execute()
-        archivos = results.get('files', [])
-        
-        agregados = 0
-        errores = 0
-        
-        for archivo in archivos:
-            nombre = archivo['name']
-            if "-" in nombre:
-                partes = nombre.replace(".pdf", "").split("-", 1)
-                dni_detectado = partes[0].strip()
-                nombre_detectado = partes[1].strip()
-                if dni_detectado.isdigit() and dni_detectado not in dnis_existentes:
-                    nueva_fila = [dni_detectado, "PENDIENTE", "", "Normal", nombre_detectado]
-                    sh.append_row(nueva_fila)
-                    dnis_existentes.append(dni_detectado)
-                    agregados += 1
-            else:
-                errores += 1
-        return True, agregados, errores
-    except Exception as e:
-        return False, 0, 0
-
 # --- INTERFAZ CENTRAL ---
 
 if st.session_state['dni_validado'] is None:
@@ -935,22 +903,4 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
-
-# ==========================================
-# 🔐 ZONA ADMINISTRATIVA (BARRA LATERAL)
-# ==========================================
-with st.sidebar:
-    st.title("⚙️ ADMIN")
-    st.info("Sincronizar Drive con Excel")
-    
-    sede_sync = st.selectbox("Elegir Sede:", ["LIMA", "PROVINCIA"])
-    
-    if st.button("🔄 CARGAR DNIS AUTOMÁTICAMENTE", type="primary"):
-        with st.spinner(f"Leyendo carpeta {sede_sync}..."):
-            ok, num, err = importar_dnis_desde_drive(sede_sync)
-            if ok:
-                st.success(f"✅ Se agregaron {num} nuevos colaboradores.")
-                if err > 0: st.warning(f"⚠️ {err} archivos con nombre incorrecto.")
-            else:
-                st.error("❌ Error de conexión.")
 
