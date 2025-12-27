@@ -165,7 +165,7 @@ COORDENADAS_MAESTRAS = {
         # --- PÁGINA 7 (AJUSTADA A TU FOTO) ---
         # Firma 1 (Arriba Derecha, Trabajador): X=400, Y=260
         # Firma 2 (Abajo Izquierda, Nombre): X=100, Y=160
-        7: [(400, 260), (100, 160)], 
+        7: [(360, 300), (90, 130)], 
         
         # --- PÁGINAS 9 Y 10 (NO LAS TOCAMOS AÚN) ---
         9: [(420, 165)],             
@@ -823,4 +823,5 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
