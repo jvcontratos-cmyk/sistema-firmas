@@ -620,45 +620,46 @@ else:
                 enviar_firma = st.form_submit_button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True)
 
             if enviar_firma:
-            
+                # === 🛡️ INICIO PANTALLA DE CARGA TOTAL ===
+                # NOTA: El HTML abajo está pegado a la izquierda a propósito para que no salga como texto gris.
                 st.markdown("""
-                <style>
-                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                </style>
-                <div style="
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background-color: rgba(255, 255, 255, 0.85); /* Fondo blanco semitransparente */
-                    backdrop-filter: blur(8px); /* Efecto vidrio esmerilado PRO */
-                    z-index: 999999; /* Por encima de todo */
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                ">
-                    <div style="
-                        border: 10px solid #f3f3f3; 
-                        border-top: 10px solid #FF4B4B; /* Rojo Streamlit */
-                        border-radius: 50%; 
-                        width: 80px; 
-                        height: 80px; 
-                        animation: spin 1s linear infinite;
-                        margin-bottom: 20px;
-                    "></div>
-                    
-                    <div style="font-size: 24px; font-weight: bold; color: #333; font-family: sans-serif;">
-                        PROCESANDO DOCUMENTO...
-                    </div>
-                    <div style="font-size: 16px; color: #666; margin-top: 10px; font-family: sans-serif;">
-                        Por favor espere, no cierre la ventana.
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+<style>
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
+<div style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+">
+    <div style="
+        border: 10px solid #f3f3f3; 
+        border-top: 10px solid #FF4B4B; 
+        border-radius: 50%; 
+        width: 80px; 
+        height: 80px; 
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+    "></div>
+    <div style="font-size: 24px; font-weight: bold; color: #333; font-family: sans-serif;">
+        PROCESANDO DOCUMENTO...
+    </div>
+    <div style="font-size: 16px; color: #666; margin-top: 10px; font-family: sans-serif;">
+        Por favor espere, no cierre la ventana.
+    </div>
+</div>
+""", unsafe_allow_html=True)
                 # === 🛡️ FIN PANTALLA DE CARGA ===
-                if canvas_result.image_data is not None: 
+
+                if canvas_result.image_data is not None:
                     img_data = canvas_result.image_data.astype('uint8')
                     if img_data[:, :, 3].sum() == 0:
                         st.warning("**⚠️ EL RECUADRO ESTÁ VACIO. POR FAVOR FIRME**")
@@ -666,39 +667,40 @@ else:
                         ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
                         ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
                         
-                        with st.spinner("**⏳ GUARDANDO CONTRATO..."):
-                            try:
-                                img = Image.fromarray(img_data, 'RGBA')
-                                data = img.getdata()
-                                newData = []
-                                es_blanco = True 
-                                for item in data:
-                                    if item[0] < 200: es_blanco = False 
-                                    if item[0] > 230 and item[1] > 230 and item[2] > 230:
-                                        newData.append((255, 255, 255, 0))
-                                    else: newData.append(item)
-                                
-                                if es_blanco: st.warning("**⚠️ EL RECUADRO PARECE VACIO.**")
-                                else:
-                                    img.putdata(newData)
-                                    img.save(ruta_firma, "PNG")
-                                    estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
-                                    estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
-                                    enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
-                                    if registrar_firma_sheet(st.session_state['dni_validado']):
-                                        st.session_state['firmado_ok'] = True
-                                        borrar_archivo_drive(st.session_state['archivo_id'])
-                                        st.balloons()
-                                        st.rerun()
-                                    else: st.error("⚠️ Error de conexión con Excel.")
-                            except Exception as e: st.error(f"Error técnico: {e}")
-                            finally:
-                                if os.path.exists(ruta_firma): os.remove(ruta_firma)
+                        try:
+                            img = Image.fromarray(img_data, 'RGBA')
+                            data = img.getdata()
+                            newData = []
+                            es_blanco = True 
+                            for item in data:
+                                if item[0] < 200: es_blanco = False 
+                                if item[0] > 230 and item[1] > 230 and item[2] > 230:
+                                    newData.append((255, 255, 255, 0))
+                                else: newData.append(item)
+                            
+                            if es_blanco: 
+                                st.warning("**⚠️ EL RECUADRO PARECE VACIO.**")
+                            else:
+                                img.putdata(newData)
+                                img.save(ruta_firma, "PNG")
+                                estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
+                                estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
+                                enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
+                                if registrar_firma_sheet(st.session_state['dni_validado']):
+                                    st.session_state['firmado_ok'] = True
+                                    borrar_archivo_drive(st.session_state['archivo_id'])
+                                    st.balloons()
+                                    st.rerun()
+                                else: st.error("⚠️ Error de conexión con Excel.")
+                        except Exception as e: st.error(f"Error técnico: {e}")
+                        finally:
+                            if os.path.exists(ruta_firma): os.remove(ruta_firma)
                 else: st.warning("⚠️ Falta su firma.")
-
+                
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
