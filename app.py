@@ -395,10 +395,11 @@ if st.session_state['dni_validado'] is None:
 
     if submitted and dni_input:
         with st.spinner("**BUSCANDO EN BASE DE DATOS...**"):
-            # Magia Multisede (Ahora devuelve MAYÚSCULAS)
+            # Magia Multisede (Devuelve LIMA o PROVINCIA en mayúsculas)
             sede_encontrada, estado_sheet, tipo_encontrado = consultar_estado_dni_multisede(dni_input)
         
         if sede_encontrada:
+            # Guardamos datos en sesión
             st.session_state['sede_usuario'] = sede_encontrada
             st.session_state['tipo_contrato'] = tipo_encontrado
             
@@ -412,7 +413,7 @@ if st.session_state['dni_validado'] is None:
                     archivo_drive = buscar_archivo_drive(dni_input, id_carpeta_busqueda)
                 
                 if archivo_drive:
-                    # ... (Esta parte de descarga queda igual)
+                    # PROCESO DE DESCARGA
                     ruta_local = os.path.join(CARPETA_TEMP, archivo_drive['name'])
                     descargo_ok = descargar_archivo_drive(archivo_drive['id'], ruta_local)
                     if descargo_ok:
@@ -422,18 +423,11 @@ if st.session_state['dni_validado'] is None:
                         st.session_state['firmado_ok'] = False
                         st.session_state['foto_bio'] = None
                         st.rerun()
-                    else: st.error("**ERROR AL DESCARGAR EL DOCUMENTO.**")
+                    else: st.error("**ERROR DE CONEXIÓN AL DESCARGAR EL DOCUMENTO. INTENTE NUEVAMENTE.**")
                 else: 
-                    # 🔴 DIAGNÓSTICO GORILA (SOLO SALE SI FALLA) 🔴
-                    st.error(f"**❌ CONTRATO NO UBICADO EN {sede_encontrada}.**")
-                    st.warning("⚠️ **REPORTE TÉCNICO PARA EL ADMINISTRADOR:**")
-                    st.code(f"""
-                    1. Sede Detectada: {sede_encontrada}
-                    2. Carpeta ID usada: {id_carpeta_busqueda}
-                    3. Buscando archivo que contenga: '{dni_input}'
-                    4. Estado del Robot: ¿Tiene acceso de EDITOR a esa carpeta ID?
-                    """)
-                    st.info("Verifique que el archivo en Drive tenga el DNI en el nombre y que el Robot esté invitado a la carpeta.")
+                    # 🔴 MENSAJE LIMPIO PARA EL USUARIO (SIN CÓDIGOS RAROS)
+                    st.error(f"**❌ CONTRATO NO UBICADO (VERIFIQUE QUE SU DNI ESTÉ CORRECTAMENTE ESCRITO), SI ESTÁ TODO CORRECTO, CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**")
+                    st.markdown("**❌ CONTRATO NO UBICADO (VERIFIQUE QUE SU DNI ESTÉ CORRECTAMENTE ESCRITO), SI ESTÁ TODO CORRECTO, CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**")
         else:
             st.error("**❌ CONTRATO NO UBICADO (VERIFIQUE QUE SU DNI ESTÉ CORRECTAMENTE ESCRITO), SI ESTÁ TODO CORRECTO, CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**")
     
@@ -821,6 +815,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
