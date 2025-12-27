@@ -162,9 +162,14 @@ COORDENADAS_MAESTRAS = {
     # ¡OJO JEFE! He puesto coordenadas X,Y aproximadas (ej: 400, 250).
     # Tendremos que ajustarlas viendo dónde caen en la primera prueba.
     "Mina": {
-        7: [(150, 250), (400, 250)], # 2 firmas en pag 7 (Izq y Der aprox)
-        9: [(400, 250)],             # 1 firma en pag 9 (Derecha aprox)
-        10: [(400, 250)]             # 1 firma en pag 10 (Derecha aprox)
+        # --- PÁGINA 7 (AJUSTADA A TU FOTO) ---
+        # Firma 1 (Arriba Derecha, Trabajador): X=400, Y=260
+        # Firma 2 (Abajo Izquierda, Nombre): X=100, Y=160
+        7: [(400, 260), (100, 160)], 
+        
+        # --- PÁGINAS 9 Y 10 (NO LAS TOCAMOS AÚN) ---
+        9: [(420, 165)],             
+        10: [(420, 165)]             
     },
     # Espacios futuros
     "Banco": {},
@@ -818,3 +823,4 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
