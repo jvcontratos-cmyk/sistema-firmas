@@ -292,7 +292,7 @@ def registrar_firma_sheet(dni, sede, nombre_archivo_pdf, link_firma, link_foto):
                 
                 # Usamos los links limpios
                 sh.update_cell(fila, 6, f'=IMAGE("{link_firma_clean}")')      
-                sh.update_cell(fila, 9, f'=IMAGE("{link_foto_clean}")')       
+                sh.update_cell(fila, 7, f'=IMAGE("{link_foto_clean}")')       
                 return True
         return False
     except Exception as e:
@@ -894,6 +894,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
