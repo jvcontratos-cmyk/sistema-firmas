@@ -658,6 +658,7 @@ else:
                 </div>
                 """, unsafe_allow_html=True)
                 # === 🛡️ FIN PANTALLA DE CARGA ===
+                if canvas_result.image_data is not None: 
                     img_data = canvas_result.image_data.astype('uint8')
                     if img_data[:, :, 3].sum() == 0:
                         st.warning("**⚠️ EL RECUADRO ESTÁ VACIO. POR FAVOR FIRME**")
@@ -698,6 +699,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
