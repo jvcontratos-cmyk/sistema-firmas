@@ -121,10 +121,55 @@ if "drive_script_url" in st.secrets["general"]:
 else:
     st.stop()
 
-# --- CONFIGURACIÓN DE IDs ---
+# --- CONFIGURACIÓN DE IDs INTELIGENTE (EL CEREBRO NUEVO) ---
 SHEET_ID = "1OmzmHkZsKjJlPw2V2prVlv_LbcS8RzmdLPP1eL6EGNE"
-DRIVE_FOLDER_PENDING_ID = "1tu19AXukyc_DvS0xkOxoL5wa9gLEJNS7" 
-DRIVE_FOLDER_SIGNED_ID = "1g-ht7BZCUiyN4um1M9bytrrVAZu7gViN"
+
+# Diccionario de rutas según la sede (nombre de la pestaña en Excel)
+RUTAS_DRIVE = {
+    "Lima": {
+        "PENDIENTES": "1ghXH11Lazi3kHKTaQ4F-zTd-6pjuPI84",
+        "FIRMADOS": "1NlM81Vo2NuWCxyFD-xfpAFMbywvdVJoL"
+    },
+    "Provincia": {
+        "PENDIENTES": "19p6rbh1UN-ToXKyvzGaE6DUCgukhFM3C",
+        "FIRMADOS": "1a3A_zFBdjhnrrX3g975dWJV-94xsDpkD"
+    }
+}
+
+# Diccionario de rutas según la sede (YA ESTABA)
+RUTAS_DRIVE = {
+    "Lima": {
+        "PENDIENTES": "1ghXH11Lazi3kHKTaQ4F-zTd-6pjuPI84",
+        "FIRMADOS": "1NlM81Vo2NuWCxyFD-xfpAFMbywvdVJoL"
+    },
+    "Provincia": {
+        "PENDIENTES": "19p6rbh1UN-ToXKyvzGaE6DUCgukhFM3C",
+        "FIRMADOS": "1a3A_zFBdjhnrrX3g975dWJV-94xsDpkD"
+    }
+}
+
+# --- NUEVO: BIBLIOTECA MAESTRA DE COORDENADAS ---
+# Define en qué páginas y coordenadas X/Y van las firmas simples según el TIPO.
+# NOTA: La última página siempre se procesa aparte con foto y fecha.
+COORDENADAS_MAESTRAS = {
+    # El contrato estándar de Lima y Ciudad Provincia (NO TOCAR)
+    "Normal": { 
+        5: [(380, 388), (380, 260)], 
+        6: [(400, 130)], 
+        8: [(380, 175)]
+    },
+    # El nuevo contrato de Mina (11 páginas total aprox)
+    # ¡OJO JEFE! He puesto coordenadas X,Y aproximadas (ej: 400, 250).
+    # Tendremos que ajustarlas viendo dónde caen en la primera prueba.
+    "Mina": {
+        7: [(150, 250), (400, 250)], # 2 firmas en pag 7 (Izq y Der aprox)
+        9: [(400, 250)],             # 1 firma en pag 9 (Derecha aprox)
+        10: [(400, 250)]             # 1 firma en pag 10 (Derecha aprox)
+    },
+    # Espacios futuros
+    "Banco": {},
+    "Antamina": {}
+}
 
 # Carpetas temporales
 CARPETA_TEMP = "TEMP_WORK"
@@ -132,6 +177,8 @@ os.makedirs(CARPETA_TEMP, exist_ok=True)
 
 # VARIABLES DE SESIÓN
 if 'dni_validado' not in st.session_state: st.session_state['dni_validado'] = None
+if 'sede_usuario' not in st.session_state: st.session_state['sede_usuario'] = None # <--- NUEVO   
+if 'tipo_contrato' not in st.session_state: st.session_state['tipo_contrato'] = "Normal" # <--- NUEVO (Por defecto Normal)
 if 'archivo_id' not in st.session_state: st.session_state['archivo_id'] = None
 if 'archivo_nombre' not in st.session_state: st.session_state['archivo_nombre'] = None
 if 'canvas_key' not in st.session_state: st.session_state['canvas_key'] = 0
@@ -165,22 +212,45 @@ def optimizar_imagen(image, max_width=800):
     if image.mode != 'RGB': image = image.convert('RGB')
     return image
     
-def consultar_estado_dni(dni):
+def consultar_estado_dni_multisede(dni):
+    """Busca el DNI en Lima y Provincia y retorna: Sede, Estado, TIPO"""
     try:
-        sh = client_sheets.open_by_key(SHEET_ID).sheet1
-        dnis_en_excel = sh.col_values(1) 
+        wb = client_sheets.open_by_key(SHEET_ID)
         dni_buscado = str(dni).strip()
-        for i, valor_celda in enumerate(dnis_en_excel):
-            if str(valor_celda).strip() == dni_buscado:
-                return sh.cell(i + 1, 2).value 
-        return None
-    except: return None
+        
+        # 1. Buscar en LIMA
+        try:
+            sh_lima = wb.worksheet("Lima")
+            dnis_lima = sh_lima.col_values(1)
+            for i, valor in enumerate(dnis_lima):
+                if str(valor).strip() == dni_buscado:
+                    # Retornamos: (Sede, Estado, TIPO - Columna 4)
+                    tipo = sh_lima.cell(i + 1, 4).value or "Normal" # Si está vacío, asume Normal
+                    return "Lima", sh_lima.cell(i + 1, 2).value, tipo
+        except: pass 
+        
+        # 2. Buscar en PROVINCIA
+        try:
+            sh_prov = wb.worksheet("Provincia")
+            dnis_prov = sh_prov.col_values(1)
+            for i, valor in enumerate(dnis_prov):
+                if str(valor).strip() == dni_buscado:
+                    tipo = sh_prov.cell(i + 1, 4).value or "Normal"
+                    return "Provincia", sh_prov.cell(i + 1, 2).value, tipo
+        except: pass
+    except: pass
 
-def registrar_firma_sheet(dni):
+    return None, None, None # No encontrado
+
+def registrar_firma_sheet(dni, sede):
+    """Registra la firma en la hoja correcta (Lima o Provincia)"""
     try:
-        sh = client_sheets.open_by_key(SHEET_ID).sheet1
+        wb = client_sheets.open_by_key(SHEET_ID)
+        sh = wb.worksheet(sede) # Abrimos la hoja de la sede detectada
+        
         dnis_en_excel = sh.col_values(1)
         dni_buscado = str(dni).strip()
+        
         for i, valor_celda in enumerate(dnis_en_excel):
             if str(valor_celda).strip() == dni_buscado:
                 fila = i + 1 
@@ -192,9 +262,10 @@ def registrar_firma_sheet(dni):
         return False
     except: return False
 
-def buscar_archivo_drive(dni):
+def buscar_archivo_drive(dni, folder_id):
+    """Busca el PDF en la carpeta específica que le digamos (dinámica)"""
     try:
-        query = f"'{DRIVE_FOLDER_PENDING_ID}' in parents and name contains '{dni}' and mimeType = 'application/pdf' and trashed = false"
+        query = f"'{folder_id}' in parents and name contains '{dni}' and mimeType = 'application/pdf' and trashed = false"
         results = service_drive.files().list(q=query, fields="files(id, name)").execute()
         items = results.get('files', [])
         if items: return items[0] 
@@ -202,6 +273,7 @@ def buscar_archivo_drive(dni):
     except: return None
 
 def descargar_archivo_drive(file_id, nombre_destino):
+    """Esta no cambia, pero la incluyo para mantener el orden"""
     try:
         request = service_drive.files().get_media(fileId=file_id)
         fh = io.FileIO(nombre_destino, 'wb')
@@ -212,33 +284,49 @@ def descargar_archivo_drive(file_id, nombre_destino):
     except: return False
 
 def borrar_archivo_drive(file_id):
+    """Esta tampoco cambia, pero la incluyo"""
     try:
         service_drive.files().delete(fileId=file_id).execute()
         return True
     except: return False
 
-def enviar_a_drive_script(ruta_archivo, nombre_archivo):
+def enviar_a_drive_script(ruta_archivo, nombre_archivo, folder_destino_id):
+    """Envía el PDF al script, especificando la carpeta destino correcta"""
     try:
         with open(ruta_archivo, "rb") as f:
             pdf_base64 = base64.b64encode(f.read()).decode('utf-8')
-        payload = {"file": pdf_base64, "filename": nombre_archivo, "folderId": DRIVE_FOLDER_SIGNED_ID}
+        
+        # Le mandamos también el folderId correcto
+        payload = {
+            "file": pdf_base64, 
+            "filename": nombre_archivo, 
+            "folderId": folder_destino_id 
+        }
         requests.post(WEB_APP_URL, json=payload)
         return True
     except: return False
 
-def estampar_firma(pdf_path, imagen_firma, output_path):
+def estampar_firma(pdf_path, imagen_firma, output_path, tipo_contrato="Normal"): # <--- ESTA ES LA NUEVA
+    # Esta función ahora es INTELIGENTE. Busca las coordenadas según el tipo.
     pdf_original = PdfReader(pdf_path)
     pdf_writer = PdfWriter()
     total_paginas = len(pdf_original.pages)
     ANCHO, ALTO = 100, 50
-    COORDENADAS = {5: [(380, 388), (380, 260)], 6: [(400, 130)], 8: [(380, 175)]}
+    
+    # 1. BUSCAMOS LA CONFIGURACIÓN PARA ESTE TIPO DE CONTRATO
+    # Si el tipo no existe en el diccionario, usa {} (vacío) para no romper nada.
+    config_coordenadas = COORDENADAS_MAESTRAS.get(tipo_contrato, {})
+    
     for i in range(total_paginas):
         pagina = pdf_original.pages[i]
         num_pag = i + 1 
-        if num_pag in COORDENADAS:
+        
+        # 2. VERIFICAMOS SI ESTA PÁGINA ESTÁ EN LA CONFIGURACIÓN DEL TIPO ACTUAL
+        if num_pag in config_coordenadas:
             packet = io.BytesIO()
             c = canvas.Canvas(packet, pagesize=letter, bottomup=True)
-            for (posX, posY) in COORDENADAS[num_pag]:
+            # Dibujamos todas las firmas necesarias en esta página
+            for (posX, posY) in config_coordenadas[num_pag]:
                 c.drawImage(imagen_firma, posX, posY, width=ANCHO, height=ALTO, mask='auto')
             c.save()
             packet.seek(0)
@@ -306,28 +394,39 @@ if st.session_state['dni_validado'] is None:
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
     if submitted and dni_input:
-        with st.spinner("**BUSCANDO...**"):
-            estado_sheet = consultar_estado_dni(dni_input)
+        with st.spinner("**BUSCANDO EN BASE DE DATOS...**"):
+            # AQUI OCURRE LA MAGIA MULTISEDE + TIPO
+            # Ahora recibimos 3 cosas:
+            sede_encontrada, estado_sheet, tipo_encontrado = consultar_estado_dni_multisede(dni_input)
         
-        if estado_sheet == "FIRMADO":
-            st.info(f"ℹ️ **EL DNI {dni_input} YA REGISTRA UN CONTRATO FIRMADO.**")
-            st.markdown("""**SI NECESITA UNA COPIA DE SU CONTRATO, O CREE QUE ESTO ES UN ERROR, POR FAVOR CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**""")
-        else:
-            with st.spinner("**BUSCANDO CONTRATO...**"):
-                archivo_drive = buscar_archivo_drive(dni_input)
+        if sede_encontrada:
+            # Guardamos la sede y el TIPO en sesión
+            st.session_state['sede_usuario'] = sede_encontrada
+            st.session_state['tipo_contrato'] = tipo_encontrado # <--- IMPORTANTE GUARDARLO
             
-            if archivo_drive:
-                ruta_local = os.path.join(CARPETA_TEMP, archivo_drive['name'])
-                descargo_ok = descargar_archivo_drive(archivo_drive['id'], ruta_local)
-                if descargo_ok:
-                    st.session_state['dni_validado'] = dni_input
-                    st.session_state['archivo_id'] = archivo_drive['id'] 
-                    st.session_state['archivo_nombre'] = archivo_drive['name']
-                    st.session_state['firmado_ok'] = False
-                    st.session_state['foto_bio'] = None
-                    st.rerun()
-                else: st.error("**ERROR AL ENCONTRAR EL DOCUMENTO. INTENTE NUEVAMENTE.**")
-            else: st.error("**❌ CONTRATO NO UBICADO (VERIFIQUE QUE SU DNI ESTÉ CORRECTAMENTE ESCRITO), SI ESTÁ TODO CORRECTO, CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**")
+            if estado_sheet == "FIRMADO":
+                st.info(f"ℹ️ **EL DNI {dni_input} ({sede_encontrada.upper()}) YA REGISTRA UN CONTRATO FIRMADO.**")
+                st.markdown("""**SI NECESITA UNA COPIA DE SU CONTRATO, O CREE QUE ESTO ES UN ERROR, POR FAVOR CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**""")
+            else:
+                with st.spinner(f"**BUSCANDO CONTRATO EN {sede_encontrada.upper()}...**"):
+                    # Buscamos en la carpeta correcta según la sede
+                    id_carpeta_busqueda = RUTAS_DRIVE[sede_encontrada]["PENDIENTES"]
+                    archivo_drive = buscar_archivo_drive(dni_input, id_carpeta_busqueda)
+                
+                if archivo_drive:
+                    ruta_local = os.path.join(CARPETA_TEMP, archivo_drive['name'])
+                    descargo_ok = descargar_archivo_drive(archivo_drive['id'], ruta_local)
+                    if descargo_ok:
+                        st.session_state['dni_validado'] = dni_input
+                        st.session_state['archivo_id'] = archivo_drive['id'] 
+                        st.session_state['archivo_nombre'] = archivo_drive['name']
+                        st.session_state['firmado_ok'] = False
+                        st.session_state['foto_bio'] = None
+                        st.rerun()
+                    else: st.error("**ERROR AL ENCONTRAR EL DOCUMENTO. INTENTE NUEVAMENTE.**")
+                else: st.error(f"**❌ CONTRATO NO UBICADO (VERIFIQUE QUE SU DNI ESTÉ CORRECTAMENTE ESCRITO), SI ESTÁ TODO CORRECTO, CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**")
+        else:
+            st.error("**❌ CONTRATO NO UBICADO (VERIFIQUE QUE SU DNI ESTÉ CORRECTAMENTE ESCRITO), SI ESTÁ TODO CORRECTO, CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**")
     
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
@@ -621,7 +720,6 @@ else:
 
             if enviar_firma:
                 # === 🛡️ INICIO PANTALLA DE CARGA TOTAL ===
-                # NOTA: El HTML abajo está pegado a la izquierda a propósito para que no salga como texto gris.
                 st.markdown("""
 <style>
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -683,12 +781,26 @@ else:
                             else:
                                 img.putdata(newData)
                                 img.save(ruta_firma, "PNG")
-                                estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado)
-                                estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
-                                enviar_a_drive_script(ruta_salida_firmado, nombre_archivo)
-                                if registrar_firma_sheet(st.session_state['dni_validado']):
+                                
+                                # 1. Estampamos (Falta hacer dinámico esto luego, pero por ahora funciona)
+                                # 1. Estampamos usando el TIPO detectado
+                                tipo_actual = st.session_state['tipo_contrato']
+                                estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado, tipo_actual)
+                                
+                                # La última página siempre es igual (foto y fecha final)
+                                estampar_firma_y_foto_pagina_final(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
+                                
+                                # --- 🚀 AQUÍ ESTÁ EL CAMBIO DEL PASO 5 (Multisede) ---
+                                sede_actual = st.session_state['sede_usuario'] # Recuperamos si es Lima o Provincia
+                                id_carpeta_destino = RUTAS_DRIVE[sede_actual]["FIRMADOS"] # Buscamos la carpeta correcta en el diccionario
+                                
+                                # Enviamos a la carpeta específica
+                                enviar_a_drive_script(ruta_salida_firmado, nombre_archivo, id_carpeta_destino)
+                                
+                                # Registramos en la hoja específica
+                                if registrar_firma_sheet(st.session_state['dni_validado'], sede_actual):
                                     st.session_state['firmado_ok'] = True
-                                    borrar_archivo_drive(st.session_state['archivo_id'])
+                                    borrar_archivo_drive(st.session_state['archivo_id']) # Borra el PDF de la carpeta de pendientes
                                     st.balloons()
                                     st.rerun()
                                 else: st.error("⚠️ Error de conexión con Excel.")
@@ -700,6 +812,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
