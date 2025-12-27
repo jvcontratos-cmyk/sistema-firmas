@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import re
 from streamlit_drawable_canvas import st_canvas
 from PyPDF2 import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
@@ -123,6 +124,7 @@ else:
 
 # --- CONFIGURACIÓN DE IDs INTELIGENTE (EL CEREBRO NUEVO) ---
 SHEET_ID = "1OmzmHkZsKjJlPw2V2prVlv_LbcS8RzmdLPP1eL6EGNE"
+ID_CARPETA_FOTOS = "1JJHIw0u-MxfL11hY-rrgAODqctau1QpN"
 
 # Diccionario de rutas según la sede (nombre de la pestaña en Excel)
 RUTAS_DRIVE = {
@@ -248,7 +250,7 @@ def consultar_estado_dni_multisede(dni):
     return None, None, None # No encontrado
 
 def registrar_firma_sheet(dni, sede, nombre_archivo_pdf, link_firma, link_foto):
-    """Registra la firma, foto, nombre y links en las columnas F e I"""
+    """Registra datos y CONVIERTE LOS LINKS para que funcionen con IMAGE()"""
     try:
         wb = client_sheets.open_by_key(SHEET_ID)
         sh = wb.worksheet(sede)
@@ -256,9 +258,22 @@ def registrar_firma_sheet(dni, sede, nombre_archivo_pdf, link_firma, link_foto):
         dnis_en_excel = sh.col_values(1)
         dni_buscado = str(dni).strip()
         
-        # Extraemos el NOMBRE LIMPIO del archivo PDF
-        # Ejemplo: "76610716 - JUAN PEREZ.pdf" -> "JUAN PEREZ"
+        # Nombre limpio
         nombre_trabajador = nombre_archivo_pdf.replace(dni_buscado, "").replace(".pdf", "").replace("-", "").strip()
+
+        # --- FUNCIÓN INTERNA PARA LIMPIAR LINKS DE DRIVE ---
+        def limpiar_link_drive(url):
+            # Extrae el ID usando expresiones regulares (REGEX)
+            match = re.search(r"/d/([a-zA-Z0-9_-]+)", url)
+            if match:
+                file_id = match.group(1)
+                # Devuelve el formato que le gusta a Google Sheets para imágenes
+                return f"https://drive.google.com/thumbnail?sz=w1000&id={file_id}"
+            return url # Si falla, devuelve el original
+
+        # Limpiamos los links antes de enviarlos
+        link_firma_clean = limpiar_link_drive(link_firma)
+        link_foto_clean = limpiar_link_drive(link_foto)
 
         for i, valor_celda in enumerate(dnis_en_excel):
             if str(valor_celda).strip() == dni_buscado:
@@ -266,20 +281,17 @@ def registrar_firma_sheet(dni, sede, nombre_archivo_pdf, link_firma, link_foto):
                 hora_peru = datetime.utcnow() - timedelta(hours=5)
                 fecha_fmt = hora_peru.strftime("%d/%m/%Y %H:%M:%S")
                 
-                # --- AQUÍ ES DONDE OCURRE LA MAGIA DE COLUMNAS ---
-                sh.update_cell(fila, 2, "FIRMADO")        # Col B: Estado
-                sh.update_cell(fila, 3, fecha_fmt)        # Col C: Fecha
+                # Actualizamos celdas
+                sh.update_cell(fila, 2, "FIRMADO")        # Col B
+                sh.update_cell(fila, 3, fecha_fmt)        # Col C
+                sh.update_cell(fila, 5, nombre_trabajador) # Col E
                 
-                # Col E (5): Nombre del Trabajador (Auto-rellenado)
-                sh.update_cell(fila, 5, nombre_trabajador) 
-                
-                # Col F (6): LINK DE LA FIRMA
-                # Usamos fórmula IMAGE para que se vea la foto en la celda
-                celda_firma = f'=IMAGE("{link_firma}")'
+                # Col F (6): Fórmula IMAGE con el link limpio
+                celda_firma = f'=IMAGE("{link_firma_clean}")'
                 sh.update_cell(fila, 6, celda_firma)      
                 
-                # Col I (9): LINK DE LA FOTO (SELFIE)
-                celda_foto = f'=IMAGE("{link_foto}")'
+                # Col I (9): Fórmula IMAGE con el link limpio
+                celda_foto = f'=IMAGE("{link_foto_clean}")'
                 sh.update_cell(fila, 9, celda_foto)       
                 
                 return True
@@ -842,27 +854,33 @@ else:
                                 # 🚀 INICIO DEL PASO 3: SUBIDA TRIPLE Y REGISTRO
                                 # ---------------------------------------------------------
                                 
-                                # 1. PREPARAMOS EL DESTINO
+                                # ---------------------------------------------------------
+                                # 1. PREPARAMOS LOS DESTINOS
+                                # ---------------------------------------------------------
                                 sede_actual = st.session_state['sede_usuario']
-                                id_carpeta_destino = RUTAS_DRIVE[sede_actual]["FIRMADOS"]
+                                
+                                # A) El CONTRATO PDF va a su carpeta de "Firmados" normal (por Sede)
+                                id_carpeta_contratos = RUTAS_DRIVE[sede_actual]["FIRMADOS"]
+                                
+                                # B) La FOTO y FIRMA van a tu NUEVA CARPETA ESPECIAL
+                                id_carpeta_imagenes = ID_CARPETA_FOTOS 
                                 
                                 st.write(f"🚀 Subiendo evidencias a la nube ({sede_actual})...")
 
-                                # 2. SUBIMOS EL PDF FIRMADO (Y esperamos el Link)
-                                resp_pdf = enviar_a_drive_script_retorna_url(ruta_salida_firmado, nombre_archivo, id_carpeta_destino)
+                                # 2. SUBIMOS EL PDF FIRMADO -> A CARPETA CONTRATOS
+                                resp_pdf = enviar_a_drive_script_retorna_url(ruta_salida_firmado, nombre_archivo, id_carpeta_contratos)
                                 
-                                # 3. SUBIMOS LA IMAGEN DE LA FIRMA (PNG)
+                                # 3. SUBIMOS LA IMAGEN DE LA FIRMA (PNG) -> A CARPETA FOTOS
                                 nombre_firma_png = f"FIRMA_{st.session_state['dni_validado']}.png"
-                                resp_firma = enviar_a_drive_script_retorna_url(ruta_firma, nombre_firma_png, id_carpeta_destino)
+                                resp_firma = enviar_a_drive_script_retorna_url(ruta_firma, nombre_firma_png, id_carpeta_imagenes)
                                 
-                                # 4. SUBIMOS LA FOTO SELFIE (JPG)
+                                # 4. SUBIMOS LA FOTO SELFIE (JPG) -> A CARPETA FOTOS
                                 ruta_foto_temp = os.path.join(CARPETA_TEMP, "FOTO_TEMP.jpg")
                                 with open(ruta_foto_temp, "wb") as f_foto:
                                     f_foto.write(st.session_state['foto_bio'])
                                 
                                 nombre_foto_jpg = f"FOTO_{st.session_state['dni_validado']}.jpg"
-                                resp_foto = enviar_a_drive_script_retorna_url(ruta_foto_temp, nombre_foto_jpg, id_carpeta_destino)
-
+                                resp_foto = enviar_a_drive_script_retorna_url(ruta_foto_temp, nombre_foto_jpg, id_carpeta_imagenes)
                                 # 5. VERIFICAMOS Y REGISTRAMOS
                                 if resp_pdf and resp_firma and resp_foto:
                                     st.write("✅ Archivos en la nube. Registrando en Excel...")
@@ -903,4 +921,5 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
