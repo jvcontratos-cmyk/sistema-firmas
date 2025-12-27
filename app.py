@@ -842,6 +842,10 @@ else:
                                 # 🚀 INICIO DEL PASO 3: SUBIDA TRIPLE Y REGISTRO
                                 # ---------------------------------------------------------
                                 
+                                # ---------------------------------------------------------
+                                # 🚀 INICIO DEL PASO 3: SUBIDA TRIPLE Y REGISTRO
+                                # ---------------------------------------------------------
+                                
                                 # 1. PREPARAMOS EL DESTINO
                                 sede_actual = st.session_state['sede_usuario']
                                 id_carpeta_destino = RUTAS_DRIVE[sede_actual]["FIRMADOS"]
@@ -872,7 +876,7 @@ else:
                                     link_firma_url = resp_firma.get("fileUrl", "")
                                     link_foto_url = resp_foto.get("fileUrl", "")
                                     
-                                    # 6. REGISTRAMOS EN EXCEL (Con los nuevos datos: DNI, Sede, NombrePDF, LinkFirma, LinkFoto)
+                                    # 6. REGISTRAMOS EN EXCEL (Con los nuevos datos)
                                     registro_ok = registrar_firma_sheet(
                                         st.session_state['dni_validado'], 
                                         sede_actual,
@@ -891,20 +895,19 @@ else:
                                         st.error("❌ Se subieron los archivos, pero FALLÓ el registro en Excel.")
                                 else:
                                     st.error("❌ Error al subir uno de los archivos a Drive. Intente de nuevo.")
-                                    # Debug para que sepas qué falló si pasa algo
                                     if not resp_pdf: st.warning("Falló subida del PDF")
                                     if not resp_firma: st.warning("Falló subida de la Firma")
                                     if not resp_foto: st.warning("Falló subida de la Foto")
+
+                        # === 🚨 AQUÍ ESTABA LO QUE FALTABA (EL CIERRE DEL TRY) ===
+                        except Exception as e:
+                            st.error(f"❌ ERROR TÉCNICO: {e}")
+                        finally:
+                            # Limpieza de archivos temporales
+                            if os.path.exists(ruta_firma): os.remove(ruta_firma)
+                else:
+                    st.warning("⚠️ Falta su firma.")
                 
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
-
-
-
-
-
-
-
-
-
