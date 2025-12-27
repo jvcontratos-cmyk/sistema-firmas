@@ -165,11 +165,11 @@ COORDENADAS_MAESTRAS = {
         # --- PÁGINA 7 (AJUSTADA A TU FOTO) ---
         # Firma 1 (Arriba Derecha, Trabajador): X=400, Y=260
         # Firma 2 (Abajo Izquierda, Nombre): X=100, Y=160
-        7: [(350, 400), (95, 250)], 
+        7: [(350, 350), (95, 220)], 
         
         # --- PÁGINAS 9 Y 10 (NO LAS TOCAMOS AÚN) ---
-        9: [(350, 155)],             
-        10: [(405, 155)]             
+        9: [(340, 160)],             
+        10: [(390, 153)]             
     },
     # Espacios futuros
     "Banco": {},
@@ -823,6 +823,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
