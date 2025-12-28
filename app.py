@@ -40,7 +40,7 @@ COORDENADAS_MAESTRAS = {
     "Guardian": {
         5: [
             (400, 415),  # Firma Derecha Arriba (EL TRABAJADOR)
-            (100, 330)   # Firma Izquierda Abajo (Cargo de recepción)
+            (100, 290)   # Firma Izquierda Abajo (Cargo de recepción)
            ],
         7: [(370, 400)], # Firma Pág 7 (Anexo Datos - Invertido)
         8: [(355, 175)]  # Firma Pág 8 (Anexo Seguridad - Invertido)
@@ -808,6 +808,7 @@ else:
                             st.error(f"❌ Error: {e}")
                         finally:
                             if os.path.exists(ruta_firma): os.remove(ruta_firma)
+
 
 
 
