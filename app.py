@@ -249,8 +249,8 @@ def consultar_estado_dni_multisede(dni):
 
     return None, None, None # No encontrado
 
-def registrar_firma_sheet(dni, sede, nombre_archivo_pdf, link_firma, link_foto):
-    """Registra datos y CONVIERTE LOS LINKS OBLIGATORIAMENTE"""
+def registrar_firma_sheet(dni, sede, nombre_archivo_pdf, link_firma, link_foto, tipo_detectado):
+    """Registra datos, limpia links y ACTUALIZA EL TIPO automÃ¡ticamente"""
     try:
         wb = client_sheets.open_by_key(SHEET_ID)
         sh = wb.worksheet(sede)
@@ -259,26 +259,16 @@ def registrar_firma_sheet(dni, sede, nombre_archivo_pdf, link_firma, link_foto):
         dni_buscado = str(dni).strip()
         nombre_trabajador = nombre_archivo_pdf.replace(dni_buscado, "").replace(".pdf", "").replace("-", "").strip()
 
-        # --- FUNCIÓN DE LIMPIEZA AGRESIVA ---
-        def obtener_link_thumbnail(url_sucia):
-            # 1. Buscamos el ID entre las barras /d/ y /
-            match = re.search(r"/d/([a-zA-Z0-9_-]+)", url_sucia)
-            if match:
-                file_id = match.group(1)
-                # 2. Devolvemos SIEMPRE el link tipo thumbnail que sí funciona
-                return f"https://drive.google.com/thumbnail?sz=w1000&id={file_id}"
-            
-            # 3. Intento secundario por si el link viene con id=
-            match_id = re.search(r"id=([a-zA-Z0-9_-]+)", url_sucia)
-            if match_id:
-                file_id = match_id.group(1)
-                return f"https://drive.google.com/thumbnail?sz=w1000&id={file_id}"
-                
-            return url_sucia # Si todo falla, devuelve el original
+        # --- SUB-FUNCIÃ“N LIMPIEZA ---
+        def limpiar_link(url):
+            if not url: return ""
+            match = re.search(r"/d/([a-zA-Z0-9_-]+)", url)
+            if not match: match = re.search(r"id=([a-zA-Z0-9_-]+)", url)
+            if match: return f"https://drive.google.com/thumbnail?sz=w1000&id={match.group(1)}"
+            return url 
 
-        # Limpiamos los links
-        link_firma_clean = obtener_link_thumbnail(link_firma)
-        link_foto_clean = obtener_link_thumbnail(link_foto)
+        link_firma_clean = limpiar_link(link_firma)
+        link_foto_clean = limpiar_link(link_foto)
 
         for i, valor_celda in enumerate(dnis_en_excel):
             if str(valor_celda).strip() == dni_buscado:
@@ -286,13 +276,20 @@ def registrar_firma_sheet(dni, sede, nombre_archivo_pdf, link_firma, link_foto):
                 hora_peru = datetime.utcnow() - timedelta(hours=5)
                 fecha_fmt = hora_peru.strftime("%d/%m/%Y %H:%M:%S")
                 
-                sh.update_cell(fila, 2, "FIRMADO")
-                sh.update_cell(fila, 3, fecha_fmt)
-                sh.update_cell(fila, 5, nombre_trabajador)
+                # ACTUALIZAMOS COLUMNAS
+                sh.update_cell(fila, 2, "FIRMADO")         # Col B: Estado
+                sh.update_cell(fila, 3, fecha_fmt)         # Col C: Fecha
                 
-                # Usamos los links limpios
-                sh.update_cell(fila, 6, f'=IMAGE("{link_firma_clean}")')      
-                sh.update_cell(fila, 7, f'=IMAGE("{link_foto_clean}")')       
+                # --- AQUÃ ESTÃ LA MAGIA DEL ROBOT ---
+                # Escribe "Mina" o "Normal" en la Columna 4 (D) segÃºn las hojas que contÃ³
+                sh.update_cell(fila, 4, tipo_detectado)    # Col D: TIPO
+                
+                sh.update_cell(fila, 5, nombre_trabajador) # Col E: Nombre
+                
+                if link_firma_clean:
+                    sh.update_cell(fila, 6, f'=IMAGE("{link_firma_clean}")') # Col F
+                if link_foto_clean:
+                    sh.update_cell(fila, 7, f'=IMAGE("{link_foto_clean}")')  # Col G (Corregido a G)
                 return True
         return False
     except Exception as e:
@@ -775,125 +772,124 @@ else:
                 enviar_firma = st.form_submit_button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True)
 
             if enviar_firma:
-                # === 🛡️ INICIO PANTALLA DE CARGA ===
+                # === 🛡️ PANTALLA DE CARGA ===
                 st.markdown("""
                 <style>
                     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
                 </style>
                 <div style="
                     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                    background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px);
+                    background-color: rgba(255, 255, 255, 0.9); backdrop-filter: blur(5px);
                     z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center;
                 ">
                     <div style="
                         border: 10px solid #f3f3f3; border-top: 10px solid #FF4B4B; border-radius: 50%;
                         width: 80px; height: 80px; animation: spin 1s linear infinite; margin-bottom: 20px;
                     "></div>
-                    <div style="font-size: 24px; font-weight: bold; color: #333; font-family: sans-serif;">
-                        PROCESANDO DOCUMENTO...
+                    <div style="font-size: 22px; font-weight: bold; color: #333; margin-bottom: 10px; font-family: sans-serif;">
+                        SUBIENDO ARCHIVOS...
+                    </div>
+                    <div style="font-size: 18px; color: #d9534f; font-weight: bold; font-family: sans-serif;">
+                        ⚠️ NO CIERRE LA VENTANA.
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # === 🛡️ FIN PANTALLA DE CARGA ===
+                # ============================
 
                 if canvas_result.image_data is not None:
+                    # ... (Procesamiento de imagen igual que siempre) ...
                     img_data = canvas_result.image_data.astype('uint8')
                     if img_data[:, :, 3].sum() == 0:
-                        st.warning("**⚠️ EL RECUADRO ESTÁ VACIO. POR FAVOR FIRME**")
+                        st.warning("⚠️ Firma vacía.")
                     else:
                         ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
                         ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
                         
-                        # INICIO DEL BLOQUE PROTEGIDO (TRY)
                         try:
-                            # 1. Guardar la imagen de la firma temporalmente
+                            # 1. Guardar firma PNG
                             img = Image.fromarray(img_data, 'RGBA')
                             data = img.getdata()
                             newData = []
-                            es_blanco = True 
                             for item in data:
-                                if item[0] < 200: es_blanco = False 
                                 if item[0] > 230 and item[1] > 230 and item[2] > 230:
                                     newData.append((255, 255, 255, 0))
                                 else: newData.append(item)
+                            img.putdata(newData)
+                            img.save(ruta_firma, "PNG")
                             
-                            if es_blanco: 
-                                st.warning("**⚠️ EL RECUADRO PARECE VACIO.**")
-                                # Forzamos error para salir del try si está vacío
-                                raise Exception("Firma vacía")
+                            # -----------------------------------------------------
+                            # 🧠 EL CEREBRO DEL ROBOT: DETECTAR TIPO POR PÁGINAS
+                            # -----------------------------------------------------
+                            # Abrimos el PDF original solo para contar
+                            doc_temp = fitz.open(ruta_pdf_local)
+                            num_paginas_detectadas = len(doc_temp)
+                            doc_temp.close()
+
+                            # Decisión automática
+                            if num_paginas_detectadas == 11:
+                                tipo_etiqueta_excel = "Mina"
+                            elif num_paginas_detectadas == 9:
+                                tipo_etiqueta_excel = "Normal"
                             else:
-                                img.putdata(newData)
-                                img.save(ruta_firma, "PNG")
-                                
-                                # 2. Estampamos las firmas
-                                tipo_actual = st.session_state['tipo_contrato']
-                                estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado, tipo_actual)
-                                estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
-                                
-                                # ---------------------------------------------------------
-                                # 3. SUBIDA A DRIVE Y REGISTRO (INDENTACIÓN ARREGLADA)
-                                # ---------------------------------------------------------
-                                sede_actual = st.session_state['sede_usuario']
-                                
-                                # A) CONTRATOS (PDF) -> A la carpeta de la Sede
-                                id_carpeta_contratos = RUTAS_DRIVE[sede_actual]["FIRMADOS"]
-                                
-                                # B) FOTOS Y FIRMAS -> A TU CARPETA ESPECÍFICA
-                                # (Usa la variable global que definiste al principio o pon el ID aquí)
-                                id_carpeta_fotos_final = ID_CARPETA_FOTOS 
+                                # Por si acaso es un Admin viejo o algo raro, lo dejamos como estaba
+                                tipo_etiqueta_excel = st.session_state.get('tipo_contrato', 'Normal')
 
-                                st.write(f"🚀 Subiendo documentos a la nube...")
+                            # 2. Estampamos (La función estampar_firma ya sabe qué hacer con el número de págs)
+                            estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado) # Ya no necesita pasar tipo
+                            estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
+                            
+                            # 3. Subida a Drive
+                            sede_actual = st.session_state['sede_usuario']
+                            id_carpeta_contratos = RUTAS_DRIVE[sede_actual]["FIRMADOS"]
+                            id_carpeta_imagenes = ID_CARPETA_FOTOS 
 
-                                # Subimos PDF
-                                resp_pdf = enviar_a_drive_script_retorna_url(ruta_salida_firmado, nombre_archivo, id_carpeta_contratos)
-                                
-                                # Subimos Firma
-                                nombre_firma_png = f"FIRMA_{st.session_state['dni_validado']}.png"
-                                resp_firma = enviar_a_drive_script_retorna_url(ruta_firma, nombre_firma_png, id_carpeta_fotos_final)
-                                
-                                # Subimos Foto
-                                ruta_foto_temp = os.path.join(CARPETA_TEMP, "FOTO_TEMP.jpg")
-                                with open(ruta_foto_temp, "wb") as f_foto:
-                                    f_foto.write(st.session_state['foto_bio'])
-                                
-                                nombre_foto_jpg = f"FOTO_{st.session_state['dni_validado']}.jpg"
-                                resp_foto = enviar_a_drive_script_retorna_url(ruta_foto_temp, nombre_foto_jpg, id_carpeta_fotos_final)
+                            st.write(f"🚀 Procesando como contrato tipo: {tipo_etiqueta_excel} ({num_paginas_detectadas} págs)...")
 
-                                # 4. REGISTRO EN EXCEL
-                                if resp_pdf and resp_firma and resp_foto:
-                                    link_firma_raw = resp_firma.get("fileUrl", "")
-                                    link_foto_raw = resp_foto.get("fileUrl", "")
-                                    
-                                    registro_ok = registrar_firma_sheet(
-                                        st.session_state['dni_validado'], 
-                                        sede_actual,
-                                        st.session_state['archivo_nombre'], 
-                                        link_firma_raw,                     
-                                        link_foto_raw                       
-                                    )
-                                    
-                                    if registro_ok:
-                                        st.success("✅ ¡TODO LISTO! FIRMA REGISTRADA.")
-                                        st.session_state['firmado_ok'] = True
-                                        borrar_archivo_drive(st.session_state['archivo_id']) 
-                                        st.balloons()
-                                        st.rerun()
-                                    else:
-                                        st.error("❌ Falló el registro en Excel.")
+                            resp_pdf = enviar_a_drive_script_retorna_url(ruta_salida_firmado, nombre_archivo, id_carpeta_contratos)
+                            
+                            nombre_firma_png = f"FIRMA_{st.session_state['dni_validado']}.png"
+                            resp_firma = enviar_a_drive_script_retorna_url(ruta_firma, nombre_firma_png, id_carpeta_imagenes)
+                            
+                            ruta_foto_temp = os.path.join(CARPETA_TEMP, "FOTO_TEMP.jpg")
+                            with open(ruta_foto_temp, "wb") as f_foto:
+                                f_foto.write(st.session_state['foto_bio'])
+                            nombre_foto_jpg = f"FOTO_{st.session_state['dni_validado']}.jpg"
+                            resp_foto = enviar_a_drive_script_retorna_url(ruta_foto_temp, nombre_foto_jpg, id_carpeta_imagenes)
+
+                            # 4. Registro en Excel (CON LA ETIQUETA NUEVA)
+                            if resp_pdf and resp_firma and resp_foto:
+                                link_firma_raw = resp_firma.get("fileUrl", "")
+                                link_foto_raw = resp_foto.get("fileUrl", "")
+                                
+                                registro_ok = registrar_firma_sheet(
+                                    st.session_state['dni_validado'], 
+                                    sede_actual,
+                                    st.session_state['archivo_nombre'], 
+                                    link_firma_raw,                     
+                                    link_foto_raw,
+                                    tipo_etiqueta_excel  # <--- AQUÍ LE PASAMOS EL DATO "Mina" o "Normal"
+                                )
+                                
+                                if registro_ok:
+                                    st.success("✅ ¡TODO LISTO! FIRMA REGISTRADA.")
+                                    st.session_state['firmado_ok'] = True
+                                    borrar_archivo_drive(st.session_state['archivo_id']) 
+                                    st.balloons()
+                                    st.rerun()
                                 else:
-                                    st.error("❌ Error al subir archivos a Drive (verifique conexión).")
+                                    st.error("❌ Falló el registro en Excel.")
+                            else:
+                                st.error("❌ Error al subir archivos.")
 
-                        # CIERRE DE SEGURIDAD (EXCEPT y FINALLY alineados con el TRY)
                         except Exception as e:
-                            st.error(f"❌ ERROR TÉCNICO: {e}")
+                            st.error(f"❌ Error: {e}")
                         finally:
                             if os.path.exists(ruta_firma): os.remove(ruta_firma)
-                else:
-                    st.warning("⚠️ Falta su firma.")
                 
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
