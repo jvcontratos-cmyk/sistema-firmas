@@ -919,6 +919,87 @@ else:
             st.session_state['dni_validado'] = None
             st.rerun()
 
+# ==========================================
+# 🛠️ ZONA DE PRUEBAS (SOLO PARA EL PROGRAMADOR)
+# ==========================================
+with st.sidebar:
+    st.markdown("---")
+    st.header("🛠️ CALIBRADOR DE FIRMAS")
+    activar_pruebas = st.checkbox("Activar Modo Pruebas")
+
+if activar_pruebas:
+    st.title("🎯 Calibración de Coordenadas (Modo Seguro)")
+    st.info("Sube un PDF y selecciona el TIPO para ver dónde caerán las firmas (Cuadros Rojos). NO SE SUBIRÁ NADA A DRIVE.")
+
+    # 1. Subir PDF de prueba
+    pdf_prueba = st.file_uploader("Sube el PDF (Guardian, Normal, etc)", type="pdf", key="pdf_debug")
+    
+    # 2. Elegir qué mapa de coordenadas probar
+    tipo_a_probar = st.selectbox("¿Qué mapa quieres probar?", ["Normal", "Mina", "Guardian"])
+    
+    if pdf_prueba:
+        if st.button("📍 DIBUJAR CAJAS ROJAS"):
+            # Guardamos temporalmente
+            ruta_temp_debug = os.path.join(CARPETA_TEMP, "debug_temp.pdf")
+            ruta_salida_debug = os.path.join(CARPETA_TEMP, "debug_salida.pdf")
+            
+            with open(ruta_temp_debug, "wb") as f:
+                f.write(pdf_prueba.getbuffer())
+            
+            # --- LÓGICA DE DIBUJO DE CAJAS (SIMULANDO FIRMAS) ---
+            pdf_original = PdfReader(ruta_temp_debug)
+            pdf_writer = PdfWriter()
+            total_paginas = len(pdf_original.pages)
+            
+            # Dimensiones de la firma (Las mismas de tu código principal)
+            ANCHO, ALTO = 100, 50 
+            
+            # Cargamos el mapa seleccionado
+            config_coordenadas = COORDENADAS_MAESTRAS.get(tipo_a_probar, {})
+            
+            for i in range(total_paginas):
+                pagina = pdf_original.pages[i]
+                num_pag = i + 1
+                
+                if num_pag in config_coordenadas:
+                    packet = io.BytesIO()
+                    c = canvas.Canvas(packet, pagesize=letter, bottomup=True)
+                    
+                    # COLOR ROJO Y GROSOR
+                    c.setStrokeColorRGB(1, 0, 0) # Rojo
+                    c.setLineWidth(2)
+                    
+                    # Dibujamos un rectángulo en cada coordenada
+                    for (posX, posY) in config_coordenadas[num_pag]:
+                        # Caja exacta
+                        c.rect(posX, posY, ANCHO, ALTO, stroke=1, fill=0)
+                        # Texto de coordenadas
+                        c.setFont("Helvetica", 8)
+                        c.setFillColorRGB(1, 0, 0)
+                        c.drawString(posX, posY + ALTO + 2, f"X:{posX}, Y:{posY}")
+                        
+                    c.save()
+                    packet.seek(0)
+                    sello = PdfReader(packet)
+                    pagina.merge_page(sello.pages[0])
+                
+                pdf_writer.add_page(pagina)
+            
+            with open(ruta_salida_debug, "wb") as f:
+                pdf_writer.write(f)
+            
+            # MOSTRAR RESULTADO EN PANTALLA (Renderizamos las imágenes)
+            st.success(f"✅ Mapa '{tipo_a_probar}' aplicado. Revisa abajo 👇")
+            
+            doc_debug = fitz.open(ruta_salida_debug)
+            for i in range(len(doc_debug)):
+                # Mostramos solo las páginas que tienen firma para no llenar la pantalla
+                if (i + 1) in config_coordenadas:
+                    page = doc_debug[i]
+                    pix = page.get_pixmap(dpi=150)
+                    st.image(pix.tobytes("png"), caption=f"Página {i+1} (Con marcas rojas)", use_container_width=True)
+
+
 
 
 
