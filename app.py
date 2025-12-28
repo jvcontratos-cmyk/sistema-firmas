@@ -250,16 +250,17 @@ def consultar_estado_dni_multisede(dni):
     return None, None, None # No encontrado
 
 def registrar_firma_sheet(dni, sede, nombre_archivo_pdf, link_firma, link_foto, tipo_detectado):
-    """Registra datos, limpia links y ACTUALIZA EL TIPO automÃ¡ticamente"""
+    """Registra TODO de un solo golpe para evitar errores de Google Sheets"""
     try:
         wb = client_sheets.open_by_key(SHEET_ID)
         sh = wb.worksheet(sede)
         
+        # Leemos toda la columna A (DNI) para buscar
         dnis_en_excel = sh.col_values(1)
         dni_buscado = str(dni).strip()
         nombre_trabajador = nombre_archivo_pdf.replace(dni_buscado, "").replace(".pdf", "").replace("-", "").strip()
 
-        # --- SUB-FUNCIÃ“N LIMPIEZA ---
+        # --- SUB-FUNCIÓN LIMPIEZA LINKS ---
         def limpiar_link(url):
             if not url: return ""
             match = re.search(r"/d/([a-zA-Z0-9_-]+)", url)
@@ -269,28 +270,35 @@ def registrar_firma_sheet(dni, sede, nombre_archivo_pdf, link_firma, link_foto, 
 
         link_firma_clean = limpiar_link(link_firma)
         link_foto_clean = limpiar_link(link_foto)
+        
+        # Preparamos las fórmulas de imagen
+        f_firma = f'=IMAGE("{link_firma_clean}")' if link_firma_clean else ""
+        f_foto = f'=IMAGE("{link_foto_clean}")' if link_foto_clean else ""
 
         for i, valor_celda in enumerate(dnis_en_excel):
+            # Truco: Convertimos ambos a string para asegurar que '76610716' sea igual a 76610716
             if str(valor_celda).strip() == dni_buscado:
                 fila = i + 1 
                 hora_peru = datetime.utcnow() - timedelta(hours=5)
                 fecha_fmt = hora_peru.strftime("%d/%m/%Y %H:%M:%S")
                 
-                # ACTUALIZAMOS COLUMNAS
-                sh.update_cell(fila, 2, "FIRMADO")         # Col B: Estado
-                sh.update_cell(fila, 3, fecha_fmt)         # Col C: Fecha
+                # --- AQUÍ ESTÁ EL CAMBIO MAESTRO ---
+                # Preparamos una lista con TODO lo que va de la Columna B a la G
+                datos_fila = [
+                    "FIRMADO",          # Col B (2)
+                    fecha_fmt,          # Col C (3)
+                    tipo_detectado,     # Col D (4)  <-- AQUÍ VA EL TIPO
+                    nombre_trabajador,  # Col E (5)
+                    f_firma,            # Col F (6)
+                    f_foto              # Col G (7)
+                ]
                 
-                # --- AQUÃ ESTÃ LA MAGIA DEL ROBOT ---
-                # Escribe "Mina" o "Normal" en la Columna 4 (D) segÃºn las hojas que contÃ³
-                sh.update_cell(fila, 4, tipo_detectado)    # Col D: TIPO
+                # Escribimos TODO de una sola vez en el rango B{fila}:G{fila}
+                # Ejemplo: Si es fila 5, actualiza B5:G5 de un golpe.
+                sh.update(range_name=f"B{fila}:G{fila}", values=[datos_fila], value_input_option="USER_ENTERED")
                 
-                sh.update_cell(fila, 5, nombre_trabajador) # Col E: Nombre
-                
-                if link_firma_clean:
-                    sh.update_cell(fila, 6, f'=IMAGE("{link_firma_clean}")') # Col F
-                if link_foto_clean:
-                    sh.update_cell(fila, 7, f'=IMAGE("{link_foto_clean}")')  # Col G (Corregido a G)
                 return True
+                
         return False
     except Exception as e:
         st.error(f"Error Excel: {e}")
@@ -889,6 +897,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
