@@ -175,11 +175,11 @@ COORDENADAS_MAESTRAS = {
     # Firma en: Pág 5 (2 firmas), 7 y 8
     "Guardian": {
         5: [
-            (380, 330),  # Firma Derecha Arriba (EL TRABAJADOR)
-            (110, 210)   # Firma Izquierda Abajo (Cargo de recepción)
+            (390, 350),  # Firma Derecha Arriba (EL TRABAJADOR)
+            (100, 235)   # Firma Izquierda Abajo (Cargo de recepción)
            ],
-        7: [(380, 180)], # Firma Pág 7 (Anexo Datos - Invertido)
-        8: [(380, 180)]  # Firma Pág 8 (Anexo Seguridad - Invertido)
+        7: [(370, 400)], # Firma Pág 7 (Anexo Datos - Invertido)
+        8: [(365, 170)]  # Firma Pág 8 (Anexo Seguridad - Invertido)
     },
 
     # Espacios futuros
@@ -918,6 +918,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
