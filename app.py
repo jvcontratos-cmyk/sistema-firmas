@@ -843,7 +843,7 @@ else:
                                 tipo_etiqueta_excel = st.session_state.get('tipo_contrato', 'Normal')
 
                             # 2. Estampamos (La función estampar_firma ya sabe qué hacer con el número de págs)
-                            estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado) # Ya no necesita pasar tipo
+                            estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado, tipo_etiqueta_excel)
                             estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
                             
                             # 3. Subida a Drive
@@ -897,6 +897,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
