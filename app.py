@@ -39,11 +39,11 @@ COORDENADAS_MAESTRAS = {
     },
     "Guardian": {
         5: [
-            (400, 380),  # Firma Derecha Arriba (EL TRABAJADOR)
-            (100, 250)   # Firma Izquierda Abajo (Cargo de recepción)
+            (400, 420),  # Firma Derecha Arriba (EL TRABAJADOR)
+            (100, 350)   # Firma Izquierda Abajo (Cargo de recepción)
            ],
         7: [(370, 400)], # Firma Pág 7 (Anexo Datos - Invertido)
-        8: [(360, 175)]  # Firma Pág 8 (Anexo Seguridad - Invertido)
+        8: [(355, 175)]  # Firma Pág 8 (Anexo Seguridad - Invertido)
     },
     "Banco": {},
     "Antamina": {}
@@ -808,4 +808,5 @@ else:
                             st.error(f"❌ Error: {e}")
                         finally:
                             if os.path.exists(ruta_firma): os.remove(ruta_firma)
+
 
