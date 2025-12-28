@@ -26,7 +26,6 @@ st.set_page_config(
 )
 
 # --- 2. BIBLIOTECA MAESTRA DE COORDENADAS ---
-# (Definida AL PRINCIPIO para que el Calibrador funcione)
 COORDENADAS_MAESTRAS = {
     "Normal": { 
         5: [(380, 388), (380, 260)], 
@@ -50,59 +49,7 @@ COORDENADAS_MAESTRAS = {
     "Antamina": {}
 }
 
-# --- 3. CALIBRADOR DE FIRMAS (VISIBLE EN PANTALLA PRINCIPAL) ---
-with st.expander("🛠️ ZONA DE PRUEBAS (SOLO ADMIN) - CLICK AQUÍ", expanded=False):
-    st.write("Sube un PDF para ver dónde caerán las firmas (Cajas Rojas).")
-    
-    col_test_1, col_test_2 = st.columns([2, 1])
-    with col_test_1:
-        pdf_prueba = st.file_uploader("Sube PDF de prueba", type="pdf", key="pdf_debug_top")
-    with col_test_2:
-        tipo_a_probar = st.selectbox("Tipo de Contrato", ["Normal", "Mina", "Guardian"], key="sel_debug_top")
-
-    if pdf_prueba and st.button("📍 VER CAJAS ROJAS", key="btn_debug_top"):
-        ruta_temp_debug = os.path.join("TEMP_WORK", "debug_temp.pdf")
-        ruta_salida_debug = os.path.join("TEMP_WORK", "debug_salida.pdf")
-        if not os.path.exists("TEMP_WORK"): os.makedirs("TEMP_WORK")
-
-        with open(ruta_temp_debug, "wb") as f:
-            f.write(pdf_prueba.getbuffer())
-
-        pdf_original = PdfReader(ruta_temp_debug)
-        pdf_writer = PdfWriter()
-        total_paginas = len(pdf_original.pages)
-        ANCHO, ALTO = 100, 50 
-        
-        # Leemos el diccionario que YA está definido arriba
-        config_coordenadas = COORDENADAS_MAESTRAS.get(tipo_a_probar, {})
-
-        for i in range(total_paginas):
-            pagina = pdf_original.pages[i]
-            num_pag = i + 1
-            if num_pag in config_coordenadas:
-                packet = io.BytesIO()
-                c = canvas.Canvas(packet, pagesize=letter, bottomup=True)
-                c.setStrokeColorRGB(1, 0, 0)
-                c.setLineWidth(2)
-                for (posX, posY) in config_coordenadas[num_pag]:
-                    c.rect(posX, posY, ANCHO, ALTO, stroke=1, fill=0)
-                    c.setFont("Helvetica", 8); c.setFillColorRGB(1, 0, 0)
-                    c.drawString(posX, posY + ALTO + 2, f"X:{posX}, Y:{posY}")
-                c.save()
-                packet.seek(0)
-                sello = PdfReader(packet)
-                pagina.merge_page(sello.pages[0])
-            pdf_writer.add_page(pagina)
-        
-        with open(ruta_salida_debug, "wb") as f: pdf_writer.write(f)
-        
-        doc_debug = fitz.open(ruta_salida_debug)
-        for i in range(len(doc_debug)):
-            if (i + 1) in config_coordenadas:
-                pix = doc_debug[i].get_pixmap(dpi=100)
-                st.image(pix.tobytes("png"), caption=f"Página {i+1}", use_container_width=True)
-
-# --- 4. CSS PERSONALIZADO ---
+# --- 3. CSS PERSONALIZADO ---
 st.markdown("""
     <style>
     header {visibility: hidden !important;}
@@ -178,7 +125,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 1. AUTENTICACIÓN GOOGLE
+# 4. AUTENTICACIÓN GOOGLE
 if "gcp_service_account" in st.secrets:
     creds_dict = dict(st.secrets["gcp_service_account"])
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
@@ -541,6 +488,60 @@ if st.session_state['dni_validado'] is None:
             </div>
         </a>
     """, unsafe_allow_html=True)
+    
+    # --- 🛠️ ZONA DE PRUEBAS (AQUÍ ABAJO NO SE ESCONDE) ---
+    st.markdown("---")
+    with st.expander("🛠️ ZONA DE PRUEBAS (SOLO ADMIN) - CLICK AQUÍ", expanded=False):
+        st.write("Sube un PDF para ver dónde caerán las firmas (Cajas Rojas).")
+        
+        col_test_1, col_test_2 = st.columns([2, 1])
+        with col_test_1:
+            pdf_prueba = st.file_uploader("Sube PDF de prueba", type="pdf", key="pdf_debug_bottom")
+        with col_test_2:
+            tipo_a_probar = st.selectbox("Tipo de Contrato", ["Normal", "Mina", "Guardian"], key="sel_debug_bottom")
+
+        if pdf_prueba and st.button("📍 VER CAJAS ROJAS", key="btn_debug_bottom"):
+            ruta_temp_debug = os.path.join("TEMP_WORK", "debug_temp.pdf")
+            ruta_salida_debug = os.path.join("TEMP_WORK", "debug_salida.pdf")
+            if not os.path.exists("TEMP_WORK"): os.makedirs("TEMP_WORK")
+
+            with open(ruta_temp_debug, "wb") as f:
+                f.write(pdf_prueba.getbuffer())
+
+            pdf_original = PdfReader(ruta_temp_debug)
+            pdf_writer = PdfWriter()
+            total_paginas = len(pdf_original.pages)
+            ANCHO, ALTO = 100, 50 
+            
+            # Leemos el diccionario GLOBAL
+            config_coordenadas = COORDENADAS_MAESTRAS.get(tipo_a_probar, {})
+
+            for i in range(total_paginas):
+                pagina = pdf_original.pages[i]
+                num_pag = i + 1
+                if num_pag in config_coordenadas:
+                    packet = io.BytesIO()
+                    c = canvas.Canvas(packet, pagesize=letter, bottomup=True)
+                    c.setStrokeColorRGB(1, 0, 0)
+                    c.setLineWidth(2)
+                    for (posX, posY) in config_coordenadas[num_pag]:
+                        c.rect(posX, posY, ANCHO, ALTO, stroke=1, fill=0)
+                        c.setFont("Helvetica", 8); c.setFillColorRGB(1, 0, 0)
+                        c.drawString(posX, posY + ALTO + 2, f"X:{posX}, Y:{posY}")
+                    c.save()
+                    packet.seek(0)
+                    sello = PdfReader(packet)
+                    pagina.merge_page(sello.pages[0])
+                pdf_writer.add_page(pagina)
+            
+            with open(ruta_salida_debug, "wb") as f: pdf_writer.write(f)
+            
+            doc_debug = fitz.open(ruta_salida_debug)
+            for i in range(len(doc_debug)):
+                if (i + 1) in config_coordenadas:
+                    pix = doc_debug[i].get_pixmap(dpi=100)
+                    st.image(pix.tobytes("png"), caption=f"Página {i+1}", use_container_width=True)
+
 else:
     # 2. APP PRINCIPAL
     nombre_archivo = st.session_state['archivo_nombre']
