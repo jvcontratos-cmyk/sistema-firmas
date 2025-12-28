@@ -154,25 +154,34 @@ RUTAS_DRIVE = {
 # Define en qué páginas y coordenadas X/Y van las firmas simples según el TIPO.
 # NOTA: La última página siempre se procesa aparte con foto y fecha.
 COORDENADAS_MAESTRAS = {
-    # El contrato estándar de Lima y Ciudad Provincia (NO TOCAR)
+    
+    # 1. CASO NORMAL (LIMA/PROVINCIA) - 9 PÁGINAS
+    # Firma en: Pág 5, 6 y 8
     "Normal": { 
         5: [(380, 388), (380, 260)], 
         6: [(400, 130)], 
         8: [(380, 175)]
     },
-    # El nuevo contrato de Mina (11 páginas total aprox)
-    # ¡OJO JEFE! He puesto coordenadas X,Y aproximadas (ej: 400, 250).
-    # Tendremos que ajustarlas viendo dónde caen en la primera prueba.
+
+    # 2. CASO MINA UNIFICADO - 11 PÁGINAS
+    # Firma en: Pág 7 (2 firmas), 9 y 10
     "Mina": {
-        # --- PÁGINA 7 (AJUSTADA A TU FOTO) ---
-        # Firma 1 (Arriba Derecha, Trabajador): X=400, Y=260
-        # Firma 2 (Abajo Izquierda, Nombre): X=100, Y=160
-        7: [(350, 345), (95, 200)], 
-        
-        # --- PÁGINAS 9 Y 10 (NO LAS TOCAMOS AÚN) ---
-        9: [(300, 160)],             
-        10: [(375, 150)]             
+        7: [(350, 345), (95, 200)],   # Firma Empleador y Trabajador + Cargo
+        9: [(300, 160)],              # Anexo
+        10: [(375, 150)]              # Anexo
     },
+
+    # 3. CASO ESPECIAL: GUARDIAN - 9 PÁGINAS (¡NUEVO!)
+    # Firma en: Pág 5 (2 firmas), 7 y 8
+    "Guardian": {
+        5: [
+            (380, 330),  # Firma Derecha Arriba (EL TRABAJADOR)
+            (110, 210)   # Firma Izquierda Abajo (Cargo de recepción)
+           ],
+        7: [(380, 180)], # Firma Pág 7 (Anexo Datos - Invertido)
+        8: [(380, 180)]  # Firma Pág 8 (Anexo Seguridad - Invertido)
+    },
+
     # Espacios futuros
     "Banco": {},
     "Antamina": {}
@@ -826,23 +835,35 @@ else:
                             img.save(ruta_firma, "PNG")
                             
                             # -----------------------------------------------------
-                            # 🧠 EL CEREBRO DEL ROBOT: DETECTAR TIPO POR PÁGINAS
+                            # 🧠 EL CEREBRO DEL ROBOT 2.0 (AHORA SABE LEER)
                             # -----------------------------------------------------
-                            # Abrimos el PDF original solo para contar
+                            # 1. Abrimos el PDF para analizarlo
                             doc_temp = fitz.open(ruta_pdf_local)
                             num_paginas_detectadas = len(doc_temp)
+                            
+                            # Leemos el texto de la PRIMERA PÁGINA para buscar pistas
+                            texto_pag1 = ""
+                            try:
+                                texto_pag1 = doc_temp[0].get_text().upper()
+                            except: pass
                             doc_temp.close()
 
-                            # Decisión automática
+                            # 2. Lógica de Decisión
                             if num_paginas_detectadas == 11:
                                 tipo_etiqueta_excel = "Mina"
+                            
                             elif num_paginas_detectadas == 9:
-                                tipo_etiqueta_excel = "Normal"
+                                # Aquí está el truco: Buscamos la palabra clave en el texto
+                                if "GUARDIAN" in texto_pag1 or "GUARDIÁN" in texto_pag1:
+                                    tipo_etiqueta_excel = "Guardian"
+                                    st.toast("🕵️‍♂️ Detectado: Contrato de GUARDIÁN")
+                                else:
+                                    tipo_etiqueta_excel = "Normal"
+                            
                             else:
-                                # Por si acaso es un Admin viejo o algo raro, lo dejamos como estaba
-                                tipo_etiqueta_excel = st.session_state.get('tipo_contrato', 'Normal')
+                                tipo_etiqueta_excel = "Normal"
 
-                            # 2. Estampamos (La función estampar_firma ya sabe qué hacer con el número de págs)
+                            # 3. Estampamos usando el tipo detectado
                             estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado, tipo_etiqueta_excel)
                             estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
                             
@@ -897,6 +918,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
