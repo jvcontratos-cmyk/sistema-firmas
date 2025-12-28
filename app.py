@@ -17,7 +17,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from datetime import datetime, timedelta
 
-# --- CONFIGURACIÓN DE PÁGINA ---
+# --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
     page_title="Portal de Contratos", 
     page_icon="✍️", 
@@ -25,7 +25,84 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS PERSONALIZADO ---
+# --- 2. BIBLIOTECA MAESTRA DE COORDENADAS ---
+# (Definida AL PRINCIPIO para que el Calibrador funcione)
+COORDENADAS_MAESTRAS = {
+    "Normal": { 
+        5: [(380, 388), (380, 260)], 
+        6: [(400, 130)], 
+        8: [(380, 175)]
+    },
+    "Mina": {
+        7: [(350, 345), (95, 200)],   
+        9: [(300, 160)],              
+        10: [(375, 150)]              
+    },
+    "Guardian": {
+        5: [
+            (390, 350),  # Firma Derecha Arriba (EL TRABAJADOR)
+            (100, 235)   # Firma Izquierda Abajo (Cargo de recepción)
+           ],
+        7: [(370, 400)], # Firma Pág 7 (Anexo Datos - Invertido)
+        8: [(365, 170)]  # Firma Pág 8 (Anexo Seguridad - Invertido)
+    },
+    "Banco": {},
+    "Antamina": {}
+}
+
+# --- 3. CALIBRADOR DE FIRMAS (VISIBLE EN PANTALLA PRINCIPAL) ---
+with st.expander("🛠️ ZONA DE PRUEBAS (SOLO ADMIN) - CLICK AQUÍ", expanded=False):
+    st.write("Sube un PDF para ver dónde caerán las firmas (Cajas Rojas).")
+    
+    col_test_1, col_test_2 = st.columns([2, 1])
+    with col_test_1:
+        pdf_prueba = st.file_uploader("Sube PDF de prueba", type="pdf", key="pdf_debug_top")
+    with col_test_2:
+        tipo_a_probar = st.selectbox("Tipo de Contrato", ["Normal", "Mina", "Guardian"], key="sel_debug_top")
+
+    if pdf_prueba and st.button("📍 VER CAJAS ROJAS", key="btn_debug_top"):
+        ruta_temp_debug = os.path.join("TEMP_WORK", "debug_temp.pdf")
+        ruta_salida_debug = os.path.join("TEMP_WORK", "debug_salida.pdf")
+        if not os.path.exists("TEMP_WORK"): os.makedirs("TEMP_WORK")
+
+        with open(ruta_temp_debug, "wb") as f:
+            f.write(pdf_prueba.getbuffer())
+
+        pdf_original = PdfReader(ruta_temp_debug)
+        pdf_writer = PdfWriter()
+        total_paginas = len(pdf_original.pages)
+        ANCHO, ALTO = 100, 50 
+        
+        # Leemos el diccionario que YA está definido arriba
+        config_coordenadas = COORDENADAS_MAESTRAS.get(tipo_a_probar, {})
+
+        for i in range(total_paginas):
+            pagina = pdf_original.pages[i]
+            num_pag = i + 1
+            if num_pag in config_coordenadas:
+                packet = io.BytesIO()
+                c = canvas.Canvas(packet, pagesize=letter, bottomup=True)
+                c.setStrokeColorRGB(1, 0, 0)
+                c.setLineWidth(2)
+                for (posX, posY) in config_coordenadas[num_pag]:
+                    c.rect(posX, posY, ANCHO, ALTO, stroke=1, fill=0)
+                    c.setFont("Helvetica", 8); c.setFillColorRGB(1, 0, 0)
+                    c.drawString(posX, posY + ALTO + 2, f"X:{posX}, Y:{posY}")
+                c.save()
+                packet.seek(0)
+                sello = PdfReader(packet)
+                pagina.merge_page(sello.pages[0])
+            pdf_writer.add_page(pagina)
+        
+        with open(ruta_salida_debug, "wb") as f: pdf_writer.write(f)
+        
+        doc_debug = fitz.open(ruta_salida_debug)
+        for i in range(len(doc_debug)):
+            if (i + 1) in config_coordenadas:
+                pix = doc_debug[i].get_pixmap(dpi=100)
+                st.image(pix.tobytes("png"), caption=f"Página {i+1}", use_container_width=True)
+
+# --- 4. CSS PERSONALIZADO ---
 st.markdown("""
     <style>
     header {visibility: hidden !important;}
@@ -122,7 +199,7 @@ if "drive_script_url" in st.secrets["general"]:
 else:
     st.stop()
 
-# --- CONFIGURACIÓN DE IDs INTELIGENTE (EL CEREBRO NUEVO) ---
+# --- CONFIGURACIÓN DE IDs INTELIGENTE ---
 SHEET_ID = "1OmzmHkZsKjJlPw2V2prVlv_LbcS8RzmdLPP1eL6EGNE"
 ID_CARPETA_FOTOS = "1JJHIw0u-MxfL11hY-rrgAODqctau1QpN"
 
@@ -138,63 +215,14 @@ RUTAS_DRIVE = {
     }
 }
 
-# Diccionario de rutas según la sede (YA ESTABA)
-RUTAS_DRIVE = {
-    "LIMA": {
-        "PENDIENTES": "1ghXH11Lazi3kHKTaQ4F-zTd-6pjuPI84",
-        "FIRMADOS": "1NlM81Vo2NuWCxyFD-xfpAFMbywvdVJoL"
-    },
-    "PROVINCIA": {
-        "PENDIENTES": "19p6rbh1UN-ToXKyvzGaE6DUCgukhFM3C",
-        "FIRMADOS": "1a3A_zFBdjhnrrX3g975dWJV-94xsDpkD"
-    }
-}
-
-# --- NUEVO: BIBLIOTECA MAESTRA DE COORDENADAS ---
-# Define en qué páginas y coordenadas X/Y van las firmas simples según el TIPO.
-# NOTA: La última página siempre se procesa aparte con foto y fecha.
-COORDENADAS_MAESTRAS = {
-    
-    # 1. CASO NORMAL (LIMA/PROVINCIA) - 9 PÁGINAS
-    # Firma en: Pág 5, 6 y 8
-    "Normal": { 
-        5: [(380, 388), (380, 260)], 
-        6: [(400, 130)], 
-        8: [(380, 175)]
-    },
-
-    # 2. CASO MINA UNIFICADO - 11 PÁGINAS
-    # Firma en: Pág 7 (2 firmas), 9 y 10
-    "Mina": {
-        7: [(350, 345), (95, 200)],   # Firma Empleador y Trabajador + Cargo
-        9: [(300, 160)],              # Anexo
-        10: [(375, 150)]              # Anexo
-    },
-
-    # 3. CASO ESPECIAL: GUARDIAN - 9 PÁGINAS (¡NUEVO!)
-    # Firma en: Pág 5 (2 firmas), 7 y 8
-    "Guardian": {
-        5: [
-            (390, 350),  # Firma Derecha Arriba (EL TRABAJADOR)
-            (100, 235)   # Firma Izquierda Abajo (Cargo de recepción)
-           ],
-        7: [(370, 400)], # Firma Pág 7 (Anexo Datos - Invertido)
-        8: [(365, 170)]  # Firma Pág 8 (Anexo Seguridad - Invertido)
-    },
-
-    # Espacios futuros
-    "Banco": {},
-    "Antamina": {}
-}
-
 # Carpetas temporales
 CARPETA_TEMP = "TEMP_WORK"
 os.makedirs(CARPETA_TEMP, exist_ok=True)
 
 # VARIABLES DE SESIÓN
 if 'dni_validado' not in st.session_state: st.session_state['dni_validado'] = None
-if 'sede_usuario' not in st.session_state: st.session_state['sede_usuario'] = None # <--- NUEVO   
-if 'tipo_contrato' not in st.session_state: st.session_state['tipo_contrato'] = "Normal" # <--- NUEVO (Por defecto Normal)
+if 'sede_usuario' not in st.session_state: st.session_state['sede_usuario'] = None 
+if 'tipo_contrato' not in st.session_state: st.session_state['tipo_contrato'] = "Normal"
 if 'archivo_id' not in st.session_state: st.session_state['archivo_id'] = None
 if 'archivo_nombre' not in st.session_state: st.session_state['archivo_nombre'] = None
 if 'canvas_key' not in st.session_state: st.session_state['canvas_key'] = 0
@@ -285,36 +313,31 @@ def registrar_firma_sheet(dni, sede, nombre_archivo_pdf, link_firma, link_foto, 
         f_foto = f'=IMAGE("{link_foto_clean}")' if link_foto_clean else ""
 
         for i, valor_celda in enumerate(dnis_en_excel):
-            # Truco: Convertimos ambos a string para asegurar que '76610716' sea igual a 76610716
             if str(valor_celda).strip() == dni_buscado:
                 fila = i + 1 
                 hora_peru = datetime.utcnow() - timedelta(hours=5)
                 fecha_fmt = hora_peru.strftime("%d/%m/%Y %H:%M:%S")
                 
-                # --- AQUÍ ESTÁ EL CAMBIO MAESTRO ---
                 # Preparamos una lista con TODO lo que va de la Columna B a la G
                 datos_fila = [
                     "FIRMADO",          # Col B (2)
                     fecha_fmt,          # Col C (3)
-                    tipo_detectado,     # Col D (4)  <-- AQUÍ VA EL TIPO
+                    tipo_detectado,     # Col D (4)
                     nombre_trabajador,  # Col E (5)
                     f_firma,            # Col F (6)
                     f_foto              # Col G (7)
                 ]
                 
-                # Escribimos TODO de una sola vez en el rango B{fila}:G{fila}
-                # Ejemplo: Si es fila 5, actualiza B5:G5 de un golpe.
+                # Escribimos TODO de una sola vez
                 sh.update(range_name=f"B{fila}:G{fila}", values=[datos_fila], value_input_option="USER_ENTERED")
-                
                 return True
-                
         return False
     except Exception as e:
         st.error(f"Error Excel: {e}")
         return False
         
 def buscar_archivo_drive(dni, folder_id):
-    """Busca el PDF en la carpeta específica que le digamos (dinámica)"""
+    """Busca el PDF en la carpeta específica que le digamos"""
     try:
         query = f"'{folder_id}' in parents and name contains '{dni}' and mimeType = 'application/pdf' and trashed = false"
         results = service_drive.files().list(q=query, fields="files(id, name)").execute()
@@ -324,7 +347,6 @@ def buscar_archivo_drive(dni, folder_id):
     except: return None
 
 def descargar_archivo_drive(file_id, nombre_destino):
-    """Esta no cambia, pero la incluyo para mantener el orden"""
     try:
         request = service_drive.files().get_media(fileId=file_id)
         fh = io.FileIO(nombre_destino, 'wb')
@@ -335,19 +357,16 @@ def descargar_archivo_drive(file_id, nombre_destino):
     except: return False
 
 def borrar_archivo_drive(file_id):
-    """Esta tampoco cambia, pero la incluyo"""
     try:
         service_drive.files().delete(fileId=file_id).execute()
         return True
     except: return False
 
 def enviar_a_drive_script(ruta_archivo, nombre_archivo, folder_destino_id):
-    """Envía el PDF al script, especificando la carpeta destino correcta"""
     try:
         with open(ruta_archivo, "rb") as f:
             pdf_base64 = base64.b64encode(f.read()).decode('utf-8')
         
-        # Le mandamos también el folderId correcto
         payload = {
             "file": pdf_base64, 
             "filename": nombre_archivo, 
@@ -358,7 +377,6 @@ def enviar_a_drive_script(ruta_archivo, nombre_archivo, folder_destino_id):
     except: return False
 
 def enviar_a_drive_script_retorna_url(ruta_archivo, nombre_archivo, folder_destino_id):
-    """Sube archivo y RETORNA el JSON con el Link (fileUrl)"""
     try:
         with open(ruta_archivo, "rb") as f:
             contenido_base64 = base64.b64encode(f.read()).decode('utf-8')
@@ -368,31 +386,26 @@ def enviar_a_drive_script_retorna_url(ruta_archivo, nombre_archivo, folder_desti
             "filename": nombre_archivo, 
             "folderId": folder_destino_id 
         }
-        # AQUI ESTÁ LA MAGIA: Guardamos la respuesta en 'response'
         response = requests.post(WEB_APP_URL, json=payload)
-        return response.json() # Retorna el diccionario con 'fileUrl'
+        return response.json() 
     except: return None
 
-def estampar_firma(pdf_path, imagen_firma, output_path, tipo_contrato="Normal"): # <--- ESTA ES LA NUEVA
-    # Esta función ahora es INTELIGENTE. Busca las coordenadas según el tipo.
+def estampar_firma(pdf_path, imagen_firma, output_path, tipo_contrato="Normal"):
+    # Función INTELIGENTE que busca las coordenadas según el tipo
     pdf_original = PdfReader(pdf_path)
     pdf_writer = PdfWriter()
     total_paginas = len(pdf_original.pages)
     ANCHO, ALTO = 100, 50
     
-    # 1. BUSCAMOS LA CONFIGURACIÓN PARA ESTE TIPO DE CONTRATO
-    # Si el tipo no existe en el diccionario, usa {} (vacío) para no romper nada.
     config_coordenadas = COORDENADAS_MAESTRAS.get(tipo_contrato, {})
     
     for i in range(total_paginas):
         pagina = pdf_original.pages[i]
         num_pag = i + 1 
         
-        # 2. VERIFICAMOS SI ESTA PÁGINA ESTÁ EN LA CONFIGURACIÓN DEL TIPO ACTUAL
         if num_pag in config_coordenadas:
             packet = io.BytesIO()
             c = canvas.Canvas(packet, pagesize=letter, bottomup=True)
-            # Dibujamos todas las firmas necesarias en esta página
             for (posX, posY) in config_coordenadas[num_pag]:
                 c.drawImage(imagen_firma, posX, posY, width=ANCHO, height=ALTO, mask='auto')
             c.save()
@@ -421,8 +434,6 @@ def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes
             packet = io.BytesIO()
             c = canvas.Canvas(packet, pagesize=letter)
             try:
-                # anchor='c' centra la firma en su caja.
-                # preserveAspectRatio=True evita que se deforme/estire.
                 c.drawImage(imagen_firma_path, X_FIRMA, Y_FIRMA, width=W_FIRMA, height=H_FIRMA, mask='auto', preserveAspectRatio=True, anchor='c')
             except: pass
             
@@ -466,7 +477,6 @@ if st.session_state['dni_validado'] is None:
             sede_encontrada, estado_sheet, tipo_encontrado = consultar_estado_dni_multisede(dni_input)
         
         if sede_encontrada:
-            # Guardamos datos en sesión
             st.session_state['sede_usuario'] = sede_encontrada
             st.session_state['tipo_contrato'] = tipo_encontrado
             
@@ -475,12 +485,10 @@ if st.session_state['dni_validado'] is None:
                 st.markdown("""**SI NECESITA UNA COPIA, CONTACTE A ADMINISTRACIÓN.**""")
             else:
                 with st.spinner(f"**BUSCANDO CONTRATO EN {sede_encontrada}...**"):
-                    # Buscamos usando la llave en MAYÚSCULAS
                     id_carpeta_busqueda = RUTAS_DRIVE[sede_encontrada]["PENDIENTES"]
                     archivo_drive = buscar_archivo_drive(dni_input, id_carpeta_busqueda)
                 
                 if archivo_drive:
-                    # PROCESO DE DESCARGA
                     ruta_local = os.path.join(CARPETA_TEMP, archivo_drive['name'])
                     descargo_ok = descargar_archivo_drive(archivo_drive['id'], ruta_local)
                     if descargo_ok:
@@ -492,7 +500,6 @@ if st.session_state['dni_validado'] is None:
                         st.rerun()
                     else: st.error("**ERROR DE CONEXIÓN AL DESCARGAR EL DOCUMENTO. INTENTE NUEVAMENTE.**")
                 else: 
-                    # 🔴 MENSAJE LIMPIO PARA EL USUARIO (SIN CÓDIGOS RAROS)
                     st.error(f"**❌ CONTRATO NO UBICADO (VERIFIQUE QUE SU DNI ESTÉ CORRECTAMENTE ESCRITO), SI ESTÁ TODO CORRECTO, CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**")
                     st.markdown("**❌ CONTRATO NO UBICADO (VERIFIQUE QUE SU DNI ESTÉ CORRECTAMENTE ESCRITO), SI ESTÁ TODO CORRECTO, CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**")
         else:
@@ -504,16 +511,13 @@ if st.session_state['dni_validado'] is None:
         st.markdown("En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto. El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos). *Lo verá reflejado en su **boleta de pago** a fin de mes.*")
     with st.expander("🕒 ¿Por qué el contrato dice 8hrs si mi puesto de trabajo es de 12hrs?"):
         st.markdown("La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias. Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**. *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*")
-    # === BOTÓN PRO DE WHATSAPP (Soporte Rápido) ===
-    # ¡OJO GORILA! CAMBIA ESTE NÚMERO POR EL TUYO (Con código 51 delante si es Perú)
-    celular_soporte = "51958840140" 
     
-    # Preparamos el mensaje automático con el DNI que escribió
+    # === BOTÓN PRO DE WHATSAPP ===
+    celular_soporte = "51958840140" 
     mensaje_wsp = f"Hola, soy el colaborador con DNI {dni_input if dni_input else 'PENDIENTE'}. Tengo una duda en el Portal de Contratos."
     mensaje_encoded = requests.utils.quote(mensaje_wsp)
     link_wsp = f"https://wa.me/{celular_soporte}?text={mensaje_encoded}"
 
-    # Renderizamos el Botón Verde
     st.markdown(f"""
         <a href="{link_wsp}" target="_blank" style="text-decoration: none;">
             <div style="
@@ -562,31 +566,23 @@ else:
         st.success(f"Hola, **{nombre_archivo.replace('.pdf','')}**")
         st.info("👇 **SIGA LOS PASOS 1, 2 Y 3 PARA COMPLETAR SU FIRMA.**")
         
-        # --- PASO 1: LECTURA ULTRA PRO (ZERO FLASH - MODO NETFLIX) ---
+        # --- PASO 1: LECTURA ULTRA PRO ---
         st.markdown("### 1. Lectura del Contrato")
         st.caption("**TOQUE LA IMAGEN PARA LEER EN PANTALLA COMPLETA Y HACER ZOOM CON LOS DEDOS**.")
 
         try:
-            # 1. CARGA MASIVA: Preparamos TODAS las páginas de una vez
-            # Esto elimina el parpadeo porque el navegador ya tendrá todas las fotos listas.
             doc = fitz.open(ruta_pdf_local)
             total_paginas = len(doc)
-            
-            # Creamos una lista de Javascript con todas las imágenes codificadas
             lista_imagenes_js = []
             for i in range(total_paginas):
                 pagina = doc[i]
-                # DPI 200 es suficiente para pantalla y carga rápido. 300 puede ser pesado si son muchas hojas.
                 pix = pagina.get_pixmap(dpi=200) 
                 img_bytes = pix.tobytes("png")
                 b64 = base64.b64encode(img_bytes).decode('utf-8')
                 lista_imagenes_js.append(f"'data:image/png;base64,{b64}'")
             
-            # Convertimos la lista de Python a un String de Array Javascript: ['data...', 'data...']
             js_array_string = "[" + ",".join(lista_imagenes_js) + "]"
 
-            # --- CÓDIGO HTML + JS (EL MOTOR FERRARI) ---
-            # Ya no hay botones Python ocultos. Todo ocurre en el navegador del cliente.
             html_zero_flash = f"""
             <!DOCTYPE html>
             <html>
@@ -595,61 +591,13 @@ else:
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
                 <style>
                     body {{ margin: 0; padding: 0; font-family: sans-serif; }}
-                    
-                    .contrato-container {{
-                        text-align: center;
-                        border: 1px solid #ddd;
-                        border-radius: 8px;
-                        padding: 5px;
-                        background: white;
-                        cursor: zoom-in;
-                    }}
-                    #imagen-contrato {{
-                        max-width: 100%;
-                        height: auto;
-                        max-height: 450px;
-                        display: block;
-                        margin: 0 auto;
-                        object-fit: contain;
-                    }}
-                    
-                    /* BARRA DE NAVEGACIÓN PEGADA Y ESTILIZADA */
-                    .nav-container-pro {{
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 15px;
-                        padding: 5px;
-                        width: 100%;
-                        user-select: none;
-                        margin-top: 5px; 
-                    }}
-                    .nav-btn-pro {{
-                        font-size: 28px;
-                        font-weight: bold;
-                        padding: 0 15px;
-                        cursor: pointer;
-                        transition: transform 0.1s;
-                        line-height: 1;
-                        color: #FF4B4B; /* Rojo Streamlit por defecto */
-                    }}
-                    .nav-btn-pro.disabled {{
-                        color: #ccc;
-                        cursor: default;
-                    }}
+                    .contrato-container {{ text-align: center; border: 1px solid #ddd; border-radius: 8px; padding: 5px; background: white; cursor: zoom-in; }}
+                    #imagen-contrato {{ max-width: 100%; height: auto; max-height: 450px; display: block; margin: 0 auto; object-fit: contain; }}
+                    .nav-container-pro {{ display: flex; align-items: center; justify-content: center; gap: 15px; padding: 5px; width: 100%; user-select: none; margin-top: 5px; }}
+                    .nav-btn-pro {{ font-size: 28px; font-weight: bold; padding: 0 15px; cursor: pointer; transition: transform 0.1s; line-height: 1; color: #FF4B4B; }}
+                    .nav-btn-pro.disabled {{ color: #ccc; cursor: default; }}
                     .nav-btn-pro:active:not(.disabled) {{ transform: scale(0.8); }}
-                    
-                    .nav-text-capsule {{
-                        background-color: #f0f2f6;
-                        padding: 8px 20px;
-                        border-radius: 20px;
-                        font-weight: 600;
-                        color: #444;
-                        font-size: 14px;
-                        min-width: 120px;
-                        text-align: center;
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                    }}
+                    .nav-text-capsule {{ background-color: #f0f2f6; padding: 8px 20px; border-radius: 20px; font-weight: 600; color: #444; font-size: 14px; min-width: 120px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
                     .viewer-title {{ display: none; }}
                 </style>
             </head>
@@ -658,53 +606,27 @@ else:
                     <img id="imagen-contrato" src="" alt="Contrato">
                     <div style="margin-top:2px; color:#999; font-size:11px;">👆 <i>**RECUERDE HACER ZOOM CON LOS DEDOS**</i></div>
                 </div>
-
                 <div class="nav-container-pro">
                     <div class="nav-btn-pro" id="btn-prev" onclick="cambiarPagina(-1)">❮</div>
                     <div class="nav-text-capsule" id="contador-paginas">Cargando...</div>
                     <div class="nav-btn-pro" id="btn-next" onclick="cambiarPagina(1)">❯</div>
                 </div>
-
                 <script>
-                    // 1. RECIBIMOS TODAS LAS IMÁGENES DESDE PYTHON
                     const paginas = {js_array_string};
                     let indiceActual = 0;
                     const total = paginas.length;
-                    
                     const imgElement = document.getElementById('imagen-contrato');
                     const txtContador = document.getElementById('contador-paginas');
                     const btnPrev = document.getElementById('btn-prev');
                     const btnNext = document.getElementById('btn-next');
                     let viewer = null;
-
-                    // 2. FUNCIÓN PARA ACTUALIZAR LA VISTA (INSTANTÁNEA)
                     function actualizarVista() {{
-                        // Cambiamos la fuente de la imagen (Magia sin parpadeo)
                         imgElement.src = paginas[indiceActual];
-                        
-                        // Actualizamos texto
                         txtContador.innerText = `Pág. ${{indiceActual + 1}} / ${{total}}`;
-                        
-                        // Actualizamos colores de botones (Gris si es el final)
-                        if (indiceActual === 0) {{
-                            btnPrev.classList.add('disabled');
-                        }} else {{
-                            btnPrev.classList.remove('disabled');
-                        }}
-                        
-                        if (indiceActual === total - 1) {{
-                            btnNext.classList.add('disabled');
-                        }} else {{
-                            btnNext.classList.remove('disabled');
-                        }}
-
-                        // Si el visor de zoom está abierto, hay que actualizarlo también
-                        if (viewer) {{
-                            viewer.update();
-                        }}
+                        if (indiceActual === 0) {{ btnPrev.classList.add('disabled'); }} else {{ btnPrev.classList.remove('disabled'); }}
+                        if (indiceActual === total - 1) {{ btnNext.classList.add('disabled'); }} else {{ btnNext.classList.remove('disabled'); }}
+                        if (viewer) {{ viewer.update(); }}
                     }}
-
-                    // 3. FUNCIÓN DE NAVEGACIÓN
                     window.cambiarPagina = function(direccion) {{
                         const nuevoIndice = indiceActual + direccion;
                         if (nuevoIndice >= 0 && nuevoIndice < total) {{
@@ -712,35 +634,19 @@ else:
                             actualizarVista();
                         }}
                     }};
-
-                    // 4. INICIALIZAR AL CARGAR
-                    // Cargamos la página 0 al inicio
                     actualizarVista();
-
-                    // Iniciamos el Zoom Potente
                     viewer = new Viewer(imgElement, {{
                         toolbar: {{ zoomIn:1, zoomOut:1, oneToOne:1, reset:1, rotateLeft:0, rotateRight:0, flipHorizontal:0, flipVertical:0 }},
-                        navbar: 0, 
-                        title: 0, 
-                        tooltip: 0, 
-                        movable: 1, 
-                        zoomable: 1, 
-                        rotatable: 0, 
-                        scalable: 0, 
-                        inline: false, 
-                        transition: 0, 
-                        backdrop: 'rgba(0,0,0,0.9)' 
+                        navbar: 0, title: 0, tooltip: 0, movable: 1, zoomable: 1, rotatable: 0, scalable: 0, inline: false, transition: 0, backdrop: 'rgba(0,0,0,0.9)' 
                     }});
                 </script>
             </body>
             </html>
             """
-            
-            # Renderizamos todo (Altura 600px para que quepa bien)
             st.components.v1.html(html_zero_flash, height=600, scrolling=False)
-
         except Exception as e:
             st.error(f"Error cargando visor: {e}")
+
         # PASO 2: FOTO HÍBRIDA
         st.markdown("---")
         st.subheader("2. Foto de Identidad")
@@ -804,17 +710,13 @@ else:
                         width: 80px; height: 80px; animation: spin 1s linear infinite; margin-bottom: 20px;
                     "></div>
                     <div style="font-size: 22px; font-weight: bold; color: #333; margin-bottom: 10px; font-family: sans-serif;">
-                        SUBIENDO ARCHIVOS...
-                    </div>
-                    <div style="font-size: 18px; color: #d9534f; font-weight: bold; font-family: sans-serif;">
-                        ⚠️ NO CIERRE LA VENTANA.
+                        PROCESANDO FIRMA...
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
                 # ============================
 
                 if canvas_result.image_data is not None:
-                    # ... (Procesamiento de imagen igual que siempre) ...
                     img_data = canvas_result.image_data.astype('uint8')
                     if img_data[:, :, 3].sum() == 0:
                         st.warning("⚠️ Firma vacía.")
@@ -835,47 +737,39 @@ else:
                             img.save(ruta_firma, "PNG")
                             
                             # -----------------------------------------------------
-                            # 🧠 EL CEREBRO DEL ROBOT 2.0 (AHORA SABE LEER)
+                            # 🧠 CEREBRO DEL ROBOT 2.0 (AHORA SÍ LEE)
                             # -----------------------------------------------------
-                            # 1. Abrimos el PDF para analizarlo
                             doc_temp = fitz.open(ruta_pdf_local)
                             num_paginas_detectadas = len(doc_temp)
-                            
-                            # Leemos el texto de la PRIMERA PÁGINA para buscar pistas
                             texto_pag1 = ""
                             try:
                                 texto_pag1 = doc_temp[0].get_text().upper()
                             except: pass
                             doc_temp.close()
 
-                            # 2. Lógica de Decisión
                             if num_paginas_detectadas == 11:
                                 tipo_etiqueta_excel = "Mina"
-                            
                             elif num_paginas_detectadas == 9:
-                                # Aquí está el truco: Buscamos la palabra clave en el texto
                                 if "GUARDIAN" in texto_pag1 or "GUARDIÁN" in texto_pag1:
                                     tipo_etiqueta_excel = "Guardian"
                                     st.toast("🕵️‍♂️ Detectado: Contrato de GUARDIÁN")
                                 else:
                                     tipo_etiqueta_excel = "Normal"
-                            
                             else:
-                                tipo_etiqueta_excel = "Normal"
+                                tipo_etiqueta_excel = st.session_state.get('tipo_contrato', 'Normal')
 
-                            # 3. Estampamos usando el tipo detectado
+                            # 2. Estampamos (Pasando el tipo detectado)
                             estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado, tipo_etiqueta_excel)
                             estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
                             
-                            # 3. Subida a Drive
+                            # 3. Subida y Registro
                             sede_actual = st.session_state['sede_usuario']
                             id_carpeta_contratos = RUTAS_DRIVE[sede_actual]["FIRMADOS"]
                             id_carpeta_imagenes = ID_CARPETA_FOTOS 
 
-                            st.write(f"🚀 Procesando como contrato tipo: {tipo_etiqueta_excel} ({num_paginas_detectadas} págs)...")
+                            st.write(f"🚀 Procesando como: {tipo_etiqueta_excel}...")
 
                             resp_pdf = enviar_a_drive_script_retorna_url(ruta_salida_firmado, nombre_archivo, id_carpeta_contratos)
-                            
                             nombre_firma_png = f"FIRMA_{st.session_state['dni_validado']}.png"
                             resp_firma = enviar_a_drive_script_retorna_url(ruta_firma, nombre_firma_png, id_carpeta_imagenes)
                             
@@ -885,7 +779,6 @@ else:
                             nombre_foto_jpg = f"FOTO_{st.session_state['dni_validado']}.jpg"
                             resp_foto = enviar_a_drive_script_retorna_url(ruta_foto_temp, nombre_foto_jpg, id_carpeta_imagenes)
 
-                            # 4. Registro en Excel (CON LA ETIQUETA NUEVA)
                             if resp_pdf and resp_firma and resp_foto:
                                 link_firma_raw = resp_firma.get("fileUrl", "")
                                 link_foto_raw = resp_foto.get("fileUrl", "")
@@ -896,7 +789,7 @@ else:
                                     st.session_state['archivo_nombre'], 
                                     link_firma_raw,                     
                                     link_foto_raw,
-                                    tipo_etiqueta_excel  # <--- AQUÍ LE PASAMOS EL DATO "Mina" o "Normal"
+                                    tipo_etiqueta_excel 
                                 )
                                 
                                 if registro_ok:
@@ -914,97 +807,3 @@ else:
                             st.error(f"❌ Error: {e}")
                         finally:
                             if os.path.exists(ruta_firma): os.remove(ruta_firma)
-                
-        if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
-            st.session_state['dni_validado'] = None
-            st.rerun()
-
-# ==========================================
-# 🛠️ ZONA DE PRUEBAS (SOLO PARA EL PROGRAMADOR)
-# ==========================================
-with st.sidebar:
-    st.markdown("---")
-    st.header("🛠️ CALIBRADOR DE FIRMAS")
-    activar_pruebas = st.checkbox("Activar Modo Pruebas")
-
-if activar_pruebas:
-    st.title("🎯 Calibración de Coordenadas (Modo Seguro)")
-    st.info("Sube un PDF y selecciona el TIPO para ver dónde caerán las firmas (Cuadros Rojos). NO SE SUBIRÁ NADA A DRIVE.")
-
-    # 1. Subir PDF de prueba
-    pdf_prueba = st.file_uploader("Sube el PDF (Guardian, Normal, etc)", type="pdf", key="pdf_debug")
-    
-    # 2. Elegir qué mapa de coordenadas probar
-    tipo_a_probar = st.selectbox("¿Qué mapa quieres probar?", ["Normal", "Mina", "Guardian"])
-    
-    if pdf_prueba:
-        if st.button("📍 DIBUJAR CAJAS ROJAS"):
-            # Guardamos temporalmente
-            ruta_temp_debug = os.path.join(CARPETA_TEMP, "debug_temp.pdf")
-            ruta_salida_debug = os.path.join(CARPETA_TEMP, "debug_salida.pdf")
-            
-            with open(ruta_temp_debug, "wb") as f:
-                f.write(pdf_prueba.getbuffer())
-            
-            # --- LÓGICA DE DIBUJO DE CAJAS (SIMULANDO FIRMAS) ---
-            pdf_original = PdfReader(ruta_temp_debug)
-            pdf_writer = PdfWriter()
-            total_paginas = len(pdf_original.pages)
-            
-            # Dimensiones de la firma (Las mismas de tu código principal)
-            ANCHO, ALTO = 100, 50 
-            
-            # Cargamos el mapa seleccionado
-            config_coordenadas = COORDENADAS_MAESTRAS.get(tipo_a_probar, {})
-            
-            for i in range(total_paginas):
-                pagina = pdf_original.pages[i]
-                num_pag = i + 1
-                
-                if num_pag in config_coordenadas:
-                    packet = io.BytesIO()
-                    c = canvas.Canvas(packet, pagesize=letter, bottomup=True)
-                    
-                    # COLOR ROJO Y GROSOR
-                    c.setStrokeColorRGB(1, 0, 0) # Rojo
-                    c.setLineWidth(2)
-                    
-                    # Dibujamos un rectángulo en cada coordenada
-                    for (posX, posY) in config_coordenadas[num_pag]:
-                        # Caja exacta
-                        c.rect(posX, posY, ANCHO, ALTO, stroke=1, fill=0)
-                        # Texto de coordenadas
-                        c.setFont("Helvetica", 8)
-                        c.setFillColorRGB(1, 0, 0)
-                        c.drawString(posX, posY + ALTO + 2, f"X:{posX}, Y:{posY}")
-                        
-                    c.save()
-                    packet.seek(0)
-                    sello = PdfReader(packet)
-                    pagina.merge_page(sello.pages[0])
-                
-                pdf_writer.add_page(pagina)
-            
-            with open(ruta_salida_debug, "wb") as f:
-                pdf_writer.write(f)
-            
-            # MOSTRAR RESULTADO EN PANTALLA (Renderizamos las imágenes)
-            st.success(f"✅ Mapa '{tipo_a_probar}' aplicado. Revisa abajo 👇")
-            
-            doc_debug = fitz.open(ruta_salida_debug)
-            for i in range(len(doc_debug)):
-                # Mostramos solo las páginas que tienen firma para no llenar la pantalla
-                if (i + 1) in config_coordenadas:
-                    page = doc_debug[i]
-                    pix = page.get_pixmap(dpi=150)
-                    st.image(pix.tobytes("png"), caption=f"Página {i+1} (Con marcas rojas)", use_container_width=True)
-
-
-
-
-
-
-
-
-
-
