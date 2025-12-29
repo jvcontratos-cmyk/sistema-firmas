@@ -389,6 +389,17 @@ if st.session_state['dni_validado'] is None:
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
     if submitted and dni_input:
+        
+        # --- [NUEVO] CORTINA BLANCA DE CARGA ---
+        st.markdown("""
+            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <div style="border: 8px solid #f3f3f3; border-top: 8px solid #FF4B4B; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite;"></div>
+                <h2 style="color: #333; margin-top: 20px; font-family: sans-serif;">BUSCANDO TUS DATOS...</h2>
+                <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+            </div>
+        """, unsafe_allow_html=True)
+        # ---------------------------------------
+        
         with st.spinner("**BUSCANDO EN BASE DE DATOS...**"):
             sede_encontrada, estado_sheet, tipo_encontrado = consultar_estado_dni_multisede(dni_input)
         
@@ -423,6 +434,7 @@ if st.session_state['dni_validado'] is None:
     # -----------------------------------------------------------------------------------
     # AQUÍ ESTABA EL ERROR: AHORA ESTÁ INDENTADO (CON ESPACIO) DENTRO DEL IF INICIAL
     # -----------------------------------------------------------------------------------
+if not submitted:
     st.markdown("---")
     st.subheader("❓ Preguntas Frecuentes")
     with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
@@ -723,3 +735,4 @@ else:
                             st.error(f"❌ Error: {e}")
                         finally:
                             if os.path.exists(ruta_firma): os.remove(ruta_firma)
+
