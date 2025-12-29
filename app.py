@@ -467,17 +467,17 @@ if st.session_state['dni_validado'] is None:
         dni_input = st.text_input("**DIGITE SU DNI**", max_chars=15)
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
-    if submitted and dni_input:
+    f submitted and dni_input:
         
-        # --- PEGAR ESTE BLOQUE EXACTO AQUÍ ---
+        # --- CORTINA BLANCA SÓLIDA (PARED VISUAL) ---
         st.markdown("""
-            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.98); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #ffffff; opacity: 1; z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <div style="border: 8px solid #f3f3f3; border-top: 8px solid #FF4B4B; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite;"></div>
                 <h2 style="color: #333; margin-top: 20px; font-family: sans-serif;">BUSCANDO TUS DATOS...</h2>
                 <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
             </div>
         """, unsafe_allow_html=True)
-        # -------------------------------------
+        # ---------------------------------------------
         
         with st.spinner("**BUSCANDO EN BASE DE DATOS...**"):
             # Magia Multisede (Devuelve LIMA o PROVINCIA en mayúsculas)
@@ -517,7 +517,7 @@ if st.session_state['dni_validado'] is None:
             st.error("**❌ CONTRATO NO UBICADO (VERIFIQUE QUE SU DNI ESTÉ CORRECTAMENTE ESCRITO), SI ESTÁ TODO CORRECTO, CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**")
     
     # AGREGAR ESTA LÍNEA Y DARLE TAB A TODO LO DE ABAJO
-    if st.session_state['dni_validado'] is None and not submitted:
+    elif not submitted:
         st.markdown("---")
         st.subheader("❓ Preguntas Frecuentes")
         with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
@@ -942,6 +942,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
