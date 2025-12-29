@@ -506,7 +506,7 @@ if st.session_state['dni_validado'] is None:
             st.markdown("""
                 <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #ffffff; z-index: 9999999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                     <div style="border: 8px solid #f3f3f3; border-top: 8px solid #FF4B4B; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite;"></div>
-                    <h2 style="color: #333; margin-top: 20px; font-family: sans-serif;">BUSCANDO TUS DATOS...</h2>
+                    <h2 style="color: #333; margin-top: 20px; font-family: sans-serif;">VALIDANDO SUS DATOS, ESPERE UN MOMENTO...</h2>
                     <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } body { overflow: hidden; }</style>
                 </div>
             """, unsafe_allow_html=True)
@@ -1061,6 +1061,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
