@@ -742,26 +742,41 @@ else:
                             img.save(ruta_firma, "PNG")
                             
                             # -----------------------------------------------------
-                            # 🧠 CEREBRO DEL ROBOT 2.0 (AHORA SÍ LEE)
+                            # 🧠 CEREBRO DEL ROBOT 3.0 (DETECTA MINA, GUARDIAN, BANCO O NORMAL)
                             # -----------------------------------------------------
                             doc_temp = fitz.open(ruta_pdf_local)
                             num_paginas_detectadas = len(doc_temp)
+                            
+                            # Leemos el texto de la PRIMERA PÁGINA para buscar el título
                             texto_pag1 = ""
                             try:
                                 texto_pag1 = doc_temp[0].get_text().upper()
                             except: pass
                             doc_temp.close()
 
+                            # --- Lógica de Decisión ---
                             if num_paginas_detectadas == 11:
                                 tipo_etiqueta_excel = "Mina"
+                            
                             elif num_paginas_detectadas == 9:
+                                # Diferenciamos Guardián de Normal (Ambos tienen 9 hojas con biometría)
                                 if "GUARDIAN" in texto_pag1 or "GUARDIÁN" in texto_pag1:
                                     tipo_etiqueta_excel = "Guardian"
-                                    st.toast("🕵️‍♂️ Detectado: Contrato de GUARDIÁN")
                                 else:
                                     tipo_etiqueta_excel = "Normal"
+                                    
+                            elif num_paginas_detectadas == 8:
+                                # DETECCIÓN DE BANCO: Tiene 8 hojas en total (7 naturales + 1 biometría)
+                                # El título del PDF es "CONTRATO DE TRABAJO A PLAZO FIJO POR INCREMENTO DE ACTIVIDADES"
+                                if "INCREMENTO DE ACTIVIDADES" in texto_pag1:
+                                    tipo_etiqueta_excel = "Banco"
+                                    st.toast("🏦 Detectado: Contrato de BANCO")
+                                else:
+                                    tipo_etiqueta_excel = "Normal"
+                            
                             else:
-                                tipo_etiqueta_excel = st.session_state.get('tipo_contrato', 'Normal')
+                                # Por defecto, si el número de páginas no coincide con lo anterior
+                                tipo_etiqueta_excel = "Normal"
 
                             # 2. Estampamos (Pasando el tipo detectado)
                             estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado, tipo_etiqueta_excel)
@@ -812,6 +827,7 @@ else:
                             st.error(f"❌ Error: {e}")
                         finally:
                             if os.path.exists(ruta_firma): os.remove(ruta_firma)
+
 
 
 
