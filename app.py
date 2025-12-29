@@ -538,14 +538,6 @@ if st.session_state['dni_validado'] is None:
         else:
             st.error("**❌ DNI NO ENCONTRADO EN BASE DE DATOS.**")
             
-    # AGREGAR ESTA LÍNEA Y DARLE TAB A TODO LO DE ABAJO
-    if st.session_state['dni_validado'] is None and not submitted:
-        st.markdown("---")
-        st.subheader("❓ Preguntas Frecuentes")
-        with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
-            st.markdown("En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto. El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos). *Lo verá reflejado en su **boleta de pago** a fin de mes.*")
-        with st.expander("🕒 ¿Por qué el contrato dice 8hrs si mi puesto de trabajo es de 12hrs?"):
-            st.markdown("La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias. Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**. *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*")
         # === BOTÓN PRO DE WHATSAPP (Soporte Rápido) ===
         # ¡OJO GORILA! CAMBIA ESTE NÚMERO POR EL TUYO (Con código 51 delante si es Perú)
         celular_soporte = "51958840140" 
@@ -964,6 +956,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
