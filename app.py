@@ -587,39 +587,27 @@ else:
     nombre_archivo = st.session_state['archivo_nombre']
     ruta_pdf_local = os.path.join(CARPETA_TEMP, nombre_archivo)
     
-    # === PANTALLA DE ÉXITO (DISEÑO PREMIUM) ===
+    # === PANTALLA DE ÉXITO (CORREGIDO) ===
     if st.session_state['firmado_ok']:
-        st.balloons() # ¡Fiesta!
+        st.balloons()
         
-        # 1. TARJETA DE CONFIRMACIÓN (HTML/CSS)
-        # Generamos un código único falso para que se vea pro
         codigo_seguridad = f"LDR-{st.session_state['dni_validado']}-{datetime.utcnow().strftime('%H%M')}"
         
+        # HTML SIN INDENTACIÓN PARA EVITAR ERRORES DE RENDERIZADO
         st.markdown(f"""
-            <div style="
-                background-color: #f0fdf4; 
-                border: 2px solid #22c55e; 
-                border-radius: 15px; 
-                padding: 30px; 
-                text-align: center; 
-                margin-bottom: 25px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            ">
-                <div style="font-size: 60px; margin-bottom: 10px;">✅</div>
-                <h1 style="color: #15803d; font-family: sans-serif; font-size: 28px; margin: 0;">¡FIRMA REGISTRADA!</h1>
-                <p style="color: #166534; font-size: 16px; margin-top: 10px;">El proceso ha finalizado correctamente.</p>
-                
-                <hr style="border: 0; border-top: 1px dashed #86efac; margin: 20px 0;">
-                
-                <div style="background-color: white; padding: 15px; border-radius: 10px; text-align: left; display: inline-block;">
-                    <p style="margin: 5px 0; color: #555; font-size: 14px;">📄 <strong>Documento:</strong> {nombre_archivo.replace('.pdf', '')}</p>
-                    <p style="margin: 5px 0; color: #555; font-size: 14px;">📅 <strong>Fecha:</strong> {datetime.utcnow().strftime('%d/%m/%Y')}</p>
-                    <p style="margin: 5px 0; color: #555; font-size: 14px;">🔒 <strong>Cód. Validación:</strong> <span style="font-family: monospace; color: #22c55e;">{codigo_seguridad}</span></p>
-                </div>
-            </div>
+<div style="background-color: #f0fdf4; border: 2px solid #22c55e; border-radius: 15px; padding: 30px; text-align: center; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <div style="font-size: 60px; margin-bottom: 10px;">✅</div>
+    <h1 style="color: #15803d; font-family: sans-serif; font-size: 28px; margin: 0;">¡FIRMA REGISTRADA!</h1>
+    <p style="color: #166534; font-size: 16px; margin-top: 10px;">El proceso ha finalizado correctamente.</p>
+    <hr style="border: 0; border-top: 1px dashed #86efac; margin: 20px 0;">
+    <div style="background-color: white; padding: 15px; border-radius: 10px; text-align: left; display: inline-block;">
+        <p style="margin: 5px 0; color: #555; font-size: 14px;">📄 <strong>Documento:</strong> {nombre_archivo.replace('.pdf', '')}</p>
+        <p style="margin: 5px 0; color: #555; font-size: 14px;">📅 <strong>Fecha:</strong> {datetime.utcnow().strftime('%d/%m/%Y')}</p>
+        <p style="margin: 5px 0; color: #555; font-size: 14px;">🔒 <strong>Cód. Validación:</strong> <span style="font-family: monospace; color: #22c55e;">{codigo_seguridad}</span></p>
+    </div>
+</div>
         """, unsafe_allow_html=True)
 
-        # 2. BOTONES DE ACCIÓN
         ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
         
         col_descarga, col_salir = st.columns([1, 1])
@@ -635,6 +623,12 @@ else:
                         type="primary", 
                         use_container_width=True
                     )
+        
+        with col_salir:
+            if st.button("🏠 FINALIZAR Y SALIR", use_container_width=True):
+                st.session_state['dni_validado'] = None
+                st.session_state['firmado_ok'] = False
+                st.rerun()
         
         with col_salir:
             if st.button("🏠 FINALIZAR Y SALIR", use_container_width=True):
@@ -1045,6 +1039,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
