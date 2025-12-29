@@ -46,7 +46,7 @@ COORDENADAS_MAESTRAS = {
         8: [(355, 175)]  # Firma Pág 8 (Anexo Seguridad - Invertido)
     },
     "Banco": {
-        4: [(340, 380), (355, 215)],  # Firma Contrato y Cargo
+        4: [(340, 380), (340, 215)],  # Firma Contrato y Cargo
         5: [(340, 160)],              # Anexo Seguridad
         7: [(380, 220)]               # Anexo Datos Personales
     },
@@ -812,6 +812,7 @@ else:
                             st.error(f"❌ Error: {e}")
                         finally:
                             if os.path.exists(ruta_firma): os.remove(ruta_firma)
+
 
 
 
