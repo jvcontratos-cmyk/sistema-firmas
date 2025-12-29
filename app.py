@@ -587,15 +587,27 @@ else:
     nombre_archivo = st.session_state['archivo_nombre']
     ruta_pdf_local = os.path.join(CARPETA_TEMP, nombre_archivo)
     
-    # === PANTALLA DE ÉXITO (CORREGIDO SIN ERROR Y SIN CÓDIGO) ===
+    # === PANTALLA DE ÉXITO (CON LOGO LIDERMAN) ===
     if st.session_state['firmado_ok']:
         st.balloons()
         
-        # HTML LIMPIO (Solo Documento y Fecha)
+        # 1. PREPARAR EL LOGO EN BASE64 PARA EL HTML
+        # Esto asegura que el logo se vea siempre, incrustándolo en el código.
+        logo_html = ""
+        if os.path.exists("logo_liderman.png"):
+            import base64
+            with open("logo_liderman.png", "rb") as img_file:
+                logo_b64 = base64.b64encode(img_file.read()).decode()
+                # Ajusta el 'max-width: 180px' si quieres que el logo sea más grande o pequeño
+                logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="max-width: 180px; height: auto; margin-bottom: 20px;">'
+        else:
+            # Si por alguna razón se borró el archivo del logo, vuelve el check verde
+            logo_html = '<div style="font-size: 60px; margin-bottom: 10px;">✅</div>'
+
+        # 2. TARJETA HTML CON EL LOGO INTEGRADO
         st.markdown(f"""
 <div style="background-color: #f0fdf4; border: 2px solid #22c55e; border-radius: 15px; padding: 30px; text-align: center; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <div style="font-size: 60px; margin-bottom: 10px;">✅</div>
-    <h1 style="color: #15803d; font-family: sans-serif; font-size: 28px; margin: 0;">¡FIRMA REGISTRADA!</h1>
+    {logo_html} <h1 style="color: #15803d; font-family: sans-serif; font-size: 28px; margin: 0;">¡FIRMA REGISTRADA!</h1>
     <p style="color: #166534; font-size: 16px; margin-top: 10px;">El proceso ha finalizado correctamente.</p>
     <hr style="border: 0; border-top: 1px dashed #86efac; margin: 20px 0;">
     <div style="background-color: white; padding: 15px; border-radius: 10px; text-align: left; display: inline-block;">
@@ -605,6 +617,7 @@ else:
 </div>
         """, unsafe_allow_html=True)
 
+        # 3. BOTONES DE ACCIÓN (IGUAL QUE ANTES, SIN ERRORES ROJOS)
         ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
         
         col_descarga, col_salir = st.columns([1, 1])
@@ -619,11 +632,10 @@ else:
                         mime="application/pdf", 
                         type="primary", 
                         use_container_width=True,
-                        key="btn_descargar_final" # <--- ESTO ARREGLA EL ERROR
+                        key="btn_descargar_final"
                     )
         
         with col_salir:
-            # AGREGAMOS KEY ÚNICO AQUÍ TAMBIÉN
             if st.button("🏠 FINALIZAR Y SALIR", use_container_width=True, key="btn_salir_final"):
                 st.session_state['dni_validado'] = None
                 st.session_state['firmado_ok'] = False
@@ -1032,6 +1044,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
