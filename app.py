@@ -28,7 +28,7 @@ st.set_page_config(
 # --- 2. BIBLIOTECA MAESTRA DE COORDENADAS ---
 COORDENADAS_MAESTRAS = {
     "Normal": { 
-        5: [(380, 388), (380, 260)], 
+        5: [(380, 390), (380, 260)], 
         6: [(400, 130)], 
         8: [(380, 175)]
     },
@@ -808,6 +808,7 @@ else:
                             st.error(f"❌ Error: {e}")
                         finally:
                             if os.path.exists(ruta_firma): os.remove(ruta_firma)
+
 
 
 
