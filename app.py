@@ -17,12 +17,6 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from datetime import datetime, timedelta
 
-# --- 0. CONTROL DE VISTA ELEGANTE (FORCE EMBED) ---
-# Esto asegura que el QR siempre abra la web sin menús de Streamlit
-if "embed" not in st.query_params or st.query_params["embed"] != "true":
-    st.query_params["embed"] = "true"
-    st.rerun()
-
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
     page_title="Portal de Contratos", 
@@ -933,4 +927,5 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
