@@ -587,27 +587,40 @@ else:
     nombre_archivo = st.session_state['archivo_nombre']
     ruta_pdf_local = os.path.join(CARPETA_TEMP, nombre_archivo)
     
-    # === PANTALLA DE ÉXITO (CON LOGO LIDERMAN) ===
+    # === PANTALLA DE ÉXITO (CON LOGO LIDERMAN FORZADO) ===
     if st.session_state['firmado_ok']:
         st.balloons()
         
-        # 1. PREPARAR EL LOGO EN BASE64 PARA EL HTML
-        # Esto asegura que el logo se vea siempre, incrustándolo en el código.
+        # 1. PREPARAR EL LOGO (MODO SABUESO)
+        import base64
+        
+        # Truco: Buscamos la ruta exacta de este archivo script
+        ruta_base = os.path.dirname(os.path.abspath(__file__))
+        ruta_logo_absoluta = os.path.join(ruta_base, "logo_liderman.png")
+        
         logo_html = ""
-        if os.path.exists("logo_liderman.png"):
-            import base64
+        
+        # Intentamos abrirlo usando la ruta absoluta segura
+        if os.path.exists(ruta_logo_absoluta):
+            with open(ruta_logo_absoluta, "rb") as img_file:
+                logo_b64 = base64.b64encode(img_file.read()).decode()
+                logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="max-width: 180px; height: auto; margin-bottom: 20px;">'
+        
+        # Si falla el absoluto, probamos el relativo simple (Plan B)
+        elif os.path.exists("logo_liderman.png"):
             with open("logo_liderman.png", "rb") as img_file:
                 logo_b64 = base64.b64encode(img_file.read()).decode()
-                # Ajusta el 'max-width: 180px' si quieres que el logo sea más grande o pequeño
                 logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="max-width: 180px; height: auto; margin-bottom: 20px;">'
+        
         else:
-            # Si por alguna razón se borró el archivo del logo, vuelve el check verde
+            # Si de verdad no lo encuentra, ponemos el check verde para no romper nada
             logo_html = '<div style="font-size: 60px; margin-bottom: 10px;">✅</div>'
 
         # 2. TARJETA HTML CON EL LOGO INTEGRADO
         st.markdown(f"""
 <div style="background-color: #f0fdf4; border: 2px solid #22c55e; border-radius: 15px; padding: 30px; text-align: center; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    {logo_html} <h1 style="color: #15803d; font-family: sans-serif; font-size: 28px; margin: 0;">¡FIRMA REGISTRADA!</h1>
+    {logo_html}
+    <h1 style="color: #15803d; font-family: sans-serif; font-size: 28px; margin: 0;">¡FIRMA REGISTRADA!</h1>
     <p style="color: #166534; font-size: 16px; margin-top: 10px;">El proceso ha finalizado correctamente.</p>
     <hr style="border: 0; border-top: 1px dashed #86efac; margin: 20px 0;">
     <div style="background-color: white; padding: 15px; border-radius: 10px; text-align: left; display: inline-block;">
@@ -617,7 +630,7 @@ else:
 </div>
         """, unsafe_allow_html=True)
 
-        # 3. BOTONES DE ACCIÓN (IGUAL QUE ANTES, SIN ERRORES ROJOS)
+        # 3. BOTONES DE ACCIÓN
         ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
         
         col_descarga, col_salir = st.columns([1, 1])
@@ -640,7 +653,6 @@ else:
                 st.session_state['dni_validado'] = None
                 st.session_state['firmado_ok'] = False
                 st.rerun()
-
     # === PANTALLA DE PROCESO (LECTURA + FOTO + FIRMA) ===
     else:
         st.success(f"Hola, **{nombre_archivo.replace('.pdf','')}**")
@@ -1044,6 +1056,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
