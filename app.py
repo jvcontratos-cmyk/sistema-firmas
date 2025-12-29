@@ -25,14 +25,17 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS PERSONALIZADO ---
+# --- CSS PERSONALIZADO (VISUALIZACIÓN LIMPIA) ---
 st.markdown("""
     <style>
+    /* OCULTAR ELEMENTOS NATIVOS */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
     footer {display: none !important; visibility: hidden !important; height: 0px !important;}
     .stAppDeployButton, [data-testid="stToolbar"], div[class*="viewerBadge"] {display: none !important;}
     #MainMenu {display: none !important;}
+    
+    /* AJUSTE DE MÁRGENES */
     .block-container {padding-top: 1rem !important; padding-bottom: 0rem !important;}
     body::after {content: none !important;}
     
@@ -126,7 +129,7 @@ else:
 SHEET_ID = "1OmzmHkZsKjJlPw2V2prVlv_LbcS8RzmdLPP1eL6EGNE"
 ID_CARPETA_FOTOS = "1JJHIw0u-MxfL11hY-rrgAODqctau1QpN"
 
-# Diccionario de rutas
+# Diccionario de rutas según la sede
 RUTAS_DRIVE = {
     "LIMA": {
         "PENDIENTES": "1ghXH11Lazi3kHKTaQ4F-zTd-6pjuPI84",
@@ -138,7 +141,7 @@ RUTAS_DRIVE = {
     }
 }
 
-# --- BIBLIOTECA MAESTRA DE COORDENADAS ---
+# --- BIBLIOTECA MAESTRA DE COORDENADAS (NORMAL, MINA, GUARDIAN, BANCO) ---
 COORDENADAS_MAESTRAS = {
     "Normal": { 
         5: [(380, 388), (380, 260)], 
@@ -361,10 +364,16 @@ def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes
         pdf_writer.add_page(pagina)
     with open(output_path, "wb") as f: pdf_writer.write(f)
 
-# --- INTERFAZ CENTRAL ---
+# ==============================================================================
+# --- LÓGICA PRINCIPAL (CORREGIDA PARA QUE NO SE MEZCLE LA PANTALLA) ---
+# ==============================================================================
 
 if st.session_state['dni_validado'] is None:
-    # 1. CABECERA (LOGO)
+    # --------------------------------------------------------
+    # BLOQUE DE LOGIN (SOLO SE VE SI NO HAY DNI VALIDADO)
+    # --------------------------------------------------------
+    
+    # 1. Cabecera y Logo
     c_izq, c_centro, c_der = st.columns([1, 2, 1])
     with c_centro:
         if os.path.exists("logo_liderman.png"):
@@ -411,32 +420,35 @@ if st.session_state['dni_validado'] is None:
         else:
             st.error("**❌ CONTRATO NO UBICADO (VERIFIQUE QUE SU DNI ESTÉ CORRECTAMENTE ESCRITO).**")
     
-    # --- AQUÍ ESTÁ EL TRUCO PARA QUITAR EL "FLASH" FEO ---
-    # Solo mostramos las preguntas si NO se ha dado clic a ingresar
-    if not submitted:
-        st.markdown("---")
-        st.subheader("❓ Preguntas Frecuentes")
-        with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
-            st.markdown("En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto. El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos). *Lo verá reflejado en su **boleta de pago** a fin de mes.*")
-        with st.expander("🕒 ¿Por qué el contrato dice 8hrs si mi puesto de trabajo es de 12hrs?"):
-            st.markdown("La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias. Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**. *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*")
-        
-        celular_soporte = "51958840140" 
-        mensaje_wsp = f"Hola, tengo una duda en el Portal de Contratos."
-        mensaje_encoded = requests.utils.quote(mensaje_wsp)
-        link_wsp = f"https://wa.me/{celular_soporte}?text={mensaje_encoded}"
+    # -----------------------------------------------------------------------------------
+    # AQUÍ ESTABA EL ERROR: AHORA ESTÁ INDENTADO (CON ESPACIO) DENTRO DEL IF INICIAL
+    # -----------------------------------------------------------------------------------
+    st.markdown("---")
+    st.subheader("❓ Preguntas Frecuentes")
+    with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
+        st.markdown("En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto. El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos). *Lo verá reflejado en su **boleta de pago** a fin de mes.*")
+    with st.expander("🕒 ¿Por qué el contrato dice 8hrs si mi puesto de trabajo es de 12hrs?"):
+        st.markdown("La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias. Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**. *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*")
+    
+    celular_soporte = "51958840140" 
+    mensaje_wsp = f"Hola, tengo una duda en el Portal de Contratos."
+    mensaje_encoded = requests.utils.quote(mensaje_wsp)
+    link_wsp = f"https://wa.me/{celular_soporte}?text={mensaje_encoded}"
 
-        st.markdown(f"""
-            <a href="{link_wsp}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; font-size: 18px; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 10px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-                    <span>¿NECESITAS AYUDA? ESCRÍBENOS AQUÍ</span>
-                </div>
-            </a>
-        """, unsafe_allow_html=True)
+    st.markdown(f"""
+        <a href="{link_wsp}" target="_blank" style="text-decoration: none;">
+            <div style="background-color: #25D366; color: white; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; font-size: 18px; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 10px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+                <span>¿NECESITAS AYUDA? ESCRÍBENOS AQUÍ</span>
+            </div>
+        </a>
+    """, unsafe_allow_html=True)
 
 else:
-    # 2. APP PRINCIPAL
+    # --------------------------------------------------------
+    # BLOQUE DE APP PRINCIPAL (CONTRATO)
+    # (Solo se ve si dni_validado YA TIENE DATOS)
+    # --------------------------------------------------------
     nombre_archivo = st.session_state['archivo_nombre']
     ruta_pdf_local = os.path.join(CARPETA_TEMP, nombre_archivo)
     
