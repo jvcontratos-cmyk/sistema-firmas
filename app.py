@@ -25,17 +25,14 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS PERSONALIZADO (ESTO HACE QUE SE VEA COMO APP NATIVA) ---
+# --- CSS PERSONALIZADO ---
 st.markdown("""
     <style>
-    /* OCULTAR ELEMENTOS NATIVOS */
     header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
     footer {display: none !important; visibility: hidden !important; height: 0px !important;}
     .stAppDeployButton, [data-testid="stToolbar"], div[class*="viewerBadge"] {display: none !important;}
     #MainMenu {display: none !important;}
-    
-    /* AJUSTE DE MÁRGENES */
     .block-container {padding-top: 1rem !important; padding-bottom: 0rem !important;}
     body::after {content: none !important;}
     
@@ -129,7 +126,7 @@ else:
 SHEET_ID = "1OmzmHkZsKjJlPw2V2prVlv_LbcS8RzmdLPP1eL6EGNE"
 ID_CARPETA_FOTOS = "1JJHIw0u-MxfL11hY-rrgAODqctau1QpN"
 
-# Diccionario de rutas según la sede
+# Diccionario de rutas
 RUTAS_DRIVE = {
     "LIMA": {
         "PENDIENTES": "1ghXH11Lazi3kHKTaQ4F-zTd-6pjuPI84",
