@@ -368,6 +368,8 @@ def estampar_firma_y_foto_pagina9(pdf_path, imagen_firma_path, imagen_foto_bytes
 # --- LÓGICA PRINCIPAL (CORREGIDA PARA QUE NO SE MEZCLE LA PANTALLA) ---
 # ==============================================================================
 
+submitted = False
+
 if st.session_state['dni_validado'] is None:
     # --------------------------------------------------------
     # BLOQUE DE LOGIN (SOLO SE VE SI NO HAY DNI VALIDADO)
@@ -735,4 +737,5 @@ else:
                             st.error(f"❌ Error: {e}")
                         finally:
                             if os.path.exists(ruta_firma): os.remove(ruta_firma)
+
 
