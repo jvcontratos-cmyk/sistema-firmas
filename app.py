@@ -45,7 +45,11 @@ COORDENADAS_MAESTRAS = {
         7: [(370, 400)], # Firma Pág 7 (Anexo Datos - Invertido)
         8: [(355, 175)]  # Firma Pág 8 (Anexo Seguridad - Invertido)
     },
-    "Banco": {},
+    "Banco": {
+        4: [(380, 388), (380, 260)],  # Firma Contrato y Cargo
+        5: [(380, 175)],              # Anexo Seguridad
+        7: [(380, 175)]               # Anexo Datos Personales
+    },
     "Antamina": {}
 }
 
@@ -498,7 +502,7 @@ if st.session_state['dni_validado'] is None:
         with col_test_1:
             pdf_prueba = st.file_uploader("Sube PDF de prueba", type="pdf", key="pdf_debug_bottom")
         with col_test_2:
-            tipo_a_probar = st.selectbox("Tipo de Contrato", ["Normal", "Mina", "Guardian"], key="sel_debug_bottom")
+            tipo_a_probar = st.selectbox("Tipo de Contrato", ["Normal", "Mina", "Guardian", "Banco"], key="sel_debug_bottom")
 
         if pdf_prueba and st.button("📍 VER CAJAS ROJAS", key="btn_debug_bottom"):
             ruta_temp_debug = os.path.join("TEMP_WORK", "debug_temp.pdf")
@@ -808,6 +812,7 @@ else:
                             st.error(f"❌ Error: {e}")
                         finally:
                             if os.path.exists(ruta_firma): os.remove(ruta_firma)
+
 
 
 
