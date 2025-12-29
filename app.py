@@ -469,15 +469,38 @@ if st.session_state['dni_validado'] is None:
 
     f submitted and dni_input:
         
-        # --- CORTINA BLANCA SÓLIDA (PARED VISUAL) ---
+        # --- CORTINA NUCLEAR (PANTALLA COMPLETA REAL) ---
         st.markdown("""
-            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #ffffff; opacity: 1; z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <div style="border: 8px solid #f3f3f3; border-top: 8px solid #FF4B4B; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite;"></div>
+            <div style="
+                position: fixed; 
+                top: 0; 
+                left: 0; 
+                width: 100vw; 
+                height: 100vh; 
+                background-color: #ffffff; 
+                z-index: 9999999; 
+                display: flex; 
+                flex-direction: column; 
+                align-items: center; 
+                justify-content: center;
+            ">
+                <div style="
+                    border: 8px solid #f3f3f3; 
+                    border-top: 8px solid #FF4B4B; 
+                    border-radius: 50%; 
+                    width: 60px; 
+                    height: 60px; 
+                    animation: spin 1s linear infinite;
+                "></div>
                 <h2 style="color: #333; margin-top: 20px; font-family: sans-serif;">BUSCANDO TUS DATOS...</h2>
-                <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+                <style>
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                    /* Ocultar barras de desplazamiento mientras carga */
+                    body { overflow: hidden; } 
+                </style>
             </div>
         """, unsafe_allow_html=True)
-        # ---------------------------------------------
+        # ------------------------------------------------
         
         with st.spinner("**BUSCANDO EN BASE DE DATOS...**"):
             # Magia Multisede (Devuelve LIMA o PROVINCIA en mayúsculas)
@@ -942,6 +965,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
