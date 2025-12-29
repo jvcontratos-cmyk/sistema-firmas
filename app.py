@@ -495,7 +495,7 @@ if st.session_state['dni_validado'] is None:
                 </a>
             """, unsafe_allow_html=True)
 
-    # 3. LÓGICA DE PROCESAMIENTO (MODIFICADA PARA QUE NO SE CONGELE)
+    # 3. LÓGICA DE PROCESAMIENTO (CORREGIDA: LA CORTINA SE QUITA SI HAY ERROR)
     if submitted and dni_input:
         
         # A. PREPARAMOS LA CORTINA EN UN HUECO (PLACEHOLDER)
@@ -515,15 +515,15 @@ if st.session_state['dni_validado'] is None:
             sede_encontrada, estado_sheet, tipo_encontrado = consultar_estado_dni_multisede(dni_input)
         
         if sede_encontrada:
-            # SI ENCONTRAMOS EL DNI:
-            login_placeholder.empty()  # 1. Borramos el formulario AHORA SI
+            # SI ENCONTRAMOS EL DNI EN EXCEL:
+            login_placeholder.empty()  # Borramos el formulario
             
             st.session_state['sede_usuario'] = sede_encontrada
             st.session_state['tipo_contrato'] = tipo_encontrado
             
             if estado_sheet == "FIRMADO":
-                cortina_placeholder.empty() # Quitamos la cortina blanca
-
+                cortina_placeholder.empty() # <--- QUITAMOS CORTINA
+                
                 # --- 1. PREPARAR EL LOGO (MODO SABUESO INFALIBLE) ---
                 # Usamos la misma técnica robusta que en la pantalla final
                 import base64
@@ -1061,6 +1061,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
