@@ -800,13 +800,46 @@ else:
                 foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
             
             if foto_input is not None:
-                with st.spinner("Procesando foto..."):
-                    image_raw = Image.open(foto_input)
-                    image_opt = optimizar_imagen(image_raw)
-                    img_byte_arr = io.BytesIO()
-                    image_opt.save(img_byte_arr, format='JPEG', quality=85)
-                    st.session_state['foto_bio'] = img_byte_arr.getvalue()
-                    st.rerun()    
+                
+                # --- CORTINA BIOMÉTRICA (VALIDANDO FOTO) ---
+                st.markdown("""
+                    <div style="
+                        position: fixed; 
+                        top: 0; 
+                        left: 0; 
+                        width: 100vw; 
+                        height: 100vh; 
+                        background-color: #ffffff; 
+                        z-index: 9999999; 
+                        display: flex; 
+                        flex-direction: column; 
+                        align-items: center; 
+                        justify-content: center;
+                    ">
+                        <div style="
+                            border: 8px solid #f3f3f3; 
+                            border-top: 8px solid #3498db; 
+                            border-radius: 50%; 
+                            width: 60px; 
+                            height: 60px; 
+                            animation: spin 1s linear infinite;
+                        "></div>
+                        <h2 style="color: #333; margin-top: 20px; font-family: sans-serif;">VALIDANDO DATOS BIOMÉTRICOS...</h2>
+                        <p style="color: #666; font-size: 14px;">Por favor espere, procesando imagen.</p>
+                        <style>
+                            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } 
+                            body { overflow: hidden; }
+                        </style>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Procesamiento de imagen (Sin spinner visible porque ya tenemos la cortina)
+                image_raw = Image.open(foto_input)
+                image_opt = optimizar_imagen(image_raw)
+                img_byte_arr = io.BytesIO()
+                image_opt.save(img_byte_arr, format='JPEG', quality=85)
+                st.session_state['foto_bio'] = img_byte_arr.getvalue()
+                st.rerun()    
         else:
             col_a, col_b = st.columns([1,3])
             with col_a: st.image(st.session_state['foto_bio'], width=100)
@@ -967,6 +1000,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
