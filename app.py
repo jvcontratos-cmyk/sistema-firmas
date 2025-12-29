@@ -467,7 +467,7 @@ if st.session_state['dni_validado'] is None:
         dni_input = st.text_input("**DIGITE SU DNI**", max_chars=15)
         submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
-    f submitted and dni_input:
+    if submitted and dni_input:
         
         # --- CORTINA NUCLEAR (PANTALLA COMPLETA REAL) ---
         st.markdown("""
@@ -965,6 +965,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
