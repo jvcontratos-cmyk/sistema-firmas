@@ -540,7 +540,7 @@ if st.session_state['dni_validado'] is None:
             st.error("**❌ CONTRATO NO UBICADO (VERIFIQUE QUE SU DNI ESTÉ CORRECTAMENTE ESCRITO), SI ESTÁ TODO CORRECTO, CONTACTE AL ÁREA DE ADMINISTRACIÓN DE PERSONAL.**")
     
     # AGREGAR ESTA LÍNEA Y DARLE TAB A TODO LO DE ABAJO
-    elif not submitted:
+    if st.session_state['dni_validado'] is None and not submitted:
         st.markdown("---")
         st.subheader("❓ Preguntas Frecuentes")
         with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
@@ -965,6 +965,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
