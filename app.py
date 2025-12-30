@@ -606,8 +606,88 @@ if st.session_state['dni_validado'] is None:
                     st.error(f"**❌ NO ENCUENTRO EL PDF.**")
                     st.warning(f"Busqué en la carpeta '{sede_encontrada}' (ID: {id_carpeta_busqueda}) un archivo que contenga '{dni_input}'.\n\n**Verifique que el archivo esté en ESA carpeta.**")
         else:
-            cortina_placeholder.empty() # <--- ¡ESTO FALTABA!
-            st.error("**❌ DNI NO ENCONTRADO EN BASE DE DATOS.**")
+            # === CASO: DNI NO ENCONTRADO (PANEL DE AYUDA DIVIDIDO) ===
+            cortina_placeholder.empty() # Quitamos la cortina blanca
+            
+            # 1. TARJETA ROJA DE AVISO
+            st.markdown(f"""
+            <div style="
+                background-color: #fef2f2; 
+                border: 2px solid #ef4444; 
+                border-radius: 10px; 
+                padding: 20px; 
+                text-align: center; 
+                margin-bottom: 25px;
+            ">
+                <h2 style="color: #b91c1c; margin: 0; font-family: sans-serif;">❌ DNI NO ENCONTRADO</h2>
+                <p style="color: #7f1d1d; font-size: 16px; margin-top: 10px;">
+                    El número <strong>{dni_input}</strong> no figura en nuestra base de datos de contratos pendientes.
+                </p>
+                <hr style="border: 0; border-top: 1px solid #fecaca; margin: 15px 0;">
+                <p style="color: #7f1d1d; font-weight: bold;">
+                    ¿CREES QUE ES UN ERROR? SELECCIONA TU SEDE PARA RECIBIR AYUDA 👇
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # 2. BOTONES DE SOPORTE (LIMA vs PROVINCIA)
+            col_lima, col_prov = st.columns(2)
+            
+            # TUS NÚMEROS REALES
+            num_lima = "51958840140"      # TÚ
+            num_prov = "51978029174"      # TU CAUSA
+            
+            msg_error = f"Hola, mi DNI es {dni_input}. El sistema dice que no existo, por favor ayúdenme."
+            msg_encoded = requests.utils.quote(msg_error)
+            
+            link_lima = f"https://wa.me/{num_lima}?text={msg_encoded}"
+            link_prov = f"https://wa.me/{num_prov}?text={msg_encoded}"
+
+            with col_lima:
+                # BOTÓN VERDE (LIMA)
+                st.markdown(f"""
+                <a href="{link_lima}" target="_blank" style="text-decoration: none;">
+                    <div style="
+                        background-color: #ffffff; 
+                        border: 2px solid #25D366;
+                        color: #25D366; 
+                        padding: 15px; 
+                        border-radius: 10px; 
+                        text-align: center; 
+                        font-weight: bold; 
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+                        transition: all 0.2s;
+                    ">
+                        🏢 SOY DE LIMA
+                        <div style="font-size: 12px; color: #555; font-weight: normal;">Click para contactar</div>
+                    </div>
+                </a>
+                """, unsafe_allow_html=True)
+
+            with col_prov:
+                # BOTÓN AZUL (PROVINCIA) - Para diferenciar visualmente
+                st.markdown(f"""
+                <a href="{link_prov}" target="_blank" style="text-decoration: none;">
+                    <div style="
+                        background-color: #ffffff; 
+                        border: 2px solid #3b82f6; 
+                        color: #3b82f6; 
+                        padding: 15px; 
+                        border-radius: 10px; 
+                        text-align: center; 
+                        font-weight: bold; 
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+                        transition: all 0.2s;
+                    ">
+                        ⛏️ MINA / PROVINCIA
+                        <div style="font-size: 12px; color: #555; font-weight: normal;">Selva / Servicios</div>
+                    </div>
+                </a>
+                """, unsafe_allow_html=True)
+            
+            st.write("") # Espacio separador
+            if st.button("⬅️ VOLVER E INTENTAR OTRO DNI", use_container_width=True):
+                st.rerun()
 else:
     # 2. APP PRINCIPAL
     nombre_archivo = st.session_state['archivo_nombre']
@@ -1082,6 +1162,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
