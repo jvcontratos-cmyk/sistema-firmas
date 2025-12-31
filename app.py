@@ -25,18 +25,30 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS PERSONALIZADO ---
+# --- CSS PERSONALIZADO (MODO FRANCOTIRADOR v2.0) ---
 st.markdown("""
     <style>
-    header {visibility: hidden !important;}
+    /* 💀 ZONA DE MUERTE AL FOOTER (Wildcards) 💀 */
+    
+    /* 1. Ocultar Footer Estándar */
+    footer {visibility: hidden !important; height: 0px !important;}
+    
+    /* 2. Ocultar Marca de Agua Rebelde (Busca "viewerBadge" en cualquier parte del nombre) */
+    div[class*="viewerBadge"] {display: none !important;}
+    
+    /* 3. Ocultar Barra Superior (Header) */
+    .stApp > header {visibility: hidden !important;}
     [data-testid="stHeader"] {display: none !important;}
-    footer {display: none !important; visibility: hidden !important; height: 0px !important;}
-    .stAppDeployButton, [data-testid="stToolbar"], div[class*="viewerBadge"] {display: none !important;}
-    #MainMenu {display: none !important;}
+    
+    /* 4. Ocultar botón "Manage App" */
+    [data-testid="stManageApp"] {display: none !important;}
+    
+    /* 5. Ajustes de Espacio */
     .block-container {padding-top: 1rem !important; padding-bottom: 0rem !important;}
+    #MainMenu {display: none !important;}
     body::after {content: none !important;}
     
-    /* PANTALLA COMPLETA */
+    /* --- ESTILOS DE PANTALLA COMPLETA Y CÁMARA (NO TOCAR) --- */
     [data-testid="stImageFullScreenButton"],
     [data-testid="StyledFullScreenButton"],
     button[title="View fullscreen"] {
@@ -66,7 +78,6 @@ st.markdown("""
     
     [data-testid="stImage"] > div { opacity: 1 !important; }
 
-    /* ACORDEÓN */
     .streamlit-expanderHeader {
         background-color: #f0f2f6;
         border-radius: 10px;
@@ -1165,6 +1176,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
