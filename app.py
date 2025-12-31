@@ -1000,35 +1000,38 @@ else:
             
             # --- B. PROCESAMIENTO (CON IA DE ROSTROS) ---
             if foto_input is not None:
-                # 1. CORTINA DE ANÁLISIS
-                st.markdown("""
-                    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #ffffff; z-index: 9999999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <div style="border: 8px solid #f3f3f3; border-top: 8px solid #FF4B4B; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite;"></div>
-                        <h2 style="color: #333; margin-top: 20px; font-family: sans-serif; font-weight: bold;">ANALIZANDO ROSTRO...</h2>
-                        <p style="color: #666;">Verificando biometría...</p>
-                        <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } body { overflow: hidden; }</style>
-                    </div>
-                """, unsafe_allow_html=True)
+                # 1. CREAMOS UN LUGAR PARA LA CORTINA (Para poder borrarla luego)
+                cortina_placeholder = st.empty()
                 
+                # 2. DIBUJAMOS LA CORTINA
+                with cortina_placeholder:
+                    st.markdown("""
+                        <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #ffffff; z-index: 9999999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                            <div style="border: 8px solid #f3f3f3; border-top: 8px solid #FF4B4B; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite;"></div>
+                            <h2 style="color: #333; margin-top: 20px; font-family: sans-serif; font-weight: bold;">ANALIZANDO ROSTRO...</h2>
+                            <p style="color: #666;">Verificando biometría...</p>
+                            <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } body { overflow: hidden; }</style>
+                        </div>
+                    """, unsafe_allow_html=True)
+                
+                # 3. PROCESAMOS
                 with st.spinner(""):
-                    # 2. Leemos los bytes
                     bytes_foto = foto_input.getvalue()
                     
-                    # 3. 🕵️‍♂️ EL DETECTOR: ¿ES UNA CARA?
+                    # SI ES CARA -> OK
                     if validar_es_rostro(bytes_foto):
-                        # ✅ ES ROSTRO -> Guardamos
                         image_raw = Image.open(foto_input)
                         image_opt = optimizar_imagen(image_raw)
                         img_byte_arr = io.BytesIO()
                         image_opt.save(img_byte_arr, format='JPEG', quality=85)
                         st.session_state['foto_bio'] = img_byte_arr.getvalue()
                         st.rerun()
+                    
+                    # ❌ SI NO ES CARA -> ROMPEMOS LA CORTINA
                     else:
-                        # ❌ NO ES ROSTRO (Pared/Mesa) -> No guardamos nada
-                        pass 
+                        cortina_placeholder.empty() # <--- ¡ESTA ES LA CLAVE! (Borra la pantalla blanca)
 
-            # --- C. MENSAJE DE ERROR (SI FALLÓ EL DETECTOR) ---
-            # Si el usuario subió algo (foto_input existe) pero NO se guardó en session_state, es porque el robot lo rechazó.
+            # --- C. MENSAJE DE ERROR (Ahora sí se verá porque quitamos la cortina) ---
             if foto_input is not None and st.session_state['foto_bio'] is None:
                  st.error("⚠️ NO SE DETECTÓ UN ROSTRO CLARO")
                  st.markdown("""
@@ -1205,6 +1208,7 @@ else:
             st.rerun()
 
         st.markdown("<br><br><br>", unsafe_allow_html=True)
+
 
 
 
