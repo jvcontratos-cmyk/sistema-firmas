@@ -17,6 +17,9 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from datetime import datetime, timedelta
 
+import cv2
+import numpy as np
+
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
     page_title="Portal de Contratos", 
@@ -229,6 +232,26 @@ if 'zoom_nivel' not in st.session_state: st.session_state['zoom_nivel'] = 100
     
 # --- FUNCIONES ---
 
+def validar_es_rostro(imagen_bytes):
+    """Detecta si hay una cara humana en la foto (Anti-Pared)."""
+    try:
+        # 1. Convertir bytes a imagen
+        nparr = np.frombuffer(imagen_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        # 2. Convertir a Gris (Mejor detección)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+        # 3. Cargar el detector
+        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        
+        # 4. Buscar rostros (Ajuste estricto: scale 1.1, neighbors 5)
+        faces = face_cascade.detectMultiScale(gray, 1.1, 5, minSize=(30, 30))
+        
+        return len(faces) > 0 # True si encontró cara
+    except:
+        return True # Si falla el robot, dejamos pasar (Fail-open)
+        
 def corregir_rotacion_imagen(image):
     try:
         for orientation in ExifTags.TAGS.keys():
@@ -958,70 +981,73 @@ else:
 
         except Exception as e:
             st.error(f"Error cargando visor: {e}")
-        # PASO 2: FOTO HÍBRIDA
+        # PASO 2: FOTO HÍBRIDA (CON DETECTOR DE ROSTROS 🕵️‍♂️)
         st.markdown("---")
         st.subheader("2. Foto de Identidad")
         
+        # Si no hay foto guardada en memoria, mostramos la cámara
         if st.session_state['foto_bio'] is None:
+            
+            # --- A. LÓGICA DE SELECCIÓN (HÍBRIDA) ---
             usar_webcam = st.checkbox("💻 **¿ESTÁS EN COMPUTADORA / LAPTOP? CLICK AQUÍ PARA USAR LA CÁMARA WEB**", value=False)
             foto_input = None
+            
             if usar_webcam:
                 foto_input = st.camera_input("📸 TOMAR FOTO", label_visibility="visible")
             else:
                 st.warning("📸 **SI ESTÁS EN CELULAR, TOCA EL RECUADRO DE ABAJO PARA ABRIR LA CÁMARA:**")
                 foto_input = st.file_uploader("📸 TOMAR FOTO (CÁMARA)", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
             
+            # --- B. PROCESAMIENTO (CON IA DE ROSTROS) ---
             if foto_input is not None:
-                # --- CORTINA BIOMÉTRICA NUCLEAR (PANTALLA COMPLETA SÓLIDA) ---
-                # Esta cortina usa 100vw y 100vh para tapar ABSOLUTAMENTE TODO con blanco sólido.
+                # 1. CORTINA DE ANÁLISIS
                 st.markdown("""
-                    <div style="
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        width: 100vw;
-                        height: 100vh;
-                        background-color: #ffffff;
-                        z-index: 9999999;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-content: center;
-                    ">
-                        <div style="
-                            border: 8px solid #f3f3f3;
-                            border-top: 8px solid #FF4B4B; 
-                            border-radius: 50%;
-                            width: 60px;
-                            height: 60px;
-                            animation: spin 1s linear infinite;
-                        "></div>
-                        <h2 style="color: #333; margin-top: 20px; font-family: sans-serif; font-weight: bold;">VALIDANDO DATOS BIOMÉTRICOS...</h2>
-                        <p style="color: #666; font-size: 16px; margin-top: 10px; font-family: sans-serif;">Por favor espere....</p>
-                        <style>
-                            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                            body { overflow: hidden; } /* Congela el scroll del fondo */
-                        </style>
+                    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #ffffff; z-index: 9999999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <div style="border: 8px solid #f3f3f3; border-top: 8px solid #FF4B4B; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite;"></div>
+                        <h2 style="color: #333; margin-top: 20px; font-family: sans-serif; font-weight: bold;">ANALIZANDO ROSTRO...</h2>
+                        <p style="color: #666;">Verificando biometría...</p>
+                        <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } body { overflow: hidden; }</style>
                     </div>
                 """, unsafe_allow_html=True)
-                # ------------------------------------------------
-
-                # Procesamiento de imagen (Ocurre DETRÁS de la cortina blanca)
-                # Usamos un spinner invisible ("") para que Streamlit trabaje sin quitar la cortina visual.
+                
                 with st.spinner(""):
-                    image_raw = Image.open(foto_input)
-                    image_opt = optimizar_imagen(image_raw)
-                    img_byte_arr = io.BytesIO()
-                    image_opt.save(img_byte_arr, format='JPEG', quality=85)
-                    st.session_state['foto_bio'] = img_byte_arr.getvalue()
-                    # El st.rerun() recargará la página. La cortina seguirá ahí hasta que 
-                    # aparezca la nueva pantalla con el área de firma. ¡Adiós parpadeo!
-                    st.rerun()    
+                    # 2. Leemos los bytes
+                    bytes_foto = foto_input.getvalue()
+                    
+                    # 3. 🕵️‍♂️ EL DETECTOR: ¿ES UNA CARA?
+                    if validar_es_rostro(bytes_foto):
+                        # ✅ ES ROSTRO -> Guardamos
+                        image_raw = Image.open(foto_input)
+                        image_opt = optimizar_imagen(image_raw)
+                        img_byte_arr = io.BytesIO()
+                        image_opt.save(img_byte_arr, format='JPEG', quality=85)
+                        st.session_state['foto_bio'] = img_byte_arr.getvalue()
+                        st.rerun()
+                    else:
+                        # ❌ NO ES ROSTRO (Pared/Mesa) -> No guardamos nada
+                        pass 
+
+            # --- C. MENSAJE DE ERROR (SI FALLÓ EL DETECTOR) ---
+            # Si el usuario subió algo (foto_input existe) pero NO se guardó en session_state, es porque el robot lo rechazó.
+            if foto_input is not None and st.session_state['foto_bio'] is None:
+                 st.error("⚠️ NO SE DETECTÓ UN ROSTRO CLARO")
+                 st.markdown("""
+                    <div style="background-color: #fef2f2; border: 1px solid #ef4444; padding: 15px; border-radius: 10px; color: #991b1b;">
+                        <b>La imagen no parece ser un rostro válido.</b><br>
+                        <ul>
+                            <li>Asegúrese de tener buena iluminación 💡</li>
+                            <li>No use mascarilla ni lentes oscuros 🕶️</li>
+                            <li>Evite fotos de paredes, mesas u objetos 🚫</li>
+                        </ul>
+                    </div>
+                 """, unsafe_allow_html=True)
+
         else:
+            # SI YA HAY FOTO GUARDADA -> MOSTRARLA
             col_a, col_b = st.columns([1,3])
             with col_a: st.image(st.session_state['foto_bio'], width=100)
             with col_b:
-                st.success("✅ Foto guardada")
+                st.success("✅ Foto guardada y validada")
                 if st.button("🔄 Cambiar Foto"):
                     st.session_state['foto_bio'] = None
                     st.rerun()
@@ -1179,6 +1205,7 @@ else:
             st.rerun()
 
         st.markdown("<br><br><br>", unsafe_allow_html=True)
+
 
 
 
