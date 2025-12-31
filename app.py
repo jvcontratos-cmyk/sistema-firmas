@@ -994,7 +994,7 @@ else:
                             animation: spin 1s linear infinite;
                         "></div>
                         <h2 style="color: #333; margin-top: 20px; font-family: sans-serif; font-weight: bold;">VALIDANDO DATOS BIOMÉTRICOS...</h2>
-                        <p style="color: #666; font-size: 16px; margin-top: 10px; font-family: sans-serif;">Por favor espere, preparando área de firma.</p>
+                        <p style="color: #666; font-size: 16px; margin-top: 10px; font-family: sans-serif;">Por favor espere....</p>
                         <style>
                             @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
                             body { overflow: hidden; } /* Congela el scroll del fondo */
@@ -1030,7 +1030,7 @@ else:
         if st.session_state['foto_bio'] is None:
             st.error("⚠️ PRIMERO DEBE TOMARSE LA FOTO EN EL PASO 2 👆")
         else:
-            st.caption("**DIBUJE SU FIRMA. EN CASO FALLÓ, USE LA PAPELERA 🗑️ PARA BORRAR**")
+            st.caption("**DIBUJE SU FIRMA. EN CASO FALLÓ, USE EL SIGUIENTE ÍCONO "🗑️" PARA BORRAR**")
             with st.form(key="formulario_firma", clear_on_submit=False):
                 canvas_result = st_canvas(
                     stroke_width=2, stroke_color="#000000", background_color="#ffffff", 
@@ -1176,6 +1176,7 @@ else:
             st.rerun()
 
         st.markdown("<br><br><br>", unsafe_allow_html=True)
+
 
 
 
