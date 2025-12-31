@@ -575,9 +575,9 @@ if st.session_state['dni_validado'] is None:
                 st.markdown(f"""
                 <div style="background-color: #eff6ff; border: 2px solid #3b82f6; border-radius: 15px; padding: 30px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     {logo_html_azul} <h2 style="color: #1e40af; font-family: sans-serif; font-weight: bold; margin: 0;">DOCUMENTO YA REGISTRADO 📂</h2>
-                    <p style="color: #1e3a8a; font-size: 16px; margin-top: 10px;">El DNI <strong>{dni_input}</strong> ({sede_encontrada}) ya cuenta con un contrato firmado.</p>
+                    <p style="color: #1e3a8a; font-size: 16px; margin-top: 10px;">El DNI <strong>{dni_input}</strong>, ya cuenta con un contrato firmado.</p>
                     <hr style="border: 0; border-top: 1px solid #bfdbfe; margin: 20px 0;">
-                    <p style="color: #64748b; font-size: 14px; font-style: italic;">No es necesario realizar ninguna acción adicional.</p>
+                    <p style="color: #64748b; font-size: 14px; font-style: italic;">Si crees que es un error ponte en contácto 👇.</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -1176,6 +1176,7 @@ else:
             st.rerun()
 
         st.markdown("<br><br><br>", unsafe_allow_html=True)
+
 
 
 
