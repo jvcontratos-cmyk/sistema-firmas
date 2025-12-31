@@ -108,6 +108,12 @@ st.markdown("""
         transform: translate(-50%, -50%) !important;
         white-space: nowrap !important;
         pointer-events: none !important; 
+
+        /* --- FORZAR TEXTOS CAPTION A NEGRO --- */
+    .stCaption, [data-testid="stCaptionContainer"] {
+        color: #000000 !important;
+        font-weight: bold !important;
+        opacity: 1 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -863,7 +869,7 @@ else:
             <body>
                 <div class="contrato-container">
                     <img id="imagen-contrato" src="" alt="Contrato">
-                    <div style="margin-top:2px; color:#999; font-size:11px;">👆 <i>**RECUERDE HACER ZOOM CON LOS DEDOS**</i></div>
+                    <div style="margin-top:2px; color:#000; font-weight:bold; font-size:12px;">👆 <i>RECUERDE HACER ZOOM CON LOS DEDOS</i></div>
                 </div>
 
                 <div class="nav-container-pro">
@@ -1167,6 +1173,9 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
+            st.markdown("<br><br><br>", unsafe_allow_html=True)
+
 
 
 
