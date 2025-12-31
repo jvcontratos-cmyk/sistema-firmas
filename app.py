@@ -672,7 +672,7 @@ if st.session_state['dni_validado'] is None:
             num_lima = "51958840140"      # TÚ
             num_prov = "51978029174"      # TU CAUSA
             
-            msg_error = f"Hola, mi DNI es {dni_input}. El sistema dice que no existo, por favor ayúdenme."
+            msg_error = f"Hola, mi DNI es {dni_input}. El sistema indica que no tengo mi contrato inicial, por favor ayúdenme."
             msg_encoded = requests.utils.quote(msg_error)
             
             link_lima = f"https://wa.me/{num_lima}?text={msg_encoded}"
@@ -1201,43 +1201,3 @@ else:
 
     # PARED BLANCA FINAL
     st.markdown("<br><br><br>", unsafe_allow_html=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
