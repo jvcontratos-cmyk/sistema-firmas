@@ -637,7 +637,7 @@ if st.session_state['dni_validado'] is None:
                 </p>
                 <hr style="border: 0; border-top: 1px solid #fecaca; margin: 15px 0;">
                 <p style="color: #7f1d1d; font-weight: bold;">
-                    PARA RECIBIR SOPORTE, ELIGE TU ZONA 👇
+                    PARA RECIBIR SOPORTE, ELIJA SU ZONA 👇
                 </p>
             </div>
             """, unsafe_allow_html=True)
@@ -698,8 +698,11 @@ if st.session_state['dni_validado'] is None:
                 """, unsafe_allow_html=True)
             
             st.write("") # Espacio separador
-            if st.button("⬅️ VOLVER E INTENTAR OTRO DNI", use_container_width=True):
+            if st.button("⬅️ VOLVER A INTENTAR OTRO DNI", use_container_width=True):
                 st.rerun()
+
+            st.markdown("<br><br><br>", unsafe_allow_html=True)
+            
 else:
     # 2. APP PRINCIPAL
     nombre_archivo = st.session_state['archivo_nombre']
@@ -778,7 +781,7 @@ else:
         
         # --- PASO 1: LECTURA ULTRA PRO (ZERO FLASH - MODO NETFLIX) ---
         st.markdown("### 1. Lectura del Contrato")
-        st.caption("**TOQUE LA IMAGEN PARA LEER EN PANTALLA COMPLETA Y HACER ZOOM CON LOS DEDOS**.")
+        st.caption("**TOQUE LA IMAGEN PARA LEER EN PANTALLA COMPLETA**.")
 
         try:
             # 1. CARGA MASIVA: Preparamos TODAS las páginas de una vez
@@ -1176,6 +1179,7 @@ else:
             st.rerun()
 
         st.markdown("<br><br><br>", unsafe_allow_html=True)
+
 
 
 
