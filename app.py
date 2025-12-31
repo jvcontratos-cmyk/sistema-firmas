@@ -108,6 +108,7 @@ st.markdown("""
         transform: translate(-50%, -50%) !important;
         white-space: nowrap !important;
         pointer-events: none !important; 
+    }
 
         /* --- FORZAR TEXTOS CAPTION A NEGRO --- */
     .stCaption, [data-testid="stCaptionContainer"] {
@@ -1174,7 +1175,8 @@ else:
             st.session_state['dni_validado'] = None
             st.rerun()
 
-            st.markdown("<br><br><br>", unsafe_allow_html=True)
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
+
 
 
 
