@@ -483,16 +483,19 @@ if st.session_state['dni_validado'] is None:
             dni_input = st.text_input("**DIGITE SU DNI**", max_chars=15)
             submitted = st.form_submit_button("INGRESAR", type="primary", use_container_width=True)
 
-        # C. PREGUNTAS Y WHATSAPP (SOLO SE VEN SI NO SE HA ENVIADO)
+        # C. PREGUNTAS (SOLO SE VEN SI NO SE HA ENVIADO)
         if not submitted:
             st.markdown("---")
             st.subheader("❓ Preguntas Frecuentes")
+            
             with st.expander("💰 ¿Por qué mi sueldo figura diferente en el contrato?"):
                 st.markdown("En el contrato de trabajo se estipula únicamente la **Remuneración Básica** correspondiente al puesto. El monto informado durante su reclutamiento es el **Sueldo Bruto** (básico + otros conceptos). *Lo verá reflejado en su **boleta de pago** a fin de mes.*")
+            
             with st.expander("🕒 ¿Por qué el contrato dice 8hrs si mi puesto de trabajo es de 12hrs?"):
                 st.markdown("La ley peruana establece que la **Jornada Ordinaria** base es de 8 horas diarias. Si su turno es de 12 horas, las 4 horas restantes se consideran y pagan como **HORAS EXTRAS**. *Este pago adicional se verá reflejado en su **boleta de pago** a fin de mes.*")
-
-             st.markdown("<br><br><br>", unsafe_allow_html=True)
+            
+            # --- ESPACIO "COLCHÓN" (PARED BLANCA) ---
+            st.markdown("<br><br><br>", unsafe_allow_html=True)
             
     # 3. LÓGICA DE PROCESAMIENTO (CORREGIDO: DESCONGELA ERRORES)
     if submitted and dni_input:
@@ -1164,6 +1167,7 @@ else:
         if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
             st.session_state['dni_validado'] = None
             st.rerun()
+
 
 
 
