@@ -633,11 +633,11 @@ if st.session_state['dni_validado'] is None:
             ">
                 <h2 style="color: #b91c1c; margin: 0; font-family: sans-serif;">❌ DNI NO ENCONTRADO</h2>
                 <p style="color: #7f1d1d; font-size: 16px; margin-top: 10px;">
-                    El número <strong>{dni_input}</strong> no figura en nuestra base de datos de contratos pendientes.
+                    El número de DNI <strong>{dni_input}</strong> no figura pendiente para firma de contrato inicial.
                 </p>
                 <hr style="border: 0; border-top: 1px solid #fecaca; margin: 15px 0;">
                 <p style="color: #7f1d1d; font-weight: bold;">
-                    ¿CREES QUE ES UN ERROR? SELECCIONA TU SEDE PARA RECIBIR AYUDA 👇
+                    PARA RECIBIR SOPORTE, ELIGE TU ZONA 👇
                 </p>
             </div>
             """, unsafe_allow_html=True)
@@ -670,7 +670,7 @@ if st.session_state['dni_validado'] is None:
                         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
                         transition: all 0.2s;
                     ">
-                        🏢 SOY DE LIMA
+                         🌇 LIMA
                         <div style="font-size: 12px; color: #555; font-weight: normal;">Click para contactar</div>
                     </div>
                 </a>
@@ -691,8 +691,8 @@ if st.session_state['dni_validado'] is None:
                         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
                         transition: all 0.2s;
                     ">
-                        ⛏️ MINA / PROVINCIA
-                        <div style="font-size: 12px; color: #555; font-weight: normal;">Selva / Servicios</div>
+                        🌄 MINA / PROVINCIA / SELVA / LIDERMAN SERVICIOS
+                        <div style="font-size: 12px; color: #555; font-weight: normal;">Click para contactar</div>
                     </div>
                 </a>
                 """, unsafe_allow_html=True)
@@ -1176,6 +1176,7 @@ else:
             st.rerun()
 
         st.markdown("<br><br><br>", unsafe_allow_html=True)
+
 
 
 
