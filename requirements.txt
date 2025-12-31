@@ -9,3 +9,5 @@ google-auth
 requests
 pymupdf
 gspread
+opencv-python-headless
+numpy
