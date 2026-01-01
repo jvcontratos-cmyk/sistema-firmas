@@ -693,7 +693,7 @@ if st.session_state['dni_validado'] is None:
                         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
                         transition: all 0.2s;
                     ">
-                         🌇 LIMA
+                          LIMA
                         <div style="font-size: 12px; color: #555; font-weight: normal;">Click para contactar</div>
                     </div>
                 </a>
@@ -714,7 +714,7 @@ if st.session_state['dni_validado'] is None:
                         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
                         transition: all 0.2s;
                     ">
-                        🌄 MINA / PROVINCIA / SELVA / LIDERMAN SERVICIOS
+                         MINA / PROVINCIA / SELVA / LIDERMAN SERVICIOS
                         <div style="font-size: 12px; color: #555; font-weight: normal;">Click para contactar</div>
                     </div>
                 </a>
@@ -1038,9 +1038,9 @@ else:
                     <div style="background-color: #fef2f2; border: 1px solid #ef4444; padding: 15px; border-radius: 10px; color: #991b1b;">
                         <b>La imagen no parece ser un rostro válido.</b><br>
                         <ul>
-                            <li>Asegúrese de tener buena iluminación 💡</li>
-                            <li>No use mascarilla ni lentes oscuros 🕶️</li>
-                            <li>Evite fotos de paredes, mesas u objetos 🚫</li>
+                            <li>Asegúrese de tener buena iluminación </li>
+                            <li>No use mascarilla ni lentes oscuros </li>
+                            <li>Evite fotos de paredes, mesas u objetos </li>
                         </ul>
                     </div>
                  """, unsafe_allow_html=True)
@@ -1201,3 +1201,4 @@ else:
 
     # PARED BLANCA FINAL
     st.markdown("<br><br><br>", unsafe_allow_html=True)
+
