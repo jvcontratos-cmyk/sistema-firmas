@@ -733,7 +733,6 @@ else:
     
     # === PANTALLA DE ÉXITO (CON LOGO LIDERMAN FORZADO) ===
     if st.session_state['firmado_ok']:
-        st.balloons()
         
         # 1. PREPARAR EL LOGO (MODO SABUESO)
         import base64
@@ -1055,150 +1054,156 @@ else:
                     st.session_state['foto_bio'] = None
                     st.rerun()
 
-        # PASO 3: FIRMA (SOLO SE ACTIVA SI HAY FOTO VALIDADA 🕵️‍♂️)
-    # ----------------------------------------------------------
-    # Este 'if' es el Portero. Si no hay foto (o el robot la rechazó), 
-    # el Paso 3 NO SE DIBUJA. Adiós al cruce de mensajes rojos.
-    if st.session_state['foto_bio'] is not None:
-        
-        st.markdown("---")
-        st.subheader("3. Firma y Conformidad")
-        
-        st.caption("**DIBUJE SU FIRMA. EN CASO FALLÓ, USE EL SIGUIENTE ÍCONO 🗑️ PARA BORRAR**")
-        
-        with st.form(key="formulario_firma", clear_on_submit=False):
-            canvas_result = st_canvas(
-                stroke_width=2, stroke_color="#000000", background_color="#ffffff", 
-                height=200, width=340, drawing_mode="freedraw", 
-                display_toolbar=True, key=f"canvas_{st.session_state['canvas_key']}"
-            )
-            st.write("") 
-            enviar_firma = st.form_submit_button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True)
+    # PASO 3: FIRMA (SOLO SE ACTIVA SI HAY FOTO VALIDADA 🕵️‍♂️)
+        # ----------------------------------------------------------
+        # Este 'if' es el Portero. Si no hay foto (o el robot la rechazó), 
+        # el Paso 3 NO SE DIBUJA. Adiós al cruce de mensajes rojos.
+        if st.session_state['foto_bio'] is not None:
+            
+            st.markdown("---")
+            st.subheader("3. Firma y Conformidad")
+            
+            st.caption("**DIBUJE SU FIRMA. EN CASO FALLÓ, USE EL SIGUIENTE ÍCONO 🗑️ PARA BORRAR**")
+            
+            with st.form(key="formulario_firma", clear_on_submit=False):
+                canvas_result = st_canvas(
+                    stroke_width=2, stroke_color="#000000", background_color="#ffffff", 
+                    height=200, width=340, drawing_mode="freedraw", 
+                    display_toolbar=True, key=f"canvas_{st.session_state['canvas_key']}"
+                )
+                st.write("") 
+                enviar_firma = st.form_submit_button("✅ FINALIZAR Y FIRMAR", type="primary", use_container_width=True)
 
-        if enviar_firma:
-            # === 🛡️ PANTALLA DE CARGA ===
-            st.markdown("""
-            <style>
-                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-            </style>
-            <div style="
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                background-color: rgba(255, 255, 255, 0.9); backdrop-filter: blur(5px);
-                z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            ">
+            if enviar_firma:
+                # === 🛡️ PANTALLA DE CARGA ===
+                st.markdown("""
+                <style>
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
                 <div style="
-                    border: 10px solid #f3f3f3; border-top: 10px solid #FF4B4B; border-radius: 50%;
-                    width: 80px; height: 80px; animation: spin 1s linear infinite; margin-bottom: 20px;
-                "></div>
-                <div style="font-size: 22px; font-weight: bold; color: #333; margin-bottom: 10px; font-family: sans-serif;">
-                    SUBIENDO ARCHIVOS...
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                    background-color: rgba(255, 255, 255, 0.9); backdrop-filter: blur(5px);
+                    z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center;
+                ">
+                    <div style="
+                        border: 10px solid #f3f3f3; border-top: 10px solid #FF4B4B; border-radius: 50%;
+                        width: 80px; height: 80px; animation: spin 1s linear infinite; margin-bottom: 20px;
+                    "></div>
+                    <div style="font-size: 22px; font-weight: bold; color: #333; margin-bottom: 10px; font-family: sans-serif;">
+                        SUBIENDO ARCHIVOS...
+                    </div>
+                    <div style="font-size: 18px; color: #d9534f; font-weight: bold; font-family: sans-serif;">
+                        ⚠️ NO CIERRE LA VENTANA.
+                    </div>
                 </div>
-                <div style="font-size: 18px; color: #d9534f; font-weight: bold; font-family: sans-serif;">
-                    ⚠️ NO CIERRE LA VENTANA.
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            # ============================
+                """, unsafe_allow_html=True)
+                # ============================
 
-            if canvas_result.image_data is not None:
-                img_data = canvas_result.image_data.astype('uint8')
-                if img_data[:, :, 3].sum() == 0:
-                    st.warning("⚠️ Firma vacía.")
-                else:
-                    ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
-                    ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
-                    
-                    try:
-                        # 1. Guardar firma PNG
-                        img = Image.fromarray(img_data, 'RGBA')
-                        data = img.getdata()
-                        newData = []
-                        for item in data:
-                            if item[0] > 230 and item[1] > 230 and item[2] > 230:
-                                newData.append((255, 255, 255, 0))
-                            else: newData.append(item)
-                        img.putdata(newData)
-                        img.save(ruta_firma, "PNG")
+                if canvas_result.image_data is not None:
+                    img_data = canvas_result.image_data.astype('uint8')
+                    if img_data[:, :, 3].sum() == 0:
+                        st.warning("⚠️ Firma vacía.")
+                    else:
+                        ruta_firma = os.path.join(CARPETA_TEMP, "firma.png")
+                        ruta_salida_firmado = os.path.join(CARPETA_TEMP, f"FIRMADO_{nombre_archivo}")
                         
-                        # 2. PROCESAMIENTO (Igual que antes)
-                        doc_temp = fitz.open(ruta_pdf_local)
-                        num_paginas_detectadas = len(doc_temp)
-                        texto_pag1 = ""
                         try:
-                            texto_pag1 = doc_temp[0].get_text().upper()
-                        except: pass
-                        doc_temp.close()
+                            # 1. Guardar firma PNG
+                            img = Image.fromarray(img_data, 'RGBA')
+                            data = img.getdata()
+                            newData = []
+                            for item in data:
+                                if item[0] > 230 and item[1] > 230 and item[2] > 230:
+                                    newData.append((255, 255, 255, 0))
+                                else: newData.append(item)
+                            img.putdata(newData)
+                            img.save(ruta_firma, "PNG")
+                            
+                            # 2. PROCESAMIENTO (Igual que antes)
+                            doc_temp = fitz.open(ruta_pdf_local)
+                            num_paginas_detectadas = len(doc_temp)
+                            texto_pag1 = ""
+                            try:
+                                texto_pag1 = doc_temp[0].get_text().upper()
+                            except: pass
+                            doc_temp.close()
 
-                        # Lógica de tipos
-                        if num_paginas_detectadas == 11:
-                            tipo_etiqueta_excel = "Mina"
-                        elif num_paginas_detectadas == 9:
-                            if "GUARDIAN" in texto_pag1 or "GUARDIÁN" in texto_pag1:
-                                tipo_etiqueta_excel = "Guardian"
+                            # Lógica de tipos
+                            if num_paginas_detectadas == 11:
+                                tipo_etiqueta_excel = "Mina"
+                            elif num_paginas_detectadas == 9:
+                                if "GUARDIAN" in texto_pag1 or "GUARDIÁN" in texto_pag1:
+                                    tipo_etiqueta_excel = "Guardian"
+                                else:
+                                    tipo_etiqueta_excel = "Normal"
+                            elif num_paginas_detectadas == 8:
+                                tipo_etiqueta_excel = "Banco"
                             else:
                                 tipo_etiqueta_excel = "Normal"
-                        elif num_paginas_detectadas == 8:
-                            tipo_etiqueta_excel = "Banco"
-                        else:
-                            tipo_etiqueta_excel = "Normal"
 
-                        # Estampado
-                        estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado, tipo_etiqueta_excel)
-                        estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
-                        
-                        # Subida Cloud
-                        sede_actual = st.session_state['sede_usuario']
-                        id_carpeta_contratos = RUTAS_DRIVE[sede_actual]["FIRMADOS"]
-                        id_carpeta_imagenes = ID_CARPETA_FOTOS 
-
-                        resp_pdf = enviar_a_drive_script_retorna_url(ruta_salida_firmado, nombre_archivo, id_carpeta_contratos)
-                        
-                        nombre_firma_png = f"FIRMA_{st.session_state['dni_validado']}.png"
-                        resp_firma = enviar_a_drive_script_retorna_url(ruta_firma, nombre_firma_png, id_carpeta_imagenes)
-                        
-                        ruta_foto_temp = os.path.join(CARPETA_TEMP, "FOTO_TEMP.jpg")
-                        with open(ruta_foto_temp, "wb") as f_foto:
-                            f_foto.write(st.session_state['foto_bio'])
-                        nombre_foto_jpg = f"FOTO_{st.session_state['dni_validado']}.jpg"
-                        resp_foto = enviar_a_drive_script_retorna_url(ruta_foto_temp, nombre_foto_jpg, id_carpeta_imagenes)
-
-                        # Registro Excel
-                        if resp_pdf and resp_firma and resp_foto:
-                            link_firma_raw = resp_firma.get("fileUrl", "")
-                            link_foto_raw = resp_foto.get("fileUrl", "")
+                            # Estampado
+                            estampar_firma(ruta_pdf_local, ruta_firma, ruta_salida_firmado, tipo_etiqueta_excel)
+                            estampar_firma_y_foto_pagina9(ruta_salida_firmado, ruta_firma, st.session_state['foto_bio'], ruta_salida_firmado)
                             
-                            registro_ok = registrar_firma_sheet(
-                                st.session_state['dni_validado'], 
-                                sede_actual,
-                                st.session_state['archivo_nombre'], 
-                                link_firma_raw,                      
-                                link_foto_raw,
-                                tipo_etiqueta_excel 
-                            )
+                            # Subida Cloud
+                            sede_actual = st.session_state['sede_usuario']
+                            id_carpeta_contratos = RUTAS_DRIVE[sede_actual]["FIRMADOS"]
+                            id_carpeta_imagenes = ID_CARPETA_FOTOS 
+
+                            resp_pdf = enviar_a_drive_script_retorna_url(ruta_salida_firmado, nombre_archivo, id_carpeta_contratos)
                             
-                            if registro_ok:
-                                st.success("✅ ¡TODO LISTO! FIRMA REGISTRADA.")
-                                st.session_state['firmado_ok'] = True
-                                borrar_archivo_drive(st.session_state['archivo_id']) 
-                                st.balloons()
-                                st.rerun()
+                            nombre_firma_png = f"FIRMA_{st.session_state['dni_validado']}.png"
+                            resp_firma = enviar_a_drive_script_retorna_url(ruta_firma, nombre_firma_png, id_carpeta_imagenes)
+                            
+                            ruta_foto_temp = os.path.join(CARPETA_TEMP, "FOTO_TEMP.jpg")
+                            with open(ruta_foto_temp, "wb") as f_foto:
+                                f_foto.write(st.session_state['foto_bio'])
+                            nombre_foto_jpg = f"FOTO_{st.session_state['dni_validado']}.jpg"
+                            resp_foto = enviar_a_drive_script_retorna_url(ruta_foto_temp, nombre_foto_jpg, id_carpeta_imagenes)
+
+                            # Registro Excel
+                            if resp_pdf and resp_firma and resp_foto:
+                                link_firma_raw = resp_firma.get("fileUrl", "")
+                                link_foto_raw = resp_foto.get("fileUrl", "")
+                                
+                                registro_ok = registrar_firma_sheet(
+                                    st.session_state['dni_validado'], 
+                                    sede_actual,
+                                    st.session_state['archivo_nombre'], 
+                                    link_firma_raw,                       
+                                    link_foto_raw,
+                                    tipo_etiqueta_excel 
+                                )
+                                
+                                if registro_ok:
+                                    st.success("✅ ¡TODO LISTO! FIRMA REGISTRADA.")
+                                    st.session_state['firmado_ok'] = True
+                                    borrar_archivo_drive(st.session_state['archivo_id']) 
+                                    
+                                    # --- PARCHE ZOMBIE (BORRAR LOCAL) ---
+                                    try:
+                                        if os.path.exists(ruta_pdf_local): os.remove(ruta_pdf_local)
+                                    except: pass
+                                    # ------------------------------------
+
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Falló el registro.")
                             else:
-                                st.error("❌ Falló el registro en Excel.")
-                        else:
-                            st.error("❌ Error al subir archivos.")
+                                st.error("❌ Error al subir archivos.")
 
-                    except Exception as e:
-                        st.error(f"❌ Error: {e}")
-                    finally:
-                        if os.path.exists(ruta_firma): os.remove(ruta_firma)
-    
-    # ----------------------------------------------------------
-    # BOTÓN DE SALIR (SIEMPRE VISIBLE, INCLUSO SI NO HAY FOTO)
-    st.write("")
-    if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
-        st.session_state['dni_validado'] = None
-        st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Error: {e}")
+                        finally:
+                            if os.path.exists(ruta_firma): os.remove(ruta_firma)
+        
+        # ----------------------------------------------------------
+        # BOTÓN DE SALIR (SIEMPRE VISIBLE, INCLUSO SI NO HAY FOTO)
+        st.write("")
+        if st.button("⬅️ **IR A LA PÁGINA PRINCIPAL**"):
+            st.session_state['dni_validado'] = None
+            st.rerun()
 
-    # PARED BLANCA FINAL
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
+        # PARED BLANCA FINAL
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
 
