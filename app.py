@@ -39,9 +39,9 @@ COORDENADAS_MAESTRAS = {
         8: [(355, 175)]
     },
     "Banco": {
-        4: [(335, 365), (325, 200)],
+        4: [(335, 350), (315, 185)],
         5: [(335, 170)], 
-        7: [(370, 200)]
+        7: [(365, 200)]
     }
 }
 
@@ -126,6 +126,7 @@ with col_visor:
         )
     else:
         st.info("Sube un PDF y dale a 'Procesar' para ver las coordenadas aquí.")
+
 
 
 
