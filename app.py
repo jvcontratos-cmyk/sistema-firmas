@@ -24,7 +24,7 @@ st.info("Lo que ves en la imagen es el PDF real procesado. Las coordenadas coinc
 # --- 1. BIBLIOTECA MAESTRA ---
 COORDENADAS_MAESTRAS = {
     "Normal": { 
-        5: [(375, 360), (360, 210)], 
+        5: [(375, 360), (365, 185)], 
         6: [(395, 120)], 
         8: [(350, 140)]
     },
@@ -126,6 +126,7 @@ with col_visor:
         )
     else:
         st.info("Sube un PDF y dale a 'Procesar' para ver las coordenadas aquí.")
+
 
 
 
