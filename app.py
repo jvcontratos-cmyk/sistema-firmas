@@ -179,9 +179,9 @@ COORDENADAS_MAESTRAS = {
     # 1. CASO NORMAL (LIMA/PROVINCIA) - 9 PÁGINAS
     # Firma en: Pág 5, 6 y 8
     "Normal": { 
-        5: [(380, 388), (380, 260)], 
-        6: [(400, 130)], 
-        8: [(380, 175)]
+        5: [(375, 360), (365, 195)], 
+        6: [(395, 120)], 
+        8: [(350, 140)]
     },
 
     # 2. CASO MINA UNIFICADO - 11 PÁGINAS
@@ -197,17 +197,16 @@ COORDENADAS_MAESTRAS = {
     "Guardian": {
         5: [
             (400, 415),  # Firma Derecha Arriba (EL TRABAJADOR)
-            (100, 280)   # Firma Izquierda Abajo (Cargo de recepción)
+            (100, 245)   # Firma Izquierda Abajo (Cargo de recepción)
            ],
-        7: [(370, 400)], # Firma Pág 7 (Anexo Datos - Invertido)
-        8: [(355, 175)]  # Firma Pág 8 (Anexo Seguridad - Invertido)
+        7: [(370, 333)], # Firma Pág 7 (Anexo Datos - Invertido)
+        8: [(355, 163)]  # Firma Pág 8 (Anexo Seguridad - Invertido)
     },
 
-    # Espacios futuros
     "Banco": {
-        4: [(340, 380), (340, 215)],  # Firma Contrato y Cargo de recepción
-        5: [(340, 160)],              # Anexo Seguridad
-        7: [(380, 220)]               # Anexo Datos Personales
+        4: [(335, 350), (315, 185)],  # Firma Contrato y Cargo de recepción
+        5: [(335, 170)],              # Anexo Seguridad
+        7: [(365, 200)]               # Anexo Datos Personales
     },
     
     "Antamina": {}
@@ -1206,4 +1205,5 @@ else:
 
         # PARED BLANCA FINAL
         st.markdown("<br><br><br>", unsafe_allow_html=True)
+
 
