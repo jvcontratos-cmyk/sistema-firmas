@@ -1,18 +1,27 @@
 import streamlit as st
 import os
+import io
+import fitz  # PyMuPDF
 from PyPDF2 import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
-import io
 
 # --- CONFIGURACIÓN DE PÁGINA LAB ---
 st.set_page_config(page_title="LAB COORDENADAS", page_icon="🧪", layout="wide")
 
-st.markdown("<style>footer {visibility: hidden;} header {visibility: hidden;}</style>", unsafe_allow_html=True)
-st.title("🧪 Laboratorio de Coordenadas")
-st.warning("Usa esta web solo para calibrar. No registra datos en Excel.")
+# CSS para limpiar la interfaz
+st.markdown("""
+    <style>
+    footer {visibility: hidden;} 
+    header {visibility: hidden;}
+    .block-container {padding-top: 2rem;}
+    </style>
+    """, unsafe_allow_html=True)
 
-# --- 1. BIBLIOTECA MAESTRA (Aquí es donde harás tus cambios) ---
+st.title("🧪 Laboratorio de Coordenadas (Vista Real)")
+st.info("Lo que ves en la imagen es el PDF real procesado. Las coordenadas coinciden 1:1.")
+
+# --- 1. BIBLIOTECA MAESTRA ---
 COORDENADAS_MAESTRAS = {
     "Normal": { 
         5: [(380, 388), (380, 260)], 
@@ -36,12 +45,14 @@ COORDENADAS_MAESTRAS = {
     }
 }
 
-# --- 2. MOTOR DE ESTAMPADO ---
-def estampar_prueba(pdf_path, tipo_contrato):
-    pdf_original = PdfReader(pdf_path)
+# --- 2. MOTOR DE ESTAMPADO REAL ---
+def estampar_proceso_real(pdf_file, tipo_contrato):
+    pdf_original = PdfReader(pdf_file)
     pdf_writer = PdfWriter()
-    # Usamos el logo como firma de prueba para visualizar posición
-    imagen_test = "logo_liderman.png" 
+    
+    # Imagen temporal para visualización (Logo Liderman)
+    # Si no existe, el código dibujará el cuadro rojo igual
+    ruta_logo = "logo_liderman.png" 
     
     config = COORDENADAS_MAESTRAS.get(tipo_contrato, {})
     
@@ -51,11 +62,18 @@ def estampar_prueba(pdf_path, tipo_contrato):
             packet = io.BytesIO()
             c = canvas.Canvas(packet, pagesize=letter, bottomup=True)
             for (posX, posY) in config[num_pag]:
-                # Dibujamos un recuadro y el logo para ver el área exacta
-                c.setStrokeColorRGB(1, 0, 0) # Rojo para el borde de prueba
+                # Dibujamos el área de la firma (100x50 unidades de PDF)
+                c.setStrokeColorRGB(1, 0, 0) # Rojo
+                c.setLineWidth(2)
                 c.rect(posX, posY, 100, 50, stroke=1, fill=0)
-                if os.path.exists(imagen_test):
-                    c.drawImage(imagen_test, posX, posY, width=100, height=50, mask='auto')
+                
+                # Texto de ayuda sobre el cuadro
+                c.setFont("Helvetica-Bold", 8)
+                c.setFillColorRGB(1, 0, 0)
+                c.drawString(posX, posY + 55, f"X:{posX} Y:{posY}")
+                
+                if os.path.exists(ruta_logo):
+                    c.drawImage(ruta_logo, posX, posY, width=100, height=50, mask='auto')
             c.save()
             packet.seek(0)
             sello = PdfReader(packet)
@@ -66,28 +84,45 @@ def estampar_prueba(pdf_path, tipo_contrato):
     pdf_writer.write(output)
     return output.getvalue()
 
-# --- 3. INTERFAZ DE USUARIO ---
-col_ui, col_json = st.columns([2, 1])
+# --- 3. INTERFAZ Y VISOR ---
+col_control, col_visor = st.columns([1, 2])
 
-with col_ui:
-    archivo = st.file_uploader("📂 Sube el PDF que quieres probar", type="pdf")
-    tipo = st.selectbox("🎯 Selecciona el Tipo de Contrato", list(COORDENADAS_MAESTRAS.keys()))
+with col_control:
+    st.subheader("⚙️ Controles")
+    archivo_subido = st.file_uploader("Subir contrato PDF", type="pdf")
+    tipo_sel = st.selectbox("Tipo de Contrato", list(COORDENADAS_MAESTRAS.keys()))
     
-    if archivo:
-        if st.button("🚀 ESTAMPAR FIRMAS DE PRUEBA", type="primary", use_container_width=True):
-            with st.spinner("Calibrando..."):
-                pdf_resultado = estampar_prueba(archivo, tipo)
-                st.success("✅ Estampado listo")
-                st.download_button(
-                    label="📥 DESCARGAR Y VER POSICIONES",
-                    data=pdf_resultado,
-                    file_name=f"TEST_{tipo}.pdf",
-                    mime="application/pdf",
-                    use_container_width=True
-                )
+    if archivo_subido:
+        if st.button("🚀 PROCESAR Y VER", type="primary", use_container_width=True):
+            st.session_state['pdf_resultado'] = estampar_proceso_real(archivo_subido, tipo_sel)
 
-with col_json:
-    st.write("📊 **Mapa de coordenadas actual:**")
-    st.json(COORDENADAS_MAESTRAS[tipo])
+    st.divider()
+    st.write("📍 **Coordenadas en edición:**")
+    st.json(COORDENADAS_MAESTRAS[tipo_sel])
 
-st.info("💡 **Instrucción:** Cambia los números en el código de GitHub (sección COORDENADAS_MAESTRAS), guarda cambios y refresca esta página para ver el movimiento.")
+with col_visor:
+    if 'pdf_resultado' in st.session_state:
+        pdf_bytes = st.session_state['pdf_resultado']
+        
+        # Convertimos PDF a imagen para el visor
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        
+        st.subheader("📄 Previsualización de Firmas")
+        
+        paginas_con_firma = [p for p in COORDENADAS_MAESTRAS[tipo_sel].keys()]
+        
+        for num_pag in paginas_con_firma:
+            if num_pag <= len(doc):
+                page = doc.load_page(num_pag - 1)
+                pix = page.get_pixmap(dpi=120)
+                st.image(pix.tobytes("png"), caption=f"VISTA REAL - PÁGINA {num_pag}", use_container_width=True)
+        
+        st.download_button(
+            "📥 DESCARGAR PDF PROCESADO", 
+            pdf_bytes, 
+            file_name=f"PRUEBA_{tipo_sel}.pdf", 
+            mime="application/pdf",
+            use_container_width=True
+        )
+    else:
+        st.info("Sube un PDF y dale a 'Procesar' para ver las coordenadas aquí.")
