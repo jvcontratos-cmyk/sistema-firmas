@@ -29,7 +29,7 @@ COORDENADAS_MAESTRAS = {
         8: [(350, 140)]
     },
     "Mina": {
-        7: [(375, 420), (95, 250)], 
+        7: [(375, 420), (95, 255)], 
         9: [(320, 203)], 
         10: [(360, 173)]
     },
@@ -131,6 +131,7 @@ with col_visor:
         )
     else:
         st.info("Sube un PDF y dale a 'Procesar' para ver las coordenadas aquí.")
+
 
 
 
