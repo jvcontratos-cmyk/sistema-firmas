@@ -42,7 +42,12 @@ COORDENADAS_MAESTRAS = {
         4: [(335, 350), (315, 185)],
         5: [(335, 170)], 
         7: [(365, 200)]
-    }
+    },
+    "Servicios": {
+        5: [(380, 180)], # Ajusta estos números según veas el cuadro rojo
+        7: [(380, 400)], # Ejemplo: si esta página es un anexo de datos
+        8: [(355, 175)]  # Ejemplo: si esta es la de seguridad
+    },
 }
 
 # --- 2. MOTOR DE ESTAMPADO REAL ---
@@ -126,6 +131,7 @@ with col_visor:
         )
     else:
         st.info("Sube un PDF y dale a 'Procesar' para ver las coordenadas aquí.")
+
 
 
 
