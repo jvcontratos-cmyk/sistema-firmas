@@ -26,7 +26,7 @@ COORDENADAS_MAESTRAS = {
     "Normal": { 
         5: [(375, 360), (365, 195)], 
         6: [(395, 120)], 
-        8: [(360, 210)]
+        8: [(360, 180)]
     },
     "Mina": {
         7: [(375, 420), (95, 257)], 
@@ -131,6 +131,7 @@ with col_visor:
         )
     else:
         st.info("Sube un PDF y dale a 'Procesar' para ver las coordenadas aquí.")
+
 
 
 
