@@ -44,9 +44,9 @@ COORDENADAS_MAESTRAS = {
         7: [(365, 200)]
     },
     "Servicios": {
-        5: [(350, 148)], # Ajusta estos números según veas el cuadro rojo
-        7: [(348, 383)], # Ejemplo: si esta página es un anexo de datos
-        8: [(350, 133)]  # Ejemplo: si esta es la de seguridad
+        6: [(350, 148)], # Ajusta estos números según veas el cuadro rojo
+        8: [(348, 383)], # Ejemplo: si esta página es un anexo de datos
+        9: [(350, 133)]  # Ejemplo: si esta es la de seguridad
     },
 }
 
@@ -131,6 +131,7 @@ with col_visor:
         )
     else:
         st.info("Sube un PDF y dale a 'Procesar' para ver las coordenadas aquí.")
+
 
 
 
