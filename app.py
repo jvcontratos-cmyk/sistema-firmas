@@ -54,6 +54,12 @@ COORDENADAS_MAESTRAS = {
         10: [(360, 173)],
         15: [(367, 273)]
     },
+    "Guardian Antamina": {
+        5: [(400, 415), (100, 245)], 
+        7: [(370, 333)],             
+        8: [(355, 163)],            
+        13: [(370, 333)]
+    },
 }
 
 # --- 2. MOTOR DE ESTAMPADO REAL ---
@@ -137,6 +143,7 @@ with col_visor:
         )
     else:
         st.info("Sube un PDF y dale a 'Procesar' para ver las coordenadas aquí.")
+
 
 
 
