@@ -48,6 +48,12 @@ COORDENADAS_MAESTRAS = {
         8: [(345, 383)], # Ejemplo: si esta página es un anexo de datos
         9: [(350, 133)]  # Ejemplo: si esta es la de seguridad
     },
+    "Antamina": {
+        7: [(375, 420), (95, 257)], 
+        9: [(323, 234)], 
+        10: [(360, 173)],
+        15: [(360, 173)]
+    },
 }
 
 # --- 2. MOTOR DE ESTAMPADO REAL ---
@@ -131,6 +137,7 @@ with col_visor:
         )
     else:
         st.info("Sube un PDF y dale a 'Procesar' para ver las coordenadas aquí.")
+
 
 
 
