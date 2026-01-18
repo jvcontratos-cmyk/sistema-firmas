@@ -52,7 +52,7 @@ COORDENADAS_MAESTRAS = {
         7: [(375, 420), (95, 257)], 
         9: [(323, 234)], 
         10: [(360, 173)],
-        15: [(367, 250)]
+        15: [(367, 265)]
     },
 }
 
@@ -137,6 +137,7 @@ with col_visor:
         )
     else:
         st.info("Sube un PDF y dale a 'Procesar' para ver las coordenadas aquí.")
+
 
 
 
